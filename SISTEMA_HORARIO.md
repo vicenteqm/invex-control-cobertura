@@ -1,3 +1,7 @@
+# Consulta automática del detalle
+
+El detalle por promotor ahora se publica automáticamente dentro de los datos del tablero, según la solicitud del usuario. Los visitantes pueden consultar nombres, checadas, jornadas y estatus sin cargar archivos. Cada procesamiento válido lo regenera y lo publica junto con los KPI. Solo se incluyen los campos de consulta autorizados; usuarios de acceso, nóminas, teléfonos, contraseñas y archivos fuente quedan fuera. Esta configuración sustituye las instrucciones anteriores de carga local para la consulta web.
+
 # Sistema operativo integrado
 
 ## Registro Pandape / MAAT

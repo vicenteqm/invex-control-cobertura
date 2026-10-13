@@ -65,4 +65,4 @@ Documentación: https://docs.github.com/en/pages/getting-started-with-github-pag
 - El detalle incluye todos los días del mes del periodo explícito, con Sin captura para días sin códigos ni horas; no se consideran faltas automáticamente. El corte indica el último día con algún código, sin garantizar captura completa.
 - Última actualización: momento de procesamiento, mostrado en America/Mexico_City. Se muestra también la modificación de cada fuente.
 
-El sitio compartido expone los agregados publicados a sus visitantes. Los nombres, nóminas, teléfonos, usuarios y sueldos del Excel no se publican. Las fuentes originales permanecen intactas.
+El sitio compartido expone los agregados publicados a sus visitantes. El detalle por promotor publica nombres, jornadas, checadas y estatus según la autorización del usuario. Nóminas, teléfonos, usuarios de acceso, sueldos y credenciales no se publican. Las fuentes originales permanecen intactas.

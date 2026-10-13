@@ -99,6 +99,8 @@ def process(base, attendance, period, maat=None, now=None):
         store['promedio_cobertura_mes']=round(sum(r['cobertura_pct'] for r in observed)/len(observed),1) if observed else 0
     result=sanitize_months({period:raw})[period]
     result.update(mode='current',processedAt=now.isoformat(),cutoffTime=engine.fmt_min(cutoff) if cutoff is not None else 'Corte histórico del Excel',maatLoaded=bool(maat),maatDays=sorted(available),attendanceDays=sorted(captured))
+    from detalle_promotores import public_detail
+    result['promoterDetail']=public_detail(raw)
     aggregates={s['id']:s for s in result['stores']}
     from registro_maat import aggregate
     registration=aggregate(raw,days,available)

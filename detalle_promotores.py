@@ -7,6 +7,17 @@ from openpyxl.utils import get_column_letter
 HEADERS=['Fecha','Nombre','Tienda','Clave de tienda','Zona','Región','Ejecutiva','Tipo de jornada','Horario asignado (texto)','Hora inicio programada','Hora fin programada','Registra Pandape','Hora entrada Pandape','Hora salida Pandape','Registra MAAT','Hora entrada MAAT','Hora salida MAAT','Estatus','Se movió de tienda (según MAAT)','Cerró jornada manualmente (MAAT)','Llegó tarde','Salió antes de su horario','Horario estimado por','No está en asistencia (agregado desde MAAT)']
 LABELS={'COMPLETO':'Completo','SEGUIMIENTO_MAAT':'Falta MAAT','ALERTA_PANDAPE':'Falta Pandape','ALARMANTE':'Sin registro'}
 
+def public_detail(raw):
+    """Solo los campos nominales autorizados para la consulta del tablero."""
+    fields=['registra_pandape','registra_maat','estatus_registro','tienda_maat','se_movio_de_tienda','hora_entrada_pandape','hora_salida_pandape','hora_entrada_maat','hora_salida_maat','cerro_jornada_manual','llego_tarde','minutos_tarde','salio_antes_de_horario','minutos_antes_de_hora','hora_inicio_programada','hora_fin_programada','fuente_horario_programado']
+    result={'meta':{'period':raw['meta']['period']},'stores':{}}
+    for key,store in raw['stores'].items():
+        target={}
+        for group in ['empleados_activos','externos_maat']:
+            target[group]=[dict(nombre=p['nombre'],jornada=p.get('jornada'),horario_personal=p.get('horario_personal'),registro_por_dia={str(day):{f:r.get(f) for f in fields} for day,r in p.get('registro_por_dia',{}).items() if 1<=int(day)<=raw['meta']['reference_day']}) for p in store.get(group,[])]
+        result['stores'][key]=target
+    return result
+
 def rows(raw,day):
     period=raw['meta'].get('period','');date=period+'-'+str(day).zfill(2)
     output=[]
