@@ -2,6 +2,10 @@
 
 ## Registro Pandape / MAAT
 
+El Excel de detalle por promotor replica las 23 columnas de `downloadRegistroExcel` del HTML anterior y agrega la fecha del corte. El reporte de fichajes se cruza por nombre con la asistencia mensual; después el motor cruza USUARIO de asistencia con Ejecutivo/Usuario de MAAT por día, y asigna la información de tienda mediante socio/determinante. Incluye jornada, horario asignado y programado, indicadores y horas de ambos sistemas, estatus, cambios de tienda, cierre manual, retardo, salida anticipada, origen del horario y externos MAAT.
+
+Cada procesamiento válido genera además `inputs/Detalle_promotores_AAAA-MM_DD.xlsx` mediante `detalle_promotores.py`, con Calibri 9, centrado horizontal/vertical, encabezados negros con texto blanco y datos blancos con texto negro. El archivo nominal se conserva localmente. La descarga de promotores del tablero genera los mismos campos con el mismo diseño y respeta los filtros aplicados tras cargar el análisis local.
+
 Se recuperaron los cuatro KPI del tablero del ZIP: registrados en Pandape, registrados en MAAT, completos en ambos y sin registro en ningún sistema, con numerador, total y porcentaje. El universo incluye personal activo y externos MAAT de las tiendas filtradas. Una persona trasladada se cuenta una sola vez en los KPI; sus registros por tienda se atribuyen al destino de cobertura.
 
 La vista incluye tiendas sin ningún registro, estatus por tienda, cobertura por horario (mediodía y tolerancia de cierre de 30 minutos), movimientos, retardos, salidas anticipadas y cierre manual. Permite filtrar estatus, consultar cada tienda y descargar la consulta en Excel XLSX real o imagen PNG. Los días sin datos de un sistema quedan sin evaluar. Los históricos de agosto y septiembre se recuperaron de los datos incrustados en el ZIP; `importar_registro_historico.py --zip ruta/cob.zip` permite repetir su incorporación sin reemplazar el periodo actual.

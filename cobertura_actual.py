@@ -88,6 +88,8 @@ def process(base, attendance, period, maat=None, now=None):
     private=Path(__file__).resolve().parent/'inputs'
     private.mkdir(exist_ok=True)
     (private/'analisis_actual.json').write_text(json.dumps(raw,ensure_ascii=False,default=str),encoding='utf-8')
+    from detalle_promotores import export as export_promoters
+    export_promoters(raw,private/('Detalle_promotores_'+period+'_'+str(reference).zfill(2)+'.xlsx'),reference)
     # Los días sin captura global permanecen sin datos, no se convierten en alarmas.
     captured={d for employee in employees if employee['estatus']=='ACTIVO' for d in employee['dias']}
     for store in raw['stores'].values():

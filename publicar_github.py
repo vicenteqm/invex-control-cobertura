@@ -42,7 +42,7 @@ def main():
     print('Repositorio: '+info['html_url'],flush=True)
     def git(*args):subprocess.run(['git',*args],cwd=ROOT,env=env,check=True)
     # Solo archivos de implementación y datos agregados; nunca fuentes o secretos.
-    git('add','--',*FILES)
+    git('add','--',*FILES,'detalle_promotores.py')
     staged=subprocess.check_output(['git','diff','--cached','--name-only'],cwd=ROOT,text=True).splitlines()
     if any(p.startswith(('inputs/','.private/','logs/','.build-deps/')) or p.endswith(('.xlsx','.xlsm','.csv')) or p=='config.local.json' for p in staged):raise RuntimeError('El índice contiene archivos privados; publicación detenida')
     if staged:git('commit','-m','Publicar tablero de cobertura INVEX y proceso de actualización')
