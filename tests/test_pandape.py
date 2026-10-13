@@ -46,6 +46,12 @@ class PandapeTests(unittest.TestCase):
             s.cell(11,46,'Ent.   ');s.cell(11,51,'Sal.   ');s.cell(12,46,'10:02');s.cell(12,51,'19:00');w.save(report);w.close()
             values=list(summarize(report,date(2026,10,13)).values())
             self.assertEqual(len(values),1);self.assertEqual(values[0]['entry'],602);self.assertEqual(values[0]['exit'],1140)
+    def test_daily_report_with_two_pairs(self):
+        with tempfile.TemporaryDirectory() as d:
+            _,report=self.fixtures(Path(d))
+            w=load_workbook(report);w.active.delete_cols(35,6);w.save(report);w.close()
+            values=list(summarize(report,date(2026,10,13)).values())
+            self.assertEqual(len(values),1);self.assertEqual(values[0]['entry'],605);self.assertEqual(values[0]['exit'],1080)
     def test_unmatched_report_preserves_previous_file(self):
         with tempfile.TemporaryDirectory() as d:
             folder=Path(d);source,report=self.fixtures(folder);target=folder/'output.xlsx';target.write_bytes(b'previo')

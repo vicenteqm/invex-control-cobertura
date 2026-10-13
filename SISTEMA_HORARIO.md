@@ -1,5 +1,19 @@
 # Consulta automática del detalle
 
+## Ingreso manual y procesamiento automático
+
+Prueba del 13 de octubre de 2026: se verificaron el ingreso manual en Edge, los filtros Compañía/Departamento/INVEX y la descarga diaria. El reporte de 531 personas permitió 342 coincidencias con la asistencia; MAAT descargó 1,907 registros. La actualización y publicación terminaron a las 14:18. El lector reconoce reportes diarios con dos pares Ent./Sal., además de los reportes con tres o cuatro pares. Un reporte ya validado queda como `Reporte_Pandape_actual.xlsx`.
+
+La configuración actual utiliza Edge visible y `pandape_manual_login: true`. Al abrir `ACTUALIZAR_INVEX.bat`, el programa prepara únicamente el correo. El usuario escribe la contraseña, pulsa Entrar y completa cualquier verificación solicitada por Pandape. El ejecutor espera hasta cinco minutos y, al detectar el ingreso, aplica los filtros, exporta los fichajes del día, valida y reemplaza el reporte actual, genera la asistencia, cruza MAAT y publica. No hay que pulsar Exportar ni modificar filtros manualmente.
+
+El aviso «Problema administrativo» de Pandape puede cubrir el botón Exportar. El programa cierra únicamente ese aviso cuando encuentra su botón de cierre; no contacta al departamento administrativo ni modifica la cuenta. Si no identifica el cierre, solicita al usuario cerrar el aviso y espera. El aviso de la cuenta puede requerir seguimiento por parte de su administrador.
+
+Cada ejecución nueva abre una sesión del navegador y requiere el ingreso manual. Por tanto, la tarea horaria no es desatendida mientras se use este modo. Se mantiene el modo de reporte descargado manualmente como alternativa.
+
+El ejecutor muestra Chrome visible cuando `pandape_visible` es `true` en la configuración local. El descargador informa siete pasos en la consola, aplica los filtros Compañía → Departamento → INVEX por su texto visible y valida el reporte del día antes de reemplazar `inputs/pandape/Reporte_Pandape_actual.xlsx`. Después genera la asistencia mensual, descarga MAAT, calcula y publica. La descarga original de cada ejecución se conserva en su propia carpeta. Un fallo de acceso, filtro, descarga o validación conserva el reporte válido anterior. No se eluden rechazos del servidor ni desafíos de seguridad.
+
+En la prueba con Chrome visible del 13 de octubre de 2026, el formulario abrió pero Pandape rechazó el inicio de sesión con «Error en la validación de Captcha». En ese caso el ejecutor mantiene Chrome abierto hasta cinco minutos para que el usuario complete el acceso personalmente. Continúa al detectar la salida de la pantalla de inicio de sesión; si no se completa, termina con un aviso y conserva los datos. Por tanto, no se garantiza una descarga desatendida cada hora cuando Pandape exige esa verificación.
+
 El detalle por promotor ahora se publica automáticamente dentro de los datos del tablero, según la solicitud del usuario. Los visitantes pueden consultar nombres, checadas, jornadas y estatus sin cargar archivos. Cada procesamiento válido lo regenera y lo publica junto con los KPI. Solo se incluyen los campos de consulta autorizados; usuarios de acceso, nóminas, teléfonos, contraseñas y archivos fuente quedan fuera. Esta configuración sustituye las instrucciones anteriores de carga local para la consulta web.
 
 # Sistema operativo integrado

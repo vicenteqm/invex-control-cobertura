@@ -28,7 +28,7 @@ def summarize(report,day=None):
     workbook=load_workbook(report,read_only=True,data_only=True)
     try:
         sheet=workbook.worksheets[0]
-        if sheet.max_column<40 or sheet.max_row<12:raise ValueError('El reporte Pandape no tiene la estructura de fichajes esperada')
+        if sheet.max_column<18 or sheet.max_row<12:raise ValueError('El reporte Pandape no tiene la estructura de fichajes esperada')
         if day is not None:
             dates={}
             for row in sheet.iter_rows(max_row=10,values_only=True):

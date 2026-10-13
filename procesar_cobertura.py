@@ -73,6 +73,7 @@ def run(config,skip_download=False,pandape_report=None):
             download_error=type(error).__name__+': '+str(error)
             logging.error('No se descargó MAAT: %s',download_error)
     result=generate(base,attendance,period)
+    logging.info('Calculando cobertura y cruce diario Pandape / MAAT')
     # Si falla la descarga no se presenta el concentrado viejo como actualizado.
     maat_path=maat if maat.exists() and not download_error else None
     month=process(base,attendance,period,maat_path)
@@ -86,6 +87,7 @@ def run(config,skip_download=False,pandape_report=None):
         tmp=path.with_suffix('.tmp');tmp.write_text(variable+' = '+json.dumps(data,ensure_ascii=False,allow_nan=False)+';\n',encoding='utf-8')
     for path,_,_ in targets:path.with_suffix('.tmp').replace(path)
     if config.get('publish'):
+        logging.info('Publicando los datos y el detalle por promotor en GitHub')
         from actualizar import publish_data
         publish_data(ROOT)
     current_days=[next((d for d in s['days'] if d['day']==month['referenceDay']),{}) for s in month['stores']]
