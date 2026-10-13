@@ -1,7 +1,11 @@
 # INVEX · Control de cobertura
 
+Tablero publicado: https://vicenteqm.github.io/invex-control-cobertura/
+
+Repositorio: https://github.com/vicenteqm/invex-control-cobertura
+
 El módulo adicional de Seguimiento operativo y su actualización histórica se documentan en [INTEGRACION.md](INTEGRACION.md).
-El proceso completo de descarga MAAT, cálculo desde los Excel y actualización cada hora se documenta en [SISTEMA_HORARIO.md](SISTEMA_HORARIO.md). Ejecuta `python procesar_cobertura.py` para utilizar el motor integrado.
+El proceso completo de descarga Pandape, generación de asistencia, descarga MAAT, cálculo y actualización cada hora se documenta en [SISTEMA_HORARIO.md](SISTEMA_HORARIO.md). Ejecuta `python procesar_cobertura.py` para utilizar el motor integrado. La descarga automática de Pandape presenta actualmente un rechazo HTTP 403; el tablero conserva su última versión válida.
 
 Panel estático de una sola página, en negro y blanco. Cobertura, Tiendas, Asistencia y Actualización. Sin proceso de compilación ni servicios externos para consultar los datos.
 

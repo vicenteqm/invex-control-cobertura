@@ -33,7 +33,7 @@ El adaptador identifica columnas por encabezados y luego entrega al motor su esq
 
 Las carpetas y el periodo están en `config.local.json`, excluido de Git. Los Excel originales permanecen intactos. Los CSV de MAAT se guardan en `inputs/`, también excluido. Se aplican los mismos nueve mapeos de puntos de venta del descargador original. Las fechas se normalizan antes de sustituir registros, evitando duplicados por formatos DD/MM/AAAA y AAAA-MM-DD.
 
-Las credenciales de MAAT se leen desde MAAT_USER y MAAT_PASSWORD, o desde `.private/maat.json`, cifrado por Windows para la cuenta local. No hay contraseñas ni tokens GitHub escritos en el código nuevo. La publicación utiliza Git autenticado, solo si `publish` está activado. Actualmente está desactivada porque esta carpeta no tiene un remoto de publicación configurado.
+Las credenciales de MAAT se leen desde MAAT_USER y MAAT_PASSWORD, o desde `.private/maat.json`, cifrado por Windows para la cuenta local. No hay contraseñas ni tokens GitHub escritos en el código nuevo. La publicación utiliza Git autenticado, solo si `publish` está activado. Está activada en la configuración local y el remoto es `vicenteqm/invex-control-cobertura`. Un proceso válido envía los archivos agregados del tablero y GitHub Actions despliega Pages; si falla Pandape, se conserva la publicación anterior.
 
 ## Ejecución cada hora y fallos
 

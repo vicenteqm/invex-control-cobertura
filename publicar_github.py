@@ -27,6 +27,12 @@ def main():
         return response.json() if response.content else None
     user=api('GET','/user')['login']
     if user!=EXPECTED_USER:raise RuntimeError('La cuenta Git autenticada no coincide con la cuenta conectada '+EXPECTED_USER)
+    if '--estado' in sys.argv:
+        runs=api('GET','/repos/'+user+'/'+NAME+'/actions/runs?per_page=3')
+        print(json.dumps([{'id':r['id'],'status':r['status'],'conclusion':r['conclusion'],'url':r['html_url']} for r in runs['workflow_runs']],indent=2))
+        response=requests.get('https://'+user+'.github.io/'+NAME+'/',timeout=30)
+        print('HTTP del tablero: '+str(response.status_code))
+        return
     info=api('GET','/repos/'+user+'/'+NAME,expected=(200,404))
     if info and info.get('full_name'):
         remotes=subprocess.check_output(['git','remote','get-url','origin'],cwd=ROOT,text=True).strip()
