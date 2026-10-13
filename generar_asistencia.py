@@ -1,6 +1,6 @@
 """Equivalente Python del flujo CRUCE.bas incluido en el sistema anterior."""
 import unicodedata
-from datetime import datetime,time
+from datetime import date,datetime,time
 from pathlib import Path
 from openpyxl import load_workbook
 from engine import to_min
@@ -10,6 +10,12 @@ def normalized(value):
     return ' '.join(''.join(c for c in text if not unicodedata.combining(c)).split())
 
 def name_key(value):return tuple(sorted(normalized(value).split()))
+
+def report_date(value):
+    if isinstance(value,datetime):return value.date()
+    if isinstance(value,date):return value
+    try:return datetime.strptime(str(value).strip(),'%d/%m/%Y').date()
+    except ValueError:raise ValueError('El reporte tiene una fecha de fichaje inválida') from None
 
 def minute(value):
     if isinstance(value,datetime):value=value.time()
@@ -31,16 +37,24 @@ def summarize(report,day=None):
                     label=normalized(value).rstrip(':')
                     if label in ('FECHA INICIAL','FECHA FINAL'):
                         raw=values[index+1]
-                        parsed=raw.date() if isinstance(raw,datetime) else datetime.strptime(str(raw).strip(),'%d/%m/%Y').date()
+                        parsed=report_date(raw)
                         dates[label]=parsed
-            if len(dates)!=2 or any(value!=day for value in dates.values()):
-                raise ValueError('Las fechas inicial y final del reporte deben coincidir con el día que se actualiza')
+            if len(dates)!=2 or not dates['FECHA INICIAL']<=day<=dates['FECHA FINAL']:
+                raise ValueError('El rango del reporte no incluye el día que se actualiza')
+        headings=next(sheet.iter_rows(min_row=11,max_row=11,values_only=True))
+        entries_cols=[i for i,v in enumerate(headings) if normalized(v)=='ENT.']
+        exits_cols=[i for i,v in enumerate(headings) if normalized(v)=='SAL.']
+        if normalized(headings[2])!='COLABORADOR' or not entries_cols or len(entries_cols)!=len(exits_cols):
+            raise ValueError('No se identifican los encabezados Colaborador, Ent. y Sal. del reporte')
         summary={}
         for row in sheet.iter_rows(min_row=12,values_only=True):
             name=row[2];key=name_key(name)
             if not key:continue
-            entries=[m for i in (12,23,34) if (m:=minute(row[i])) is not None]
-            exits=[m for i in (17,28,39) if (m:=minute(row[i])) is not None]
+            if day is not None:
+                row_day=report_date(row[0])
+                if row_day!=day:continue
+            entries=[m for i in entries_cols if (m:=minute(row[i])) is not None]
+            exits=[m for i in exits_cols if (m:=minute(row[i])) is not None]
             data=summary.setdefault(key,{'name':str(name),'entry':None,'exit':None})
             if entries:data['entry']=min(entries+[data['entry']] if data['entry'] is not None else entries)
             if exits:data['exit']=max(exits+[data['exit']] if data['exit'] is not None else exits)

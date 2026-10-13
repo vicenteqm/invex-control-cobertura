@@ -84,6 +84,7 @@ def process(base, attendance, period, maat=None, now=None):
         names=['maat_usuarios_por_dia','maat_ubicacion_por_usuario_dia','maat_entrada_por_usuario_dia','maat_salida_por_usuario_dia','maat_cierre_manual_por_usuario_dia','maat_dia_min','maat_dia_max']
         kwargs=dict(zip(names,values));available=set(values[0])
     raw=engine.analyze(a,b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
+    raw['meta']['period']=period
     private=Path(__file__).resolve().parent/'inputs'
     private.mkdir(exist_ok=True)
     (private/'analisis_actual.json').write_text(json.dumps(raw,ensure_ascii=False,default=str),encoding='utf-8')
@@ -97,20 +98,7 @@ def process(base, attendance, period, maat=None, now=None):
     result=sanitize_months({period:raw})[period]
     result.update(mode='current',processedAt=now.isoformat(),cutoffTime=engine.fmt_min(cutoff) if cutoff is not None else 'Corte histórico del Excel',maatLoaded=bool(maat),maatDays=sorted(available),attendanceDays=sorted(captured))
     aggregates={s['id']:s for s in result['stores']}
-    for store in aggregates.values():
-        store['registration']={str(day):dict(available=day in available,pandape=0,maat=0,both=0,none=0,movedOut=0,incoming=0,late=0,earlyDeparture=0,manualClosing=0) for day in range(1,days+1)}
-    for key,store in raw['stores'].items():
-        for employee in store['empleados_activos']+store.get('externos_maat',[]):
-            for day_str,record in employee.get('registro_por_dia',{}).items():
-                target=record.get('tienda_maat_key') if record.get('se_movio_de_tienda') else key
-                if target not in aggregates:continue
-                bucket=aggregates[target]['registration'][day_str]
-                pandape=bool(record.get('registra_pandape'));maat_record=bool(record.get('registra_maat'))
-                bucket['pandape']+=pandape;bucket['maat']+=maat_record;bucket['both']+=pandape and maat_record
-                bucket['none']+=not pandape and not maat_record
-                bucket['incoming']+=target!=key
-                for field in ['late','earlyDeparture','manualClosing']:
-                    source={'late':'llego_tarde','earlyDeparture':'salio_antes_de_horario','manualClosing':'cerro_jornada_manual'}[field]
-                    bucket[field]+=bool(record.get(source))
-                if target!=key and key in aggregates:aggregates[key]['registration'][day_str]['movedOut']+=1
+    from registro_maat import aggregate
+    registration=aggregate(raw,days,available)
+    for key,store in aggregates.items():store['registration']=registration[key]
     return result

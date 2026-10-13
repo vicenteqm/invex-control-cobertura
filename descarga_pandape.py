@@ -68,5 +68,6 @@ def download(config, root):
         from urllib.parse import urlsplit
         location=urlsplit(driver.current_url)
         (private/'diagnostico.json').write_text(json.dumps({'stage':stage,'error':type(error).__name__,'page':location.netloc+location.path,'title':driver.title}),encoding='utf-8')
-        raise RuntimeError('Pandape: '+stage+' ('+type(error).__name__+')') from None
+        reason='HTTP 403: el servidor rechazó el acceso automático antes de iniciar sesión' if '403' in driver.title or 'Forbidden' in driver.title else type(error).__name__
+        raise RuntimeError('Pandape: '+stage+' ('+reason+')') from None
     finally:driver.quit()

@@ -10,7 +10,7 @@ import requests
 ROOT=Path(__file__).resolve().parent
 NAME='invex-control-cobertura'
 EXPECTED_USER='vicenteqm'
-FILES=['.gitignore','.github','site','tests','README.md','INTEGRACION.md','SISTEMA_HORARIO.md','REVISION_SISTEMA_ANTERIOR.md','actualizar.py','cobertura_actual.py','descarga_asistencia.py','descarga_pandape.py','engine.py','generar_asistencia.py','importar_operacion.py','procesar_cobertura.py','secretos_locales.py','requirements.txt','requirements-build.txt','publicar_github.py']
+FILES=['.gitignore','.github','site','tests','README.md','INTEGRACION.md','SISTEMA_HORARIO.md','REVISION_SISTEMA_ANTERIOR.md','actualizar.py','cobertura_actual.py','descarga_asistencia.py','descarga_pandape.py','engine.py','generar_asistencia.py','importar_operacion.py','importar_registro_historico.py','registro_maat.py','procesar_cobertura.py','ejecutar_actualizacion.py','ACTUALIZAR_INVEX.bat','ACTUALIZAR_CON_REPORTE.bat','secretos_locales.py','requirements.txt','requirements-build.txt','publicar_github.py']
 
 def main():
     env=dict(os.environ,GIT_TERMINAL_PROMPT='0',GCM_INTERACTIVE='never')

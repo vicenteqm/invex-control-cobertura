@@ -1,5 +1,21 @@
 # Sistema operativo integrado
 
+## Registro Pandape / MAAT
+
+Se recuperaron los cuatro KPI del tablero del ZIP: registrados en Pandape, registrados en MAAT, completos en ambos y sin registro en ningún sistema, con numerador, total y porcentaje. El universo incluye personal activo y externos MAAT de las tiendas filtradas. Una persona trasladada se cuenta una sola vez en los KPI; sus registros por tienda se atribuyen al destino de cobertura.
+
+La vista incluye tiendas sin ningún registro, estatus por tienda, cobertura por horario (mediodía y tolerancia de cierre de 30 minutos), movimientos, retardos, salidas anticipadas y cierre manual. Permite filtrar estatus, consultar cada tienda y descargar la consulta en Excel XLSX real o imagen PNG. Los días sin datos de un sistema quedan sin evaluar. Los históricos de agosto y septiembre se recuperaron de los datos incrustados en el ZIP; `importar_registro_historico.py --zip ruta/cob.zip` permite repetir su incorporación sin reemplazar el periodo actual.
+
+El detalle por promotor se activa cargando `inputs/analisis_actual.json` en el selector del tablero. Para los meses históricos, usa `inputs/historico/analisis_AAAA-MM.json`. Se muestran nombres, ambas parejas de horas, clasificación, destino, cambios, horarios programados y alertas; permite buscar, filtrar estatus y horarios irregulares y exportar Excel o imagen. El navegador lee el archivo localmente, sin enviarlo a un servidor. El sitio público contiene únicamente los agregados; los archivos nominales permanecen excluidos del repositorio.
+
+## Ejecutar con doble clic en Windows
+
+Abre `ACTUALIZAR_INVEX.bat` desde la carpeta del proyecto. El ejecutor busca Python, verifica las dependencias y configuración, y corre `procesar_cobertura.py`. La ventana permanece abierta para leer el resultado. Con `publish` activado, el proceso también envía los datos válidos a GitHub y Pages los despliega. No instala dependencias ni cambia credenciales automáticamente.
+
+Puedes arrastrar el reporte Pandape sobre el BAT o abrir `ACTUALIZAR_CON_REPORTE.bat` para seleccionarlo. El rango del reporte debe incluir el día actual: se leen exclusivamente las filas de ese día y se detectan todos los pares Ent./Sal. por encabezados. Los días anteriores del reporte no se mezclan con la captura actual. Para verificar el entorno sin descargar ni publicar ejecuta `python ejecutar_actualizacion.py --comprobar`.
+
+El BAT es un lanzador; requiere la carpeta completa, su configuración local y las credenciales cifradas para la misma cuenta de Windows. No es un ejecutable independiente ni crea otra tarea horaria.
+
 `procesar_cobertura.py` reemplaza el procesador anterior. Lee `config.local.json`, descarga MAAT, sustituye los registros de las fechas descargadas en el concentrado mensual, procesa los Excel con `engine.py` y genera ambos archivos de datos del panel. Conserva los demás meses históricos.
 
 ```powershell

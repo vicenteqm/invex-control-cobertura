@@ -44,7 +44,7 @@ def run(config,skip_download=False,pandape_report=None):
         else:
             from descarga_pandape import download as download_pandape
             from generar_asistencia import generate as generate_attendance
-            logging.info('Descargando fichajes Pandape y generando asistencia')
+            logging.info('Procesando reporte Pandape seleccionado y generando asistencia' if pandape_report else 'Descargando fichajes Pandape y generando asistencia')
             try:
                 report=Path(pandape_report).resolve() if pandape_report else download_pandape(config,ROOT)
                 if period!=local_now().strftime('%Y-%m'):raise ValueError('El reporte diario requiere configurar el mes actual')
@@ -54,7 +54,7 @@ def run(config,skip_download=False,pandape_report=None):
                 logging.info('Pandape: %s',json.dumps(pandape_result))
             except Exception as error:
                 # Se detiene el cálculo: no se presenta una captura anterior como recién descargada.
-                detail=str(error) if isinstance(error,RuntimeError) and str(error).startswith('Pandape: ') else type(error).__name__
+                detail=str(error) if isinstance(error,ValueError) or (isinstance(error,RuntimeError) and str(error).startswith('Pandape: ')) else type(error).__name__
                 failure=dict(processedAt=local_now().isoformat(),period=period,pandape='error',stage='pandape',error=detail)
                 (ROOT/'logs'/'ultimo-proceso.json').write_text(json.dumps(failure,indent=2),encoding='utf-8')
                 raise RuntimeError('Falló la descarga o generación de asistencia Pandape; se conserva el tablero anterior ('+detail+')') from None
@@ -105,12 +105,13 @@ def main():
     with (ROOT/'logs'/'proceso.lock').open('a+b') as lock:
         lock.seek(0);lock.write(b'0');lock.flush();lock.seek(0)
         try:msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
-        except OSError:logging.info('Ya hay una actualización en curso');return
+        except OSError:logging.info('Ya hay una actualización en curso');raise SystemExit(3)
         try:
             status=run(config,args.sin_descarga,args.reporte_pandape)
             if status['downloadError']:raise SystemExit(2)
-        except Exception:
-            logging.exception('Proceso fallido; revisar fuentes y configuración');raise
+        except Exception as error:
+            logging.error('%s',error)
+            raise SystemExit(1) from None
         finally:lock.seek(0);msvcrt.locking(lock.fileno(),msvcrt.LK_UNLCK,1)
 
 if __name__=='__main__':main()
