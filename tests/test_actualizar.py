@@ -14,6 +14,20 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 class CalculationTests(unittest.TestCase):
+    def test_invalid_partner_uses_valid_combined_store_key(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base,attendance=self.make_files(directory)
+            book=openpyxl.load_workbook(base);sheet=book['BASE DE TIENDAS INVEX']
+            col=sheet.max_column+1;sheet.cell(1,col,'SOCIO + NUM DE TIENDA')
+            sheet.cell(2,1,'|');sheet.cell(2,col,'WM 1');book.save(base);book.close()
+            result=module.generate(base,attendance,'2026-10')
+            store=next(s for s in result['stores'] if s['id']=='WM 1')
+            self.assertEqual(store['active'],2)
+            self.assertEqual(sum(store['activeSchedules'].values()),2)
+        self.assertEqual(module.store_identifier('|',6248,'SAMS 6248'),'SAMS 6248')
+        self.assertEqual(module.store_identifier('WM',6248,'SAMS 6248'),'WM 6248')
+        self.assertEqual(module.store_identifier('|',6248,'SAMS 6249'),'| 6248')
+
     def make_files(self, directory, conflict=False):
         base = Path(directory) / 'base.xlsx'
         attendance = Path(directory) / 'attendance.xlsx'

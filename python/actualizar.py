@@ -60,6 +60,15 @@ def identifier(value):
         return str(int(value)) if float(value).is_integer() else str(value)
     return norm(value)
 
+def store_identifier(socio,determinante,combined=None):
+    partner=norm(socio);number=identifier(determinante)
+    if not any(c.isalnum() for c in partner):
+        cached=norm(combined)
+        suffix=' '+number
+        if cached.endswith(suffix) and any(c.isalnum() for c in cached[:-len(suffix)]):
+            return cached
+    return partner+' '+number
+
 def columns(sheet):
     headers = next(sheet.iter_rows(values_only=True))
     result = {}
@@ -90,7 +99,7 @@ def generate(base, attendance, period):
             get = lambda name: row[h[name]]
             if not get('NUMERO DE TIENDA/DETERMINANTE'):
                 continue
-            key = norm(get('SOCIO')) + ' ' + identifier(get('NUMERO DE TIENDA/DETERMINANTE'))
+            key = store_identifier(get('SOCIO'),get('NUMERO DE TIENDA/DETERMINANTE'),get('SOCIO + NUM DE TIENDA') if 'SOCIO + NUM DE TIENDA' in h else None)
             if key in stores:
                 raise ValueError('Tienda duplicada en base: ' + key)
             operating = norm(get('ESTATUS')) == 'OPERANDO'
@@ -121,7 +130,7 @@ def generate(base, attendance, period):
             role = norm(get('PERFIL DE PUESTO BANCO'))
             if role not in ('PROMOTOR DE CREDITO', 'SUBLIDER'):
                 continue
-            key = norm(get('SOCIO')) + ' ' + identifier(get('DETERMINANTE'))
+            key = store_identifier(get('SOCIO'),get('DETERMINANTE'),get('SOCIO Y NUMERO DE TIENDA') if 'SOCIO Y NUMERO DE TIENDA' in h else None)
             if key not in stores:
                 warnings['Personal activo sin tienda en base'] += 1
                 continue
