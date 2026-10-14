@@ -39,6 +39,7 @@ class CalculationTests(unittest.TestCase):
             result = module.generate(base, attendance, '2026-10')
             store=result['stores'][0]
             self.assertEqual((store['required'], store['active'], store['gap'], store['covered'], store['extra']), (2,2,1,1,1))
+            self.assertEqual(store['activeSchedules'],{'Sin horario asignado':2})
             self.assertEqual(len(result['attendance']),1)
             self.assertEqual(result['attendance'][0]['codes'],{'A':1,'F':1})
             hours=result['attendance'][0]['hours']

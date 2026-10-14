@@ -38,3 +38,13 @@ python python/actualizar.py --base "C:/ruta/base.xlsx" --asistencia "C:/ruta/asi
 ```
 
 `--tablero` es opcional. Sin ese argumento, se actualizan los datos actuales y se conserva la captura histórica anterior. El histórico se refresca únicamente al importar un HTML con datos nuevos. `--publicar` envía ambos archivos de datos mediante Git autenticado; no necesita incluir el HTML original de 25 MB en el repositorio.
+
+## Tablas de horarios en Cobertura
+
+Al final de Cobertura se muestran faltantes por bloque y tienda a la izquierda, y personal activo agrupado por el texto HORARIO a la derecha. Ambas consultas permiten buscar tienda y filtrar región; el selector de bloque filtra solamente los faltantes.
+
+`python/turnos_cobertura.py` reproduce las medidas DAX: metas estándar para plantilla requerida entre 1 y 13 (apertura redondea hacia arriba y cierre hacia abajo), clasificación CONTAINSSTRING de todo el texto HORARIO con prioridad 14:00/15:00/13:00 para Cierre y luego 10:00/11:00/09:00 para Apertura. Los demás horarios son Intermedio / Atípico. Se utiliza la misma población elegible y el mismo faltante por tienda/perfil de los KPI.
+
+El reparto se limita al faltante global y favorece Cierre cuando los huecos empatan. Si la suma de huecos es inferior al faltante global, la diferencia queda sin asignación y se informa en la tabla. No se fuerza a un turno. PLANTILLA BETTER corresponde a la plantilla requerida del tablero.
+
+Excepciones confirmadas: WM 5296, apertura 10:00–16:00 y cierre 13:00–19:00; SAMS 4968, ambos bloques 11:00–20:00. Solo modifican los textos horarios; no se proporcionaron metas especiales. El usuario confirmó que no se agregan otras excepciones por ahora. El ejecutor regenera los datos de estas tablas en cada actualización válida.

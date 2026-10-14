@@ -147,6 +147,10 @@ def generate(base, attendance, period):
                 continue
             seen[employee] = fingerprint
             stores[key]['activeProm' if role == 'PROMOTOR DE CREDITO' else 'activeSub'] += 1
+            schedule = str(row[h['HORARIO']] or '').strip() if 'HORARIO' in h else ''
+            schedule = ' '.join(schedule.split()) or 'Sin horario asignado'
+            schedules = stores[key].setdefault('activeSchedules', {})
+            schedules[schedule] = schedules.get(schedule, 0) + 1
             for i, day in day_columns:
                 code = norm(row[i])
                 if day > max_day:
@@ -176,6 +180,8 @@ def generate(base, attendance, period):
     if sum(summary['reversedPairs'] for summary in hours.values()):
         warnings['Salidas anteriores a entrada; excluidas de duración promedio'] = sum(summary['reversedPairs'] for summary in hours.values())
     code_days = [day for day, codes in days.items() if codes]
+    from turnos_cobertura import enrich
+    enrich(stores.values())
     result = dict(updatedAt=datetime.now(timezone.utc).isoformat(), period=period, cutoff=f'{period}-{max(code_days):02}' if code_days else None, codeLabels=CODE_LABELS, sources=[dict(name=p.name, modifiedAt=datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).isoformat()) for p in [base, attendance]], stores=list(stores.values()), attendance=[dict(day=day, codes=dict(codes), hours=hours[day]) for day, codes in sorted(days.items())], warnings=dict(warnings))
     return result
 
