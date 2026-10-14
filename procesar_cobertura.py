@@ -62,6 +62,7 @@ def run(config,skip_download=False,pandape_report=None):
     download_error=None
     if config.get('download_maat') and not skip_download:
         try:
+            logging.info('Iniciando actualización MAAT después de procesar Pandape')
             from descarga_asistencia import download
             username=password=None
             if (ROOT/'.private'/'maat.json').exists():

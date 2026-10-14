@@ -3,6 +3,7 @@ import argparse
 import csv
 import io
 import json
+import logging
 import os
 from datetime import datetime, date
 from html.parser import HTMLParser
@@ -61,18 +62,22 @@ def download(destination,period,username=None,password=None):
     username=username or os.environ.get('MAAT_USER');password=password or os.environ.get('MAAT_PASSWORD')
     if not username or not password:raise ValueError('Faltan credenciales MAAT; configure MAAT_USER y MAAT_PASSWORD')
     with requests.Session() as session:
+        logging.info('MAAT [1/4]: Iniciando sesión con las credenciales guardadas')
         response=session.get(LOGIN,timeout=30);response.raise_for_status()
         parser=Links();parser.feed(response.text)
         if not parser.csrf:raise ValueError('No se encontró el formulario de acceso MAAT')
         response=session.post(LOGIN,data={'username':username,'password':password,'csrfmiddlewaretoken':parser.csrf,'next':'/admin/'},headers={'Referer':LOGIN},timeout=30);response.raise_for_status()
+        logging.info('MAAT [2/4]: Accediendo a %s',DASHBOARD)
         response=session.get(DASHBOARD,timeout=30);response.raise_for_status()
         if '/login/' in response.url:raise ValueError('MAAT rechazó el inicio de sesión')
         parser=Links();parser.feed(response.text)
         if not parser.export:raise ValueError('No se encontró Exportar CSV; revisar permisos o cambios en MAAT')
         url=urljoin(DASHBOARD,parser.export)
         if urlparse(url).hostname!='invex.maatai.com':raise ValueError('El enlace de exportación apunta a otro servidor')
+        logging.info('MAAT [3/4]: Descargando la exportación CSV del tablero de asistencia')
         response=session.get(url,timeout=60);response.raise_for_status()
         headers,records=parse_csv(response.content.decode('utf-8-sig'))
+        logging.info('MAAT [4/4]: Validando y actualizando el concentrado del periodo %s',period)
         return merge_csv(headers,records,Path(destination),period)
 
 def main():
