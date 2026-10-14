@@ -89,3 +89,8 @@ Abre `ACTUALIZAR_INVEX.bat` o `ACTUALIZAR_CON_REPORTE.bat` en la raíz. Las ruta
 
 Para comprobar sin descargar ni publicar: `python python/ejecutar_actualizacion.py --comprobar`.
 Las fuentes, configuración, capturas, registros y credenciales permanecen excluidas de GitHub.
+
+## Usar en otra computadora
+
+Abre CONFIGURAR_EQUIPO.bat para preparar un equipo Windows nuevo. MAAT y Pandape se inician personalmente en Edge; no se requieren los archivos cifrados de este equipo. Consulta [PORTABILIDAD.md](docs/PORTABILIDAD.md). La preparación nueva desactiva publicar hasta que configures tu repositorio y Git.
+

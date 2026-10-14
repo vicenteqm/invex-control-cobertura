@@ -81,7 +81,7 @@ def download(destination,period,username=None,password=None):
         return merge_csv(headers,records,Path(destination),period)
 
 
-def download_visible(destination,period,username=None,password=None):
+def download_visible(destination,period,username=None,password=None,manual_login=True):
     """Exportación mediante Edge visible, conservando validación y mezcla atómica."""
     import time
     from selenium import webdriver
@@ -90,7 +90,7 @@ def download_visible(destination,period,username=None,password=None):
     from selenium.webdriver.support import expected_conditions as EC
     username=username or os.environ.get('MAAT_USER')
     password=password or os.environ.get('MAAT_PASSWORD')
-    if not username or not password:raise ValueError('Faltan credenciales MAAT')
+    if not manual_login and (not username or not password):raise ValueError('Faltan MAAT_USER y MAAT_PASSWORD en el entorno')
     destination=Path(destination)
     folder=destination.parent/'maat_descargas'/datetime.now().strftime('%Y%m%d_%H%M%S_%f')
     folder.mkdir(parents=True,exist_ok=True)
@@ -103,10 +103,15 @@ def download_visible(destination,period,username=None,password=None):
         wait=WebDriverWait(driver,45)
         logging.info('MAAT [1/4]: Abriendo Edge e iniciando sesión')
         driver.get(LOGIN)
-        wait.until(EC.visibility_of_element_located((By.NAME,'username'))).send_keys(username)
-        driver.find_element(By.NAME,'password').send_keys(password)
-        driver.find_element(By.CSS_SELECTOR,'input[type="submit"],button[type="submit"]').click()
-        wait.until(lambda d:'/login/' not in d.current_url)
+        user_field=wait.until(EC.visibility_of_element_located((By.NAME,'username')))
+        if username:user_field.send_keys(username)
+        if manual_login:
+            logging.info('Escribe tu usuario y contraseña de MAAT en Edge. Se espera hasta cinco minutos; no se guardan en el proyecto.')
+            WebDriverWait(driver,300).until(lambda d:'/login/' not in d.current_url)
+        else:
+            driver.find_element(By.NAME,'password').send_keys(password)
+            driver.find_element(By.CSS_SELECTOR,'input[type="submit"],button[type="submit"]').click()
+            wait.until(lambda d:'/login/' not in d.current_url)
         logging.info('MAAT [2/4]: Abriendo el tablero de asistencia')
         driver.get(DASHBOARD)
         link=wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,'a[href*="export-csv"]')))

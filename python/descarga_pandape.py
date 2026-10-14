@@ -25,10 +25,10 @@ def download(config, root):
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait,Select
     from selenium.webdriver.support import expected_conditions as EC
-    from secretos_locales import read_credentials
     username=os.environ.get('PANDAPE_USER');password=os.environ.get('PANDAPE_PASSWORD')
-    if not username or not password:username,password=read_credentials(root/'.private'/'pandape.json')
-    manual_login=config.get('pandape_manual_login',False)
+    manual_login=config.get('pandape_manual_login',True)
+    if not manual_login and (not username or not password):
+        raise ValueError('El acceso automático requiere PANDAPE_USER y PANDAPE_PASSWORD en el entorno; no se leen credenciales cifradas')
     now=local_now()
     if config['period']!=now.strftime('%Y-%m'):raise ValueError('La descarga diaria de Pandape requiere configurar el mes actual')
     folder=root/'inputs'/'pandape'/'descargas'/now.strftime('%Y%m%d_%H%M%S_%f')
@@ -51,8 +51,9 @@ def download(config, root):
         if '403' in driver.title or 'Forbidden' in driver.title:
             raise RuntimeError('El servidor rechaza el acceso automático con HTTP 403')
         stage='campos_login'
-        logging.info('[2/7] Preparando el correo; escribe tú la contraseña y pulsa Entrar' if manual_login else '[2/7] Iniciando sesión con las credenciales guardadas')
-        wait.until(EC.visibility_of_element_located((By.ID,'Username'))).send_keys(username)
+        logging.info('[2/7] Escribe tu correo y contraseña en Edge y pulsa Entrar' if manual_login else '[2/7] Iniciando sesión con las credenciales del entorno')
+        user_field=wait.until(EC.visibility_of_element_located((By.ID,'Username')))
+        if username:user_field.send_keys(username)
         stage='autenticar'
         if manual_login:
             stage='ingreso_manual'
