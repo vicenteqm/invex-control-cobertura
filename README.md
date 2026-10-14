@@ -92,5 +92,5 @@ Las fuentes, configuración, capturas, registros y credenciales permanecen exclu
 
 ## Usar en otra computadora
 
-Abre CONFIGURAR_EQUIPO.bat para preparar un equipo Windows nuevo. MAAT y Pandape se inician personalmente en Edge; no se requieren los archivos cifrados de este equipo. Consulta [PORTABILIDAD.md](docs/PORTABILIDAD.md). La preparación nueva desactiva publicar hasta que configures tu repositorio y Git.
+Abre CONFIGURAR_EQUIPO.bat para preparar un equipo Windows nuevo. MAAT inicia sesión automáticamente con los accesos del equipo; Pandape llena el correo y espera tu contraseña. En otro equipo configura sus propios accesos, sin copiar los archivos cifrados. Consulta [PORTABILIDAD.md](docs/PORTABILIDAD.md). La preparación nueva desactiva publicar hasta que configures tu repositorio y Git.
 

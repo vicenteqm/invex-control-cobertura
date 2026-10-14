@@ -14,7 +14,7 @@ def prepare(root,period):
         (root/name).mkdir(parents=True,exist_ok=True)
     destination=root/'configuracion/config.local.json'
     if not destination.exists():
-        config={'attendance_folder':'inputs/fuentes/asistencias','base_folder':'inputs/fuentes/base_tiendas','attendance_pattern':'ASISTENCIA*.xlsx','base_pattern':'*BASE*TIENDAS*.xlsx','period':period,'download_maat':True,'maat_manual_login':True,'publish':False,'download_pandape':True,'pandape_visible':True,'pandape_browser':'edge','pandape_manual_login':True}
+        config={'attendance_folder':'inputs/fuentes/asistencias','base_folder':'inputs/fuentes/base_tiendas','attendance_pattern':'ASISTENCIA*.xlsx','base_pattern':'*BASE*TIENDAS*.xlsx','period':period,'download_maat':True,'maat_manual_login':False,'publish':False,'download_pandape':True,'pandape_visible':True,'pandape_browser':'edge','pandape_manual_login':True,'pandape_user':''}
         destination.write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8')
     return destination
 

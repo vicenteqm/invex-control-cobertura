@@ -7,9 +7,9 @@
 3. Abre `CONFIGURAR_EQUIPO.bat`. Crea el entorno `.venv`, instala `requirements.txt` y prepara las carpetas y la configuración cuando no existen. Requiere conexión para instalar las dependencias.
 4. Coloca el Excel de asistencia en `inputs/fuentes/asistencias/` y la base de tiendas en `inputs/fuentes/base_tiendas/`.
 5. Revisa el periodo en `configuracion/config.local.json`.
-6. Abre `ACTUALIZAR_INVEX.bat`. Primero inicia sesión personalmente en MAAT y después en Pandape. Tras cada ingreso el ejecutor continúa la descarga y los cálculos. Dispones de cinco minutos por ingreso.
+6. Abre `ACTUALIZAR_INVEX.bat`. MAAT inicia sesión automáticamente; configura MAAT_USER y MAAT_PASSWORD en el entorno del equipo. Para Pandape configura pandape_user en el JSON local o PANDAPE_USER en el entorno: el correo se llena automáticamente y tú escribes la contraseña. Después continúa con la descarga y los cálculos. Dispones de cinco minutos para el ingreso en Pandape.
 
-Los sitios siguen necesitando cuentas válidas. No se elimina ni se evita su autenticación o CAPTCHA. Las contraseñas se escriben en el navegador; el proceso no las guarda ni necesita archivos cifrados de Windows. El módulo antiguo `secretos_locales.py` y los archivos cifrados que ya existían se conservan, pero el flujo principal no los consulta.
+Los sitios siguen necesitando cuentas válidas. No se elimina ni se evita su autenticación o CAPTCHA. La contraseña de Pandape se escribe personalmente en el navegador. MAAT puede usar MAAT_USER y MAAT_PASSWORD del entorno para evitar depender de archivos cifrados. En el equipo original, si no están esas variables, se utiliza opcionalmente .private/maat.json. No copies ese archivo a otro equipo; configura allí sus propios accesos.
 
 El sitio de consulta puede abrirse desde otras plataformas; el ejecutor actual está preparado para Windows (BAT, Edge y bloqueo msvcrt).
 
@@ -32,4 +32,4 @@ Los Excel, credenciales, configuración y logs continúan excluidos del reposito
 
 ## Opciones existentes
 
-Los ingresos manuales son los valores predeterminados (`maat_manual_login` y `pandape_manual_login`). El modo automático opcional solo usa variables de entorno MAAT_USER/MAAT_PASSWORD o PANDAPE_USER/PANDAPE_PASSWORD, nunca los antiguos archivos cifrados. Pandape puede rechazar ese modo con CAPTCHA; no se garantiza acceso sin intervención.
+MAAT automático y Pandape manual son los valores predeterminados (maat_manual_login=false y pandape_manual_login=true). El modo automático opcional solo usa variables de entorno MAAT_USER/MAAT_PASSWORD o PANDAPE_USER/PANDAPE_PASSWORD, con compatibilidad opcional de credenciales cifradas para MAAT en el equipo original. Pandape puede rechazar ese modo con CAPTCHA; no se garantiza acceso sin intervención.
