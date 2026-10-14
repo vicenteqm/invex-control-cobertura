@@ -80,3 +80,8 @@ La automatización de este chat ejecuta el procesador cada hora en este equipo. 
 Si falla MAAT, se actualizan los cálculos válidos de los Excel y el panel indica que el cruce no está disponible; no presenta el concentrado antiguo como una descarga exitosa. Si falla una validación de los Excel o el motor, conserva los datos publicados anteriores. Un código de salida 2 indica fallo de descarga y 1 fallo del procesamiento.
 
 El flujo completo es Pandape → asistencia mensual → MAAT → análisis → tablero → publicación, cuando esta última esté configurada. La base de tiendas sigue siendo un Excel local: el ZIP no contiene un descargador para ella. Los reportes de Pandape son diarios, igual que en el sistema anterior; una fecha sin ejecución no se recupera automáticamente. Cambiar el mes requiere revisar `period`, el Excel de plantilla y las carpetas en la configuración local.
+
+## Descarga diaria MAAT
+
+La descarga filtra start y end con la misma fecha del día de ejecución en America/Mexico_City. El CSV debe contener exclusivamente ese día. El concentrado mensual reemplaza solo los registros de esa fecha y conserva los demás días. El rango visible del histórico puede seguir incluyendo fechas anteriores; no representa el rango de la nueva descarga. El periodo configurado debe coincidir con el mes actual.
+

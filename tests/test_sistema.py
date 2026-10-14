@@ -7,9 +7,22 @@ from datetime import datetime
 from pathlib import Path
 import tempfile
 import engine
-from descarga_asistencia import merge_csv,read_csv,date_key
+from descarga_asistencia import merge_csv,read_csv,date_key,daily_dashboard_url,validate_daily_records
 
 class SystemTests(unittest.TestCase):
+    def test_daily_filter_and_preserving_historical_days(self):
+        day=datetime(2026,10,14).date()
+        url,value=daily_dashboard_url('2026-10',day)
+        self.assertTrue(url.endswith('?start=2026-10-14&end=2026-10-14'))
+        with tempfile.TemporaryDirectory() as directory:
+            p=Path(directory)/'maat.csv';headers=['Fecha','Ejecutivo']
+            merge_csv(headers,[{'Fecha':'08/10/2026','Ejecutivo':'histórico'},{'Fecha':'14/10/2026','Ejecutivo':'anterior'}],p,'2026-10')
+            fresh=[{'Fecha':'2026-10-14','Ejecutivo':'actual'}]
+            validate_daily_records(fresh,value)
+            merge_csv(headers,fresh,p,'2026-10')
+            self.assertEqual({r['Ejecutivo'] for r in read_csv(p)[1]},{'histórico','actual'})
+        with self.assertRaises(ValueError):validate_daily_records([{'Fecha':'13/10/2026'}],value)
+        with self.assertRaises(ValueError):daily_dashboard_url('2026-09',day)
     def test_original_semaphores(self):
         self.assertEqual(engine.semaforo(0,0,0,False,100),'ALARMANTE')
         self.assertEqual(engine.semaforo(1,100,0,False,100),'CRITICA')

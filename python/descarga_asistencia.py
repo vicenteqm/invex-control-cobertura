@@ -8,7 +8,7 @@ import os
 from datetime import datetime, date
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin,urlparse
+from urllib.parse import urljoin,urlparse,urlencode
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import requests
@@ -41,6 +41,20 @@ def date_key(value):
     if parsed is None:raise ValueError('Fecha inválida en CSV MAAT')
     return date(*parsed).isoformat()
 
+def daily_dashboard_url(period,day=None):
+    if day is None:
+        from cobertura_actual import local_now
+        day=local_now().date()
+    if day.strftime('%Y-%m')!=period:
+        raise ValueError('La descarga diaria MAAT requiere el periodo del día de ejecución')
+    value=day.isoformat()
+    return DASHBOARD+'?'+urlencode({'start':value,'end':value}),value
+
+def validate_daily_records(records,day):
+    if not records:raise ValueError('MAAT no contiene registros para el día '+day)
+    if any(date_key(r['Fecha'])!=day for r in records):
+        raise ValueError('MAAT exportó fechas distintas al día solicitado; se conserva el concentrado anterior')
+
 def merge_csv(headers,records,destination,period):
     records=[dict(r) for r in records if date_key(r['Fecha']).startswith(period+'-')]
     if not records:raise ValueError('La descarga no contiene registros del periodo '+period)
@@ -59,6 +73,7 @@ def merge_csv(headers,records,destination,period):
     return len(records),len(result)
 
 def download(destination,period,username=None,password=None):
+    dashboard,day=daily_dashboard_url(period)
     username=username or os.environ.get('MAAT_USER');password=password or os.environ.get('MAAT_PASSWORD')
     if not username or not password:raise ValueError('Faltan credenciales MAAT; configure MAAT_USER y MAAT_PASSWORD')
     with requests.Session() as session:
@@ -67,8 +82,8 @@ def download(destination,period,username=None,password=None):
         parser=Links();parser.feed(response.text)
         if not parser.csrf:raise ValueError('No se encontró el formulario de acceso MAAT')
         response=session.post(LOGIN,data={'username':username,'password':password,'csrfmiddlewaretoken':parser.csrf,'next':'/admin/'},headers={'Referer':LOGIN},timeout=30);response.raise_for_status()
-        logging.info('MAAT [2/4]: Accediendo a %s',DASHBOARD)
-        response=session.get(DASHBOARD,timeout=30);response.raise_for_status()
+        logging.info('MAAT [2/4]: Filtrando fecha inicial y final: %s',day)
+        response=session.get(dashboard,timeout=30);response.raise_for_status()
         if '/login/' in response.url:raise ValueError('MAAT rechazó el inicio de sesión')
         parser=Links();parser.feed(response.text)
         if not parser.export:raise ValueError('No se encontró Exportar CSV; revisar permisos o cambios en MAAT')
@@ -77,6 +92,7 @@ def download(destination,period,username=None,password=None):
         logging.info('MAAT [3/4]: Descargando la exportación CSV del tablero de asistencia')
         response=session.get(url,timeout=60);response.raise_for_status()
         headers,records=parse_csv(response.content.decode('utf-8-sig'))
+        validate_daily_records(records,day)
         logging.info('MAAT [4/4]: Validando y actualizando el concentrado del periodo %s',period)
         return merge_csv(headers,records,Path(destination),period)
 
@@ -88,6 +104,7 @@ def download_visible(destination,period,username=None,password=None,manual_login
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
+    dashboard,day=daily_dashboard_url(period)
     username=username or os.environ.get('MAAT_USER')
     password=password or os.environ.get('MAAT_PASSWORD')
     if not manual_login and (not username or not password):raise ValueError('Faltan MAAT_USER y MAAT_PASSWORD en el entorno')
@@ -112,8 +129,11 @@ def download_visible(destination,period,username=None,password=None,manual_login
             driver.find_element(By.NAME,'password').send_keys(password)
             driver.find_element(By.CSS_SELECTOR,'input[type="submit"],button[type="submit"]').click()
             wait.until(lambda d:'/login/' not in d.current_url)
-        logging.info('MAAT [2/4]: Abriendo el tablero de asistencia')
-        driver.get(DASHBOARD)
+        logging.info('MAAT [2/4]: Filtrando solo el día %s (inicio y fin iguales)',day)
+        driver.get(dashboard)
+        for field in ('id_start','id_end'):
+            value=wait.until(EC.presence_of_element_located((By.ID,field))).get_attribute('value')
+            if value!=day:raise ValueError('MAAT no aceptó la fecha del día en '+field)
         link=wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,'a[href*="export-csv"]')))
         if urlparse(urljoin(DASHBOARD,link.get_attribute('href'))).hostname!='invex.maatai.com':
             raise ValueError('El enlace de exportación apunta a otro servidor')
@@ -127,6 +147,7 @@ def download_visible(destination,period,username=None,password=None,manual_login
                 signature=(files[0].name,files[0].stat().st_size)
                 if signature==previous and signature[1]>0:
                     headers,records=read_csv(files[0])
+                    validate_daily_records(records,day)
                     logging.info('MAAT [4/4]: Validando CSV y actualizando concentrado %s',period)
                     result=merge_csv(headers,records,destination,period)
                     logging.info('MAAT terminado; cerrando su ventana para continuar con Pandape')
