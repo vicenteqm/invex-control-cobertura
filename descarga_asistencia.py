@@ -80,6 +80,58 @@ def download(destination,period,username=None,password=None):
         logging.info('MAAT [4/4]: Validando y actualizando el concentrado del periodo %s',period)
         return merge_csv(headers,records,Path(destination),period)
 
+
+def download_visible(destination,period,username=None,password=None):
+    """Exportación mediante Edge visible, conservando validación y mezcla atómica."""
+    import time
+    from selenium import webdriver
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    username=username or os.environ.get('MAAT_USER')
+    password=password or os.environ.get('MAAT_PASSWORD')
+    if not username or not password:raise ValueError('Faltan credenciales MAAT')
+    destination=Path(destination)
+    folder=destination.parent/'maat_descargas'/datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+    folder.mkdir(parents=True,exist_ok=True)
+    options=webdriver.EdgeOptions()
+    options.add_argument('--window-size=1440,1000')
+    options.add_experimental_option('prefs',{'download.default_directory':str(folder.resolve()),'download.prompt_for_download':False})
+    driver=webdriver.Edge(options=options)
+    try:
+        driver.set_page_load_timeout(60)
+        wait=WebDriverWait(driver,45)
+        logging.info('MAAT [1/4]: Abriendo Edge e iniciando sesión')
+        driver.get(LOGIN)
+        wait.until(EC.visibility_of_element_located((By.NAME,'username'))).send_keys(username)
+        driver.find_element(By.NAME,'password').send_keys(password)
+        driver.find_element(By.CSS_SELECTOR,'input[type="submit"],button[type="submit"]').click()
+        wait.until(lambda d:'/login/' not in d.current_url)
+        logging.info('MAAT [2/4]: Abriendo el tablero de asistencia')
+        driver.get(DASHBOARD)
+        link=wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR,'a[href*="export-csv"]')))
+        if urlparse(urljoin(DASHBOARD,link.get_attribute('href'))).hostname!='invex.maatai.com':
+            raise ValueError('El enlace de exportación apunta a otro servidor')
+        logging.info('MAAT [3/4]: Pulsando Exportar CSV y esperando la descarga')
+        link.click()
+        deadline=time.monotonic()+180
+        previous=None
+        while time.monotonic()<deadline:
+            files=[p for p in folder.iterdir() if p.is_file() and p.suffix.lower()=='.csv']
+            if len(files)==1 and not list(folder.glob('*.crdownload')):
+                signature=(files[0].name,files[0].stat().st_size)
+                if signature==previous and signature[1]>0:
+                    headers,records=read_csv(files[0])
+                    logging.info('MAAT [4/4]: Validando CSV y actualizando concentrado %s',period)
+                    result=merge_csv(headers,records,destination,period)
+                    logging.info('MAAT terminado; cerrando su ventana para continuar con Pandape')
+                    return result
+                previous=signature
+            time.sleep(1)
+        raise TimeoutError('MAAT no entregó el CSV dentro de tres minutos')
+    finally:
+        driver.quit()
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--destino',type=Path,required=True);parser.add_argument('--periodo',required=True);args=parser.parse_args()
     downloaded,total=download(args.destino,args.periodo);print(json.dumps(dict(descargados=downloaded,concentrado=total)))

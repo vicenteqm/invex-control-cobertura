@@ -35,6 +35,21 @@ def run(config,skip_download=False,pandape_report=None):
     iso_month=re.search(r'\d{4}-\d{2}',attendance.stem)
     if (found_months and int(period[-2:]) not in found_months) or (iso_month and iso_month.group()!=period):
         raise ValueError('El periodo configurado no coincide con el archivo de asistencia')
+    maat=ROOT/'inputs'/('asistencia_maat_'+period.replace('-','_')+'.csv')
+    download_error=None
+    if config.get('download_maat') and not skip_download:
+        try:
+            logging.info('Primera etapa: actualización MAAT en Edge visible')
+            from descarga_asistencia import download_visible as download
+            username=password=None
+            if (ROOT/'.private'/'maat.json').exists():
+                from secretos_locales import read_credentials
+                username,password=read_credentials(ROOT/'.private'/'maat.json')
+            fresh,total=download(maat,period,username,password)
+            logging.info('MAAT: %s registros descargados; %s en concentrado',fresh,total)
+        except Exception as error:
+            download_error=type(error).__name__+': '+str(error)
+            logging.error('No se descargó MAAT: %s',download_error)
     pandape_status='not_configured';pandape_result=None
     generated=ROOT/'inputs'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
     if config.get('download_pandape') or pandape_report:
@@ -58,21 +73,6 @@ def run(config,skip_download=False,pandape_report=None):
                 failure=dict(processedAt=local_now().isoformat(),period=period,pandape='error',stage='pandape',error=detail)
                 (ROOT/'logs'/'ultimo-proceso.json').write_text(json.dumps(failure,indent=2),encoding='utf-8')
                 raise RuntimeError('Falló la descarga o generación de asistencia Pandape; se conserva el tablero anterior ('+detail+')') from None
-    maat=ROOT/'inputs'/('asistencia_maat_'+period.replace('-','_')+'.csv')
-    download_error=None
-    if config.get('download_maat') and not skip_download:
-        try:
-            logging.info('Iniciando actualización MAAT después de procesar Pandape')
-            from descarga_asistencia import download
-            username=password=None
-            if (ROOT/'.private'/'maat.json').exists():
-                from secretos_locales import read_credentials
-                username,password=read_credentials(ROOT/'.private'/'maat.json')
-            fresh,total=download(maat,period,username,password)
-            logging.info('MAAT: %s registros descargados; %s en concentrado',fresh,total)
-        except Exception as error:
-            download_error=type(error).__name__+': '+str(error)
-            logging.error('No se descargó MAAT: %s',download_error)
     result=generate(base,attendance,period)
     logging.info('Calculando cobertura y cruce diario Pandape / MAAT')
     # Si falla la descarga no se presenta el concentrado viejo como actualizado.

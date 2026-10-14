@@ -18,7 +18,7 @@ def check():
     for key in ('attendance_folder','base_folder'):
         if not Path(config.get(key,'__missing__')).is_dir():raise ValueError('No existe la carpeta configurada: '+key)
     required=['openpyxl','requests']
-    if config.get('download_pandape'):required.append('selenium')
+    if config.get('download_pandape') or config.get('download_maat'):required.append('selenium')
     missing=[name for name in required if importlib.util.find_spec(name) is None]
     if missing:raise ValueError('Faltan dependencias: '+', '.join(missing)+'. Instala con: python -m pip install -r requirements.txt')
     if config.get('publish') and not shutil.which('git'):raise ValueError('Se requiere Git para publicar la actualización')
@@ -53,7 +53,7 @@ def main():
             report=Path(selected)
         if report and not report.is_file():raise ValueError('No existe el reporte Pandape seleccionado')
         if report:print('Reporte seleccionado: '+report.name+'; se omitirá la descarga automática de Pandape.',flush=True)
-        print('Iniciando Pandape → Excel de asistencia → MAAT → cálculo → tablero.',flush=True)
+        print('Iniciando MAAT visible → Pandape → Excel de asistencia → cálculo → tablero.',flush=True)
         if config.get('publish'):print('Se publicará en GitHub si el proceso termina correctamente.',flush=True)
         command=[sys.executable,'-X','utf8',str(ROOT/'procesar_cobertura.py')]
         if report:command.extend(['--reporte-pandape',str(report.resolve())])
