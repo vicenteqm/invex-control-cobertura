@@ -4,13 +4,13 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parent/'.build-deps'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import requests
 
-ROOT=Path(__file__).resolve().parent
+ROOT=Path(__file__).resolve().parents[1]
 NAME='invex-control-cobertura'
 EXPECTED_USER='vicenteqm'
-FILES=['.gitignore','.github','site','tests','README.md','INTEGRACION.md','SISTEMA_HORARIO.md','REVISION_SISTEMA_ANTERIOR.md','actualizar.py','cobertura_actual.py','descarga_asistencia.py','descarga_pandape.py','engine.py','generar_asistencia.py','importar_operacion.py','importar_registro_historico.py','registro_maat.py','procesar_cobertura.py','ejecutar_actualizacion.py','ACTUALIZAR_INVEX.bat','ACTUALIZAR_CON_REPORTE.bat','secretos_locales.py','requirements.txt','requirements-build.txt','publicar_github.py']
+FILES=['.gitignore','.github','site','tests','README.md','docs','python','ACTUALIZAR_INVEX.bat','ACTUALIZAR_CON_REPORTE.bat','requirements.txt','requirements-build.txt']
 
 def main():
     env=dict(os.environ,GIT_TERMINAL_PROMPT='0',GCM_INTERACTIVE='never')
@@ -42,9 +42,10 @@ def main():
     print('Repositorio: '+info['html_url'],flush=True)
     def git(*args):subprocess.run(['git',*args],cwd=ROOT,env=env,check=True)
     # Solo archivos de implementación y datos agregados; nunca fuentes o secretos.
-    git('add','--',*FILES,'detalle_promotores.py')
+    git('add','--',*FILES)
+    git('add','-u')
     staged=subprocess.check_output(['git','diff','--cached','--name-only'],cwd=ROOT,text=True).splitlines()
-    if any(p.startswith(('inputs/','.private/','logs/','.build-deps/')) or p.endswith(('.xlsx','.xlsm','.csv')) or p=='config.local.json' for p in staged):raise RuntimeError('El índice contiene archivos privados; publicación detenida')
+    if any(p.startswith(('inputs/','.private/','logs/','.build-deps/','configuracion/','previews/')) or p.endswith(('.xlsx','.xlsm','.csv')) or p=='config.local.json' for p in staged):raise RuntimeError('El índice contiene archivos privados; publicación detenida')
     if staged:git('commit','-m','Publicar tablero de cobertura INVEX y proceso de actualización')
     git('branch','-M','main')
     remotes=subprocess.check_output(['git','remote'],cwd=ROOT,text=True).splitlines()

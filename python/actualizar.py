@@ -9,7 +9,7 @@ from datetime import datetime, timezone, time
 from pathlib import Path
 import openpyxl
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 CODE_LABELS = {'A': 'Asistencia', 'F': 'Falta', 'R': 'Retardo', 'V': 'Vacaciones', 'I': 'Incapacidad'}
 
 def clock_minutes(value):

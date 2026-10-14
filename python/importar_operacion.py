@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 SEMAPHORES = {'ALARMANTE', 'CRITICA', 'RIESGO', 'OPTIMA', 'SIN_DATOS'}
 
 class EmbeddedMonths(HTMLParser):

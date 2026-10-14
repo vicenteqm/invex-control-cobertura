@@ -8,11 +8,11 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-sys.path.insert(0,str(Path(__file__).resolve().parent/'.build-deps'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 from actualizar import generate
 from cobertura_actual import process, local_now
 
-ROOT=Path(__file__).resolve().parent
+ROOT=Path(__file__).resolve().parents[1]
 
 def latest(folder,pattern):
     files=[p for p in Path(folder).glob(pattern) if not p.name.startswith('~$')]
@@ -27,6 +27,9 @@ def load_history():
     return json.loads(text[len(prefix):].strip().removesuffix(';'))
 
 def run(config,skip_download=False,pandape_report=None):
+    config=dict(config)
+    for key in ('attendance_folder','base_folder'):
+        if not Path(config[key]).is_absolute():config[key]=str(ROOT/config[key])
     attendance=latest(config['attendance_folder'],config.get('attendance_pattern','ASISTENCIA*.xlsx'))
     base=latest(config['base_folder'],config.get('base_pattern','*BASE*TIENDAS*.xlsx'))
     period=config.get('period') or local_now().strftime('%Y-%m')
@@ -99,7 +102,7 @@ def run(config,skip_download=False,pandape_report=None):
     return status
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--config',type=Path,default=ROOT/'config.local.json');parser.add_argument('--sin-descarga',action='store_true');parser.add_argument('--reporte-pandape',type=Path,help='Reporte del día actual exportado desde Pandape');args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--config',type=Path,default=ROOT/'configuracion'/'config.local.json');parser.add_argument('--sin-descarga',action='store_true');parser.add_argument('--reporte-pandape',type=Path,help='Reporte del día actual exportado desde Pandape');args=parser.parse_args()
     (ROOT/'logs').mkdir(exist_ok=True)
     logging.basicConfig(level=logging.INFO,format='%(asctime)s | %(levelname)s | %(message)s',handlers=[logging.FileHandler(ROOT/'logs'/'actualizacion.log',encoding='utf-8'),logging.StreamHandler()])
     config=json.loads(args.config.read_text(encoding='utf-8'))

@@ -28,13 +28,13 @@ La tendencia diaria es el promedio simple de cobertura entre tiendas con datos. 
 Para importar únicamente el histórico:
 
 ```powershell
-python importar_operacion.py --tablero "C:/ruta/control-cobertura.html"
+python python/importar_operacion.py --tablero "C:/ruta/control-cobertura.html"
 ```
 
 Para procesar los Excel y volver a importar el tablero en una sola ejecución:
 
 ```powershell
-python actualizar.py --base "C:/ruta/base.xlsx" --asistencia "C:/ruta/asistencia.xlsx" --periodo 2026-10 --tablero "C:/ruta/control-cobertura.html"
+python python/actualizar.py --base "C:/ruta/base.xlsx" --asistencia "C:/ruta/asistencia.xlsx" --periodo 2026-10 --tablero "C:/ruta/control-cobertura.html"
 ```
 
 `--tablero` es opcional. Sin ese argumento, se actualizan los datos actuales y se conserva la captura histórica anterior. El histórico se refresca únicamente al importar un HTML con datos nuevos. `--publicar` envía ambos archivos de datos mediante Git autenticado; no necesita incluir el HTML original de 25 MB en el repositorio.

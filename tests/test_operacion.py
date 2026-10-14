@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'python'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import unittest
 import importar_operacion as module
 

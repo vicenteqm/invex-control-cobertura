@@ -7,16 +7,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT=Path(__file__).resolve().parent
+ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'.build-deps'))
 
 def check():
     if sys.version_info<(3,10):raise ValueError('Se requiere Python 3.10 o posterior')
-    path=ROOT/'config.local.json'
+    path=ROOT/'configuracion'/'config.local.json'
     if not path.exists():raise ValueError('Falta config.local.json: configura las carpetas y el periodo antes de actualizar')
     config=json.loads(path.read_text(encoding='utf-8'))
     for key in ('attendance_folder','base_folder'):
-        if not Path(config.get(key,'__missing__')).is_dir():raise ValueError('No existe la carpeta configurada: '+key)
+        if not (ROOT/Path(config.get(key,'__missing__'))).is_dir():raise ValueError('No existe la carpeta configurada: '+key)
     required=['openpyxl','requests']
     if config.get('download_pandape') or config.get('download_maat'):required.append('selenium')
     missing=[name for name in required if importlib.util.find_spec(name) is None]
@@ -55,7 +55,7 @@ def main():
         if report:print('Reporte seleccionado: '+report.name+'; se omitirá la descarga automática de Pandape.',flush=True)
         print('Iniciando MAAT visible → Pandape → Excel de asistencia → cálculo → tablero.',flush=True)
         if config.get('publish'):print('Se publicará en GitHub si el proceso termina correctamente.',flush=True)
-        command=[sys.executable,'-X','utf8',str(ROOT/'procesar_cobertura.py')]
+        command=[sys.executable,'-X','utf8',str(ROOT/'python'/'procesar_cobertura.py')]
         if report:command.extend(['--reporte-pandape',str(report.resolve())])
         result=subprocess.run(command,cwd=ROOT)
         if result.returncode==0:

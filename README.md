@@ -4,8 +4,8 @@ Tablero publicado: https://vicenteqm.github.io/invex-control-cobertura/
 
 Repositorio: https://github.com/vicenteqm/invex-control-cobertura
 
-El módulo adicional de Seguimiento operativo y su actualización histórica se documentan en [INTEGRACION.md](INTEGRACION.md).
-El proceso completo de descarga Pandape, generación de asistencia, descarga MAAT, cálculo y actualización cada hora se documenta en [SISTEMA_HORARIO.md](SISTEMA_HORARIO.md). Ejecuta `python procesar_cobertura.py` para utilizar el motor integrado. La descarga automática de Pandape presenta actualmente un rechazo HTTP 403; el tablero conserva su última versión válida.
+El módulo adicional de Seguimiento operativo y su actualización histórica se documentan en [INTEGRACION.md](docs/INTEGRACION.md).
+El proceso manual abre MAAT en Edge visible, descarga su CSV y después continúa con Pandape, el cálculo y la publicación. Se documenta en [SISTEMA_HORARIO.md](docs/SISTEMA_HORARIO.md). La tarea automática por hora está pausada.
 
 Panel estático de una sola página, en negro y blanco. Cobertura, Tiendas, Asistencia y Actualización. Sin proceso de compilación ni servicios externos para consultar los datos.
 
@@ -15,7 +15,7 @@ Instala Python 3.10 o posterior y las dependencias:
 
 ```powershell
 python -m pip install -r requirements.txt
-python actualizar.py --base "C:/ruta/BASE DE TIENDAS INVEX_OCTUBRE.xlsx" --asistencia "C:/ruta/ASISTENCIA_INVEX_OCTUBRE.xlsx" --periodo 2026-10
+python python/actualizar.py --base "C:/ruta/BASE DE TIENDAS INVEX_OCTUBRE.xlsx" --asistencia "C:/ruta/ASISTENCIA_INVEX_OCTUBRE.xlsx" --periodo 2026-10
 ```
 
 El periodo es explícito para evitar atribuir los días a un mes incorrecto. Los Excel no se copian al repositorio. Solo se genera `site/data.js` con información agregada por tienda y códigos de asistencia del periodo. El proceso reemplaza los datos únicamente al terminar correctamente; un error conserva la última versión. Revisa las advertencias que imprime.
@@ -39,7 +39,7 @@ En GitHub abre Settings → Pages → Source → GitHub Actions. El flujo `Publi
 Cada actualización posterior:
 
 ```powershell
-python actualizar.py --base "C:/ruta/base.xlsx" --asistencia "C:/ruta/asistencia.xlsx" --periodo 2026-10
+python python/actualizar.py --base "C:/ruta/base.xlsx" --asistencia "C:/ruta/asistencia.xlsx" --periodo 2026-10
 git add site/data.js
 git commit -m "Actualizar cobertura INVEX"
 git push
@@ -66,3 +66,26 @@ Documentación: https://docs.github.com/en/pages/getting-started-with-github-pag
 - Última actualización: momento de procesamiento, mostrado en America/Mexico_City. Se muestra también la modificación de cada fuente.
 
 El sitio compartido expone los agregados publicados a sus visitantes. El detalle por promotor publica nombres, jornadas, checadas y estatus según la autorización del usuario. Nóminas, teléfonos, usuarios de acceso, sueldos y credenciales no se publican. Las fuentes originales permanecen intactas.
+
+
+## Organización de carpetas
+
+- `python/`: todos los módulos y ejecutores Python.
+- `inputs/fuentes/asistencias/`: Excel de asistencia fuente. Reemplaza aquí el archivo al cambiar de mes.
+- `inputs/fuentes/base_tiendas/`: Excel fuente de plantilla y tiendas.
+- `inputs/asistencias/`: asistencia mensual generada por el proceso.
+- `inputs/pandape/`: reportes descargados y reportes manuales.
+- `inputs/maat_descargas/`: CSV descargados desde MAAT.
+- `inputs/`: concentrado MAAT, análisis y Excel de detalle generados.
+- `configuracion/config.local.json`: periodo, rutas y opciones locales.
+- `site/`: página publicada, estilos, scripts y datos del tablero.
+- `docs/`: manuales e integración.
+- `tests/`: pruebas del sistema.
+- `previews/`: capturas de diseño locales.
+- `logs/`: registros de ejecución.
+- `.private/`: credenciales cifradas; `.build-deps/`: dependencias locales.
+
+Abre `ACTUALIZAR_INVEX.bat` o `ACTUALIZAR_CON_REPORTE.bat` en la raíz. Las rutas relativas de los Excel se resuelven desde la raíz del proyecto. Desde el 14 de octubre de 2026 el proceso utiliza las copias dentro de `inputs/fuentes/`; los originales externos se conservaron, pero ya no se leen automáticamente. Edita o sustituye las copias internas para futuras actualizaciones.
+
+Para comprobar sin descargar ni publicar: `python python/ejecutar_actualizacion.py --comprobar`.
+Las fuentes, configuración, capturas, registros y credenciales permanecen excluidas de GitHub.

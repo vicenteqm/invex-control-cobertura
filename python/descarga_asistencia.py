@@ -10,7 +10,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin,urlparse
 import sys
-sys.path.insert(0,str(Path(__file__).resolve().parent/'.build-deps'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import requests
 
 LOGIN='https://invex.maatai.com/admin/login/?next=/admin/'

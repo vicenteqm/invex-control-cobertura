@@ -34,14 +34,14 @@ El detalle por promotor se activa cargando `inputs/analisis_actual.json` en el s
 
 Abre `ACTUALIZAR_INVEX.bat` desde la carpeta del proyecto. El ejecutor busca Python, verifica las dependencias y configuración, y corre `procesar_cobertura.py`. La ventana permanece abierta para leer el resultado. Con `publish` activado, el proceso también envía los datos válidos a GitHub y Pages los despliega. No instala dependencias ni cambia credenciales automáticamente.
 
-Puedes arrastrar el reporte Pandape sobre el BAT o abrir `ACTUALIZAR_CON_REPORTE.bat` para seleccionarlo. El rango del reporte debe incluir el día actual: se leen exclusivamente las filas de ese día y se detectan todos los pares Ent./Sal. por encabezados. Los días anteriores del reporte no se mezclan con la captura actual. Para verificar el entorno sin descargar ni publicar ejecuta `python ejecutar_actualizacion.py --comprobar`.
+Puedes arrastrar el reporte Pandape sobre el BAT o abrir `ACTUALIZAR_CON_REPORTE.bat` para seleccionarlo. El rango del reporte debe incluir el día actual: se leen exclusivamente las filas de ese día y se detectan todos los pares Ent./Sal. por encabezados. Los días anteriores del reporte no se mezclan con la captura actual. Para verificar el entorno sin descargar ni publicar ejecuta `python python/ejecutar_actualizacion.py --comprobar`.
 
 El BAT es un lanzador; requiere la carpeta completa, su configuración local y las credenciales cifradas para la misma cuenta de Windows. No es un ejecutable independiente ni crea otra tarea horaria.
 
-`procesar_cobertura.py` reemplaza el procesador anterior. Lee `config.local.json`, descarga MAAT, sustituye los registros de las fechas descargadas en el concentrado mensual, procesa los Excel con `engine.py` y genera ambos archivos de datos del panel. Conserva los demás meses históricos.
+`procesar_cobertura.py` reemplaza el procesador anterior. Lee `configuracion/config.local.json`, descarga MAAT, sustituye los registros de las fechas descargadas en el concentrado mensual, procesa los Excel con `engine.py` y genera ambos archivos de datos del panel. Conserva los demás meses históricos.
 
 ```powershell
-python procesar_cobertura.py
+python python/procesar_cobertura.py
 ```
 
 `--sin-descarga` permite procesar únicamente los archivos locales. No activa MAAT si no existe un concentrado. Las dependencias son openpyxl, requests y Selenium, además de Chrome para Pandape. MAAT usa sesión HTTP con CSRF. Pandape conserva los filtros de equipo y grupo del descargador recibido y solicita el reporte del día actual.
@@ -56,7 +56,7 @@ La asistencia generada queda en `inputs/asistencias/ASISTENCIA_INVEX_AAAA-MM.xls
 
 Si falla Pandape o la generación, el proceso se detiene y conserva el tablero anterior. La configuración `download_pandape` activa este paso. Las credenciales se obtienen de PANDAPE_USER/PANDAPE_PASSWORD o de `.private/pandape.json`, cifrado para la cuenta de Windows. El diagnóstico local está en `inputs/pandape/diagnostico.json` y su captura de pantalla en la misma carpeta; ambos se excluyen de publicación.
 
-Prueba real del 13 de octubre de 2026: el acceso de Chrome automático recibió `403 Forbidden` antes del formulario de autenticación. El navegador integrado sí mostró el formulario. La descarga automática de Pandape todavía no está operativa; requiere resolver el acceso admitido por el servicio. No se modifica la seguridad ni se simula una descarga exitosa. Para procesar un reporte auténtico del día descargado desde el navegador se puede ejecutar `python procesar_cobertura.py --reporte-pandape "ruta/Reportede.xlsx"`. Esta opción también ejecuta MAAT y actualiza el tablero si todas las validaciones pasan. No usar reportes de días anteriores con esta opción.
+Prueba real del 13 de octubre de 2026: el acceso de Chrome automático recibió `403 Forbidden` antes del formulario de autenticación. El navegador integrado sí mostró el formulario. La descarga automática de Pandape todavía no está operativa; requiere resolver el acceso admitido por el servicio. No se modifica la seguridad ni se simula una descarga exitosa. Para procesar un reporte auténtico del día descargado desde el navegador se puede ejecutar `python python/procesar_cobertura.py --reporte-pandape "ruta/Reportede.xlsx"`. Esta opción también ejecuta MAAT y actualiza el tablero si todas las validaciones pasan. No usar reportes de días anteriores con esta opción.
 
 ## Funciones del motor original
 
@@ -69,7 +69,7 @@ El adaptador identifica columnas por encabezados y luego entrega al motor su esq
 
 ## Fuentes y credenciales
 
-Las carpetas y el periodo están en `config.local.json`, excluido de Git. Los Excel originales permanecen intactos. Los CSV de MAAT se guardan en `inputs/`, también excluido. Se aplican los mismos nueve mapeos de puntos de venta del descargador original. Las fechas se normalizan antes de sustituir registros, evitando duplicados por formatos DD/MM/AAAA y AAAA-MM-DD.
+Las carpetas y el periodo están en `configuracion/config.local.json`, excluido de Git. Los Excel originales permanecen intactos. Los CSV de MAAT se guardan en `inputs/`, también excluido. Se aplican los mismos nueve mapeos de puntos de venta del descargador original. Las fechas se normalizan antes de sustituir registros, evitando duplicados por formatos DD/MM/AAAA y AAAA-MM-DD.
 
 Las credenciales de MAAT se leen desde MAAT_USER y MAAT_PASSWORD, o desde `.private/maat.json`, cifrado por Windows para la cuenta local. No hay contraseñas ni tokens GitHub escritos en el código nuevo. La publicación utiliza Git autenticado, solo si `publish` está activado. Está activada en la configuración local y el remoto es `vicenteqm/invex-control-cobertura`. Un proceso válido envía los archivos agregados del tablero y GitHub Actions despliega Pages; si falla Pandape, se conserva la publicación anterior.
 

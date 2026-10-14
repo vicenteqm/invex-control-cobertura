@@ -6,7 +6,7 @@ from pathlib import Path
 from importar_operacion import EmbeddedMonths
 from registro_maat import aggregate
 
-ROOT=Path(__file__).resolve().parent
+ROOT=Path(__file__).resolve().parents[1]
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--zip',required=True,type=Path);args=parser.parse_args()
     path=ROOT/'site'/'operacion-data.js';prefix='window.INVEX_OPERACION = '

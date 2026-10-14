@@ -7,3 +7,8 @@ inputs/
 config.local.json
 logs/
 .build-deps/
+
+configuracion/
+previews/
+*.xlsm
+*.xlsb

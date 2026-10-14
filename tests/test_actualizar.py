@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'python'))
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import importlib.util
 import tempfile
 import unittest
@@ -5,7 +9,7 @@ from datetime import time
 from pathlib import Path
 import openpyxl
 
-spec = importlib.util.spec_from_file_location('actualizar', Path(__file__).resolve().parents[1] / 'actualizar.py')
+spec = importlib.util.spec_from_file_location('actualizar', Path(__file__).resolve().parents[1] / 'python' / 'actualizar.py')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
