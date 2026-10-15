@@ -79,6 +79,13 @@ def run(config,skip_download=False,pandape_report=None):
                 (ROOT/'logs'/'ultimo-proceso.json').write_text(json.dumps(failure,indent=2),encoding='utf-8')
                 raise RuntimeError('Falló la descarga o generación de asistencia Pandape; se conserva el tablero anterior ('+detail+')') from None
     result=generate(base,attendance,period)
+    from horas_productivas import load_productivity
+    try:
+        result['productiveHours']=load_productivity(config,ROOT,period,result['stores'])
+        logging.info('Horas productivas Walmart: %s',result['productiveHours']['status'])
+    except Exception as error:
+        logging.error('No se procesaron las horas productivas: %s',error)
+        result['productiveHours']={'status':'error','period':period,'message':'El Excel de horas productivas no pudo validarse. Revisa el archivo y el registro del proceso.'}
     logging.info('Calculando cobertura y cruce diario Pandape / MAAT')
     # Si falla la descarga no se presenta el concentrado viejo como actualizado.
     maat_path=maat if maat.exists() and not download_error else None

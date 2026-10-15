@@ -94,3 +94,8 @@ Las fuentes, configuración, capturas, registros y credenciales permanecen exclu
 
 Abre CONFIGURAR_EQUIPO.bat para preparar un equipo Windows nuevo. MAAT inicia sesión automáticamente con los accesos del equipo; Pandape llena el correo y espera tu contraseña. En otro equipo configura sus propios accesos, sin copiar los archivos cifrados. Consulta [PORTABILIDAD.md](docs/PORTABILIDAD.md). La preparación nueva desactiva publicar hasta que configures tu repositorio y Git.
 
+
+## Horas productivas Walmart
+
+La misma página incluye trámites por día y hora, horas pico, ranking de tiendas y mapa de actividad. El ejecutor lee el Excel mensual de la carpeta productive_hours_folder. Consulta [HORAS_PRODUCTIVAS.md](docs/HORAS_PRODUCTIVAS.md).
+
