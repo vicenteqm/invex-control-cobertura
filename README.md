@@ -111,6 +111,8 @@ Región y Tienda filtran las KPI, cobertura general, perfiles, vacantes por regi
 
 # Actualizar un solo Excel y publicar
 
+Guía con los tres accesos y qué archivo seleccionar: [ACTUALIZACION_MANUAL.md](documentacion/ACTUALIZACION_MANUAL.md).
+
 Abre con doble clic el ejecutor correspondiente y selecciona el archivo `.xlsx`:
 
 - `ACTUALIZAR_ASISTENCIAS.bat`: asistencia mensual actualizada (no el reporte diario de fichajes).
