@@ -22,6 +22,8 @@ def enrich(stores):
         required=store['required']
         opening=(required+1)//2 if 1<=required<=13 else 0
         closing=required//2 if 1<=required<=13 else 0
+        if store['id'].strip().upper().split(' ',1)[0] in ('WM','WALMART'):
+            opening,closing=closing,opening
         counts={'Apertura':0,'Cierre':0,'Intermedio / Atípico':0}
         for schedule,total in store.get('activeSchedules',{}).items():
             counts[operational_shift(schedule)]+=total

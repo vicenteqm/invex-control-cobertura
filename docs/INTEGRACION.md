@@ -51,3 +51,6 @@ Excepciones confirmadas: WM 5296, apertura 10:00–16:00 y cierre 13:00–19:00;
 
 Actualización del 15 de octubre de 2026: todas las tiendas con clave SAMS usan 11:00–20:00 en los textos de Apertura y Cierre para las vacantes. SPECIAL_HOURS tiene prioridad y conserva los horarios de las excepciones. Los horarios asignados al personal activo siguen mostrando lo capturado en el Excel de asistencia.
 
+
+Walmart (WM/WALMART), desde el 15 de octubre de 2026: las metas de plantilla impar asignan la plaza adicional a Cierre. Apertura = parte entera de plantilla/2, Cierre = mitad redondeada hacia arriba. Ejemplos: 3 → 1/2; 5 → 2/3; 7 → 3/4. Se conservan los horarios especiales existentes; la asistencia real no se modifica.
+

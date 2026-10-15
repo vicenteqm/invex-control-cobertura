@@ -5,6 +5,16 @@ import unittest
 from turnos_cobertura import allocate,enrich,operational_shift,scheduled_hours,SPECIAL_HOURS
 
 class ShiftAllocationTests(unittest.TestCase):
+    def test_walmart_prioritizes_afternoon_without_affecting_other_partners(self):
+        for required in range(1,14):
+            stores=[dict(id=key,required=required,gap=required,activeSchedules={}) for key in ['WM 100','WALMART 101','SAMS 102','CH 103']]
+            enrich(stores)
+            for store in stores[:2]:
+                self.assertEqual(store['shiftCoverage']['targets'],{'Apertura':required//2,'Cierre':(required+1)//2})
+                self.assertEqual(sum(store['shiftCoverage']['gaps'].values()),required)
+            for store in stores[2:]:
+                self.assertEqual(store['shiftCoverage']['targets'],{'Apertura':(required+1)//2,'Cierre':required//2})
+
     def test_sams_full_time_preserves_special_hours(self):
         self.assertEqual(scheduled_hours('SAMS 6248'),{'Apertura':'11:00 - 20:00','Cierre':'11:00 - 20:00'})
         for key,hours in SPECIAL_HOURS.items():self.assertEqual(scheduled_hours(key),hours)
@@ -17,8 +27,8 @@ class ShiftAllocationTests(unittest.TestCase):
     def test_targets_and_hour_exceptions(self):
         stores=[dict(id='WM 5296',required=5,gap=1,activeSchedules={'11:00 - 17:00':2,'14:00 - 20:00':2}),dict(id='SAMS 4968',required=1,gap=1,activeSchedules={})]
         enrich(stores)
-        self.assertEqual(stores[0]['shiftCoverage']['targets'],{'Apertura':3,'Cierre':2})
-        self.assertEqual(stores[0]['shiftCoverage']['gaps'],{'Apertura':1,'Cierre':0})
+        self.assertEqual(stores[0]['shiftCoverage']['targets'],{'Apertura':2,'Cierre':3})
+        self.assertEqual(stores[0]['shiftCoverage']['gaps'],{'Apertura':0,'Cierre':1})
         self.assertEqual(stores[0]['shiftCoverage']['hours']['Cierre'],'13:00 - 19:00')
         self.assertEqual(stores[1]['shiftCoverage']['hours']['Cierre'],'11:00 - 20:00')
         self.assertEqual(stores[1]['shiftCoverage']['targets'],{'Apertura':1,'Cierre':0})
