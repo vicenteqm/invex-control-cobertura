@@ -99,3 +99,10 @@ Abre CONFIGURAR_EQUIPO.bat para preparar un equipo Windows nuevo. MAAT inicia se
 
 La misma página incluye trámites por día y hora, horas pico, ranking de tiendas y mapa de actividad. El ejecutor lee el Excel mensual de la carpeta productive_hours_folder. Consulta [HORAS_PRODUCTIVAS.md](docs/HORAS_PRODUCTIVAS.md).
 
+
+## Actualizar la base de tiendas con un selector
+Abre ACTUALIZAR_BASE_TIENDAS.bat, elige el Excel actualizado y guarda los cambios antes de ejecutar. También puedes arrastrar una base sobre ACTUALIZAR_INVEX.bat: el ejecutor distingue sus columnas del reporte Pandape. Se valida y copia a inputs/fuentes/base_tiendas/BASE_TIENDAS_ACTUAL.xlsx. La ruta seleccionada queda vinculada en la configuración local y sus futuras ediciones se sincronizan al ejecutar el proceso. Si mueves el archivo, vuelve a seleccionarlo. Si no has vinculado una fuente, se conserva la selección de la carpeta interna existente. La base debe estar disponible y guardada para copiarla; no se sustituye por una copia vieja si falta la fuente vinculada.
+
+## Filtros de Cobertura
+Región y Tienda filtran las KPI, cobertura general, perfiles, vacantes por región, estatus y ambas tablas de horarios. Ver general restablece la vista nacional. Las KPI conservan el universo OPERANDO; el gráfico de estatus muestra todos los estatus de la selección. Los filtros de Tiendas y Horas productivas son independientes.
+

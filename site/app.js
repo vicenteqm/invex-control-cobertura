@@ -9,18 +9,35 @@ const date = s => new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeStyle:
 const pct = (a,b) => b ? (100*a/b).toFixed(1)+'%' : '—';
 const sum = (rows,key) => rows.reduce((a,r)=>a+r[key],0);
 const operating = data.stores.filter(s=>s.status==='OPERANDO');
-const required=sum(operating,'required'), active=sum(operating,'active'), covered=sum(operating,'covered'), gap=sum(operating,'gap');
+
 $('updated').textContent=date(data.updatedAt);
 $('cutoff').textContent=data.cutoff ? 'Último día con captura: '+data.cutoff : 'Sin captura de asistencia';
 $('period').textContent=new Intl.DateTimeFormat('es-MX',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(data.period+'-01T12:00:00Z')).toUpperCase();
-for (const [label,value,foot] of [['Tiendas operando',operating.length,'Unidades dentro del universo de cobertura'],['Plantilla requerida',required,'Promotores y sublíderes requeridos'],['Personal activo',active,'Personal elegible en tiendas operando'],['Vacantes',gap,'Faltantes por tienda y perfil']]) { const card=el('article',undefined,'kpi'); card.append(el('div',label,'kpi-label'),el('strong',num(value)),el('small',foot)); $('kpis').append(card); }
-$('percent').textContent=pct(covered,required); $('donut').style.setProperty('--fill',required ? 100*covered/required+'%' : '0%'); $('donut').setAttribute('role','img'); $('donut').setAttribute('aria-label','Cobertura de plazas: '+pct(covered,required));
-for (const [label,n] of [['Plazas cubiertas',covered],['Vacantes',gap],['Excedentes por tienda / perfil',sum(operating,'extra')]]){ const row=el('div'); row.append(el('span',label),el('strong',num(n))); $('legend').append(row); }
 function bar(value,max,light=false){const wrap=el('div',undefined,'bar'+(light?' light':''));const fill=el('i');fill.style.width=(max?100*value/max:0)+'%';wrap.append(fill);return wrap;}
-for(const [title,r,a] of [['Promotores',sum(operating,'requiredProm'),sum(operating,'activeProm')],['Sublíderes',sum(operating,'requiredSub'),sum(operating,'activeSub')]]){const block=el('div',undefined,'profile');block.append(el('strong',title));for(const [label,n,light] of [['Requeridos',r,true],['Activos',a,false]]){const row=el('div',undefined,'bar-line');row.append(el('span',label),bar(n,Math.max(r,a),light),el('strong',num(n)));block.append(row);} $('profiles').append(block);}
-const regions={}; for(const s of operating)regions[s.region]=(regions[s.region]||0)+s.gap;
-const regionList=Object.entries(regions).sort((a,b)=>b[1]-a[1]);for(const [region,n] of regionList){const row=el('div',undefined,'region-row');row.append(el('span',region),bar(n,Math.max(...Object.values(regions))),el('strong',num(n)));$('regions').append(row);}
-const statuses={};for(const s of data.stores)statuses[s.status]=(statuses[s.status]||0)+1;for(const [status,n] of Object.entries(statuses)){const row=el('div');row.append(el('span',status||'Sin estatus'),el('strong',num(n)));$('statuses').append(row);if(status!=='OPERANDO')$('status').append(new Option(status,status));}
+const coverageControls=el('div',undefined,'coverage-filters');
+const coverageRegion=el('select');coverageRegion.id='coverage-region';coverageRegion.setAttribute('aria-label','Región de cobertura');coverageRegion.append(new Option('Todas las regiones',''));
+for(const r of [...new Set(data.stores.map(s=>s.region))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})))coverageRegion.append(new Option(r,r));
+const coverageStore=el('select');coverageStore.id='coverage-store';coverageStore.setAttribute('aria-label','Tienda de cobertura');
+const general=el('button','Ver general');general.type='button';
+for(const [title,control]of [['Región',coverageRegion],['Tienda',coverageStore]]){const label=el('label');label.append(el('span',title),control);coverageControls.append(label);}coverageControls.append(general);$('kpis').before(coverageControls);
+const coverageSummary=el('p',undefined,'note');coverageSummary.setAttribute('role','status');coverageControls.after(coverageSummary);
+function coverageStoreOptions(){const previous=coverageStore.value;coverageStore.replaceChildren(new Option('Todas las tiendas',''));for(const s of data.stores.filter(s=>!coverageRegion.value||s.region===coverageRegion.value).sort((a,b)=>a.name.localeCompare(b.name,'es')))coverageStore.append(new Option(s.id+' · '+s.name,s.id));if([...coverageStore.options].some(o=>o.value===previous))coverageStore.value=previous;}
+function drawCoverage(){
+ const all=data.stores.filter(s=>(!coverageRegion.value||s.region===coverageRegion.value)&&(!coverageStore.value||s.id===coverageStore.value));const rows=all.filter(s=>s.status==='OPERANDO');
+ const required=sum(rows,'required'),active=sum(rows,'active'),covered=sum(rows,'covered'),gap=sum(rows,'gap');
+ for(const id of ['kpis','legend','profiles','regions','statuses'])$(id).replaceChildren();
+ for(const [label,value,foot]of [['Tiendas operando',rows.length,'Tiendas operando en la selección'],['Plantilla requerida',required,'Promotores y sublíderes requeridos'],['Personal activo',active,'Personal elegible de las tiendas seleccionadas'],['Vacantes',gap,'Faltantes por tienda y perfil']]){const card=el('article',undefined,'kpi');card.append(el('div',label,'kpi-label'),el('strong',num(value)),el('small',foot));$('kpis').append(card);}
+ $('percent').textContent=pct(covered,required);$('donut').style.setProperty('--fill',required?100*covered/required+'%':'0%');$('donut').setAttribute('role','img');$('donut').setAttribute('aria-label','Cobertura de plazas: '+pct(covered,required));
+ for(const [label,n]of [['Plazas cubiertas',covered],['Vacantes',gap],['Excedentes por tienda / perfil',sum(rows,'extra')]]){const row=el('div');row.append(el('span',label),el('strong',num(n)));$('legend').append(row);}
+ for(const [title,r,a]of [['Promotores',sum(rows,'requiredProm'),sum(rows,'activeProm')],['Sublíderes',sum(rows,'requiredSub'),sum(rows,'activeSub')]]){const block=el('div',undefined,'profile');block.append(el('strong',title));for(const [label,n,light]of [['Requeridos',r,true],['Activos',a,false]]){const row=el('div',undefined,'bar-line');row.append(el('span',label),bar(n,Math.max(r,a),light),el('strong',num(n)));block.append(row);}$('profiles').append(block);}
+ const regions={};for(const s of rows)regions[s.region]=(regions[s.region]||0)+s.gap;for(const [r,n]of Object.entries(regions).sort((a,b)=>b[1]-a[1])){const row=el('div',undefined,'region-row');row.append(el('span',r),bar(n,Math.max(0,...Object.values(regions))),el('strong',num(n)));$('regions').append(row);}
+ const statuses={};for(const s of all)statuses[s.status]=(statuses[s.status]||0)+1;for(const [status,n]of Object.entries(statuses)){const row=el('div');row.append(el('span',status||'Sin estatus'),el('strong',num(n)));$('statuses').append(row);}
+ coverageSummary.textContent=num(all.length)+' tiendas en la selección · '+num(rows.length)+' operando. KPI y gráficas calculadas con estos filtros.';
+ $('scope').textContent=coverageStore.value||coverageRegion.value||'Vista nacional';
+ window.INVEX_COVERAGE_SELECTION=all.map(s=>s.id);window.dispatchEvent(new CustomEvent('invex:coverage-filter',{detail:window.INVEX_COVERAGE_SELECTION}));
+}
+coverageRegion.addEventListener('change',()=>{coverageStoreOptions();drawCoverage();});coverageStore.addEventListener('change',drawCoverage);general.addEventListener('click',()=>{coverageRegion.value='';coverageStoreOptions();coverageStore.value='';drawCoverage();});coverageStoreOptions();drawCoverage();
+for(const status of [...new Set(data.stores.map(s=>s.status))])if(status!=='OPERANDO')$('status').append(new Option(status,status));
 for(const region of [...new Set(data.stores.map(s=>s.region))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})))$('region').append(new Option(region,region));
 let page=1, filtered=[]; const pageSize=12;
 function filter(){ const q=$('search').value.trim().toLocaleLowerCase('es'); filtered=data.stores.filter(s=>(!q||[s.id,s.name,s.city,s.state].join(' ').toLocaleLowerCase('es').includes(q))&&(!$('region').value||s.region===$('region').value)&&(!$('status').value||s.status===$('status').value)&&(!$('gap').value||(s.status==='OPERANDO'&&($('gap').value==='gap'?s.gap>0:$('gap').value==='zero'?s.active===0:s.gap===0)))).sort((a,b)=>b.gap-a.gap||a.name.localeCompare(b.name,'es'));page=1;render(); }

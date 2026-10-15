@@ -27,6 +27,9 @@ def check():
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--comprobar',action='store_true',help='Verifica la configuración sin descargar ni publicar')
+    parser.add_argument('--guardar-sesion-pandape',action='store_true',help='Abre solo Pandape para guardar la sesión del ejecutor')
+    parser.add_argument('--seleccionar-base',action='store_true',help='Selecciona y vincula el Excel de base de tiendas antes de actualizar')
+    parser.add_argument('--base-tiendas',type=Path,help='Vincula una base de tiendas actualizada')
     parser.add_argument('--seleccionar-reporte',action='store_true',help='Elegir el reporte descargado sin intentar acceder a Pandape')
     parser.add_argument('--reporte-pandape',type=Path,help='Reporte auténtico del día descargado desde Pandape')
     parser.add_argument('reporte',nargs='?',type=Path,help='Permite arrastrar un reporte diario sobre el BAT')
@@ -36,7 +39,29 @@ def main():
         print('Periodo: '+str(config.get('period','mes actual')),flush=True)
         print('Configuración y dependencias disponibles.',flush=True)
         if args.comprobar:return 0
+        if args.guardar_sesion_pandape:
+            import logging
+            logging.basicConfig(level=logging.INFO,format='%(message)s')
+            from descarga_pandape import prepare_session
+            prepare_session(config,ROOT)
+            return 0
         report=args.reporte_pandape or args.reporte
+        from fuentes_tiendas import is_base,sync_base
+        base=args.base_tiendas
+        if args.reporte and not args.reporte_pandape and args.reporte.is_file() and is_base(args.reporte):base=args.reporte;report=None
+        if args.seleccionar_base and not base:
+            import tkinter as tk
+            from tkinter import filedialog
+            window=tk.Tk();window.withdraw()
+            try:selected=filedialog.askopenfilename(title='INVEX - Selecciona la base de tiendas actualizada',filetypes=[('Excel','*.xlsx')])
+            finally:window.destroy()
+            if not selected:
+                print('Selección cancelada. No se actualizó el tablero.',flush=True);return 3
+            base=Path(selected)
+        if base:
+            imported=sync_base(config,ROOT,base)
+            config_path=ROOT/'configuracion'/'config.local.json';temporary=config_path.with_suffix('.tmp.json');temporary.write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8');temporary.replace(config_path)
+            print('Base validada y vinculada: '+base.name+'. Sus futuras ediciones se leerán al ejecutar la actualización.',flush=True)
         if args.seleccionar_reporte and not report:
             print('Selecciona el Excel de fichajes del día descargado desde Pandape.',flush=True)
             try:

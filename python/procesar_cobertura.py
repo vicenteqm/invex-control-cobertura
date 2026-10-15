@@ -28,10 +28,14 @@ def load_history():
 
 def run(config,skip_download=False,pandape_report=None):
     config=dict(config)
+    from fuentes_tiendas import sync_base
+    synced=sync_base(config,ROOT)
+    if synced:logging.info('Base de tiendas sincronizada desde el archivo vinculado: %s',synced.name)
     for key in ('attendance_folder','base_folder'):
         if not Path(config[key]).is_absolute():config[key]=str(ROOT/config[key])
     attendance=latest(config['attendance_folder'],config.get('attendance_pattern','ASISTENCIA*.xlsx'))
     base=latest(config['base_folder'],config.get('base_pattern','*BASE*TIENDAS*.xlsx'))
+    logging.info('Base de tiendas seleccionada: %s · modificada: %s',base.name,time.strftime('%d/%m/%Y %H:%M:%S',time.localtime(base.stat().st_mtime)))
     period=config.get('period') or local_now().strftime('%Y-%m')
     month_names=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE']
     found_months=[i+1 for i,name in enumerate(month_names) if name in attendance.stem.upper()]

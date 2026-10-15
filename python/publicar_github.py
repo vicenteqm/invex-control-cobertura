@@ -9,7 +9,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import requests
 
 ROOT=Path(__file__).resolve().parents[1]
-FILES=['.gitignore','.github','site','tests','README.md','docs','python','ACTUALIZAR_INVEX.bat','ACTUALIZAR_CON_REPORTE.bat','CONFIGURAR_EQUIPO.bat','requirements.txt','requirements-build.txt']
+FILES=['.gitignore','.github','site','tests','README.md','docs','python','ACTUALIZAR_INVEX.bat','ACTUALIZAR_CON_REPORTE.bat','ACTUALIZAR_BASE_TIENDAS.bat','CONFIGURAR_EQUIPO.bat','requirements.txt','requirements-build.txt']
 
 def repository_from_remote(remote):
     match=re.fullmatch(r'(?:https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?',remote)
