@@ -18,6 +18,7 @@ def check():
     for key in ('attendance_folder','base_folder'):
         if not (ROOT/Path(config.get(key,'__missing__'))).is_dir():raise ValueError('No existe la carpeta configurada: '+key)
     required=['openpyxl','requests']
+    if config.get('automate_productive_hours'):required.extend(['pandas','xlrd'])
     if config.get('download_pandape') or config.get('download_maat'):required.append('selenium')
     missing=[name for name in required if importlib.util.find_spec(name) is None]
     if missing:raise ValueError('Faltan dependencias: '+', '.join(missing)+'. Instala con: python -m pip install -r requirements.txt')
@@ -83,6 +84,7 @@ def main():
         if report and not report.is_file():raise ValueError('No existe el reporte Pandape seleccionado')
         if report:print('Reporte seleccionado: '+report.name+'; se omitirá la descarga automática de Pandape.',flush=True)
         print('Iniciando MAAT visible → Pandape → Excel de asistencia → cálculo → tablero.',flush=True)
+        if config.get('automate_productive_hours'):print('Se descargará Records del primer al último día del mes y se generarán las horas productivas con la BPI más reciente.',flush=True)
         if config.get('publish'):print('Se publicará en GitHub si el proceso termina correctamente.',flush=True)
         command=[sys.executable,'-X','utf8',str(ROOT/'python'/'procesar_cobertura.py')]
         if report:command.extend(['--reporte-pandape',str(report.resolve())])
@@ -93,7 +95,7 @@ def main():
         elif result.returncode==3:print('\nYa hay otra actualización en curso. Espera a que termine.',flush=True)
         elif result.returncode==2:print('\nEl cálculo terminó con un fallo de MAAT. Revisa el registro antes de compartir los datos.',flush=True)
         else:
-            print('\nLA ACTUALIZACIÓN NO SE COMPLETÓ. Revisa logs/actualizacion.log.',flush=True)
+            print('\nLA ACTUALIZACIÓN NO SE COMPLETÓ. Revisa registros/actualizacion.log.',flush=True)
             print('Si Pandape rechaza el acceso con HTTP 403, no se actualiza el tablero.',flush=True)
             print('Puedes descargar el reporte del día desde Pandape y arrastrarlo sobre ACTUALIZAR_INVEX.bat.',flush=True)
         return result.returncode

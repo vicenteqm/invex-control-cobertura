@@ -195,8 +195,8 @@ def generate(base, attendance, period):
     return result
 
 def publish_data(root):
-    files=['site/data.js']
-    if (root/'site'/'operacion-data.js').exists():files.append('site/operacion-data.js')
+    files=['sitio/data.js']
+    if (root/'sitio'/'operacion-data.js').exists():files.append('sitio/operacion-data.js')
     subprocess.run(['git','add','--',*files],cwd=root,check=True)
     diff=subprocess.run(['git','diff','--cached','--quiet','--',*files],cwd=root)
     if diff.returncode==1:subprocess.run(['git','commit','--only','-m','Actualizar cobertura INVEX','--',*files],cwd=root,check=True)
@@ -215,21 +215,21 @@ def main():
     if args.tablero:
         from importar_operacion import import_board
         historical = import_board(args.tablero)
-    output = ROOT / 'site' / 'data.js'
+    output = ROOT / 'sitio' / 'data.js'
     output.parent.mkdir(parents=True, exist_ok=True)
     temporary = output.with_suffix('.tmp')
     temporary.write_text('window.INVEX_DATA = ' + json.dumps(result, ensure_ascii=False, allow_nan=False) + ';\n', encoding='utf-8')
     temporary.replace(output)
     if args.tablero:
-        historical_output = ROOT / 'site' / 'operacion-data.js'
+        historical_output = ROOT / 'sitio' / 'operacion-data.js'
         historical_tmp = historical_output.with_suffix('.tmp')
         historical_tmp.write_text('window.INVEX_OPERACION = '+json.dumps(historical,ensure_ascii=False,allow_nan=False)+';\n',encoding='utf-8')
         historical_tmp.replace(historical_output)
     operating = [s for s in result['stores'] if s['status'] == 'OPERANDO']
     print(json.dumps(dict(tiendas=len(operating), requerida=sum(s['required'] for s in operating), activos=sum(s['active'] for s in operating), vacantes=sum(s['gap'] for s in operating), advertencias=result['warnings']), ensure_ascii=False))
     if args.publicar:
-        files = ['site/data.js']
-        if (ROOT / 'site' / 'operacion-data.js').exists(): files.append('site/operacion-data.js')
+        files = ['sitio/data.js']
+        if (ROOT / 'sitio' / 'operacion-data.js').exists(): files.append('sitio/operacion-data.js')
         subprocess.run(['git', 'add', '--', *files], cwd=ROOT, check=True)
         diff = subprocess.run(['git', 'diff', '--cached', '--quiet', '--', *files], cwd=ROOT)
         if diff.returncode == 1:

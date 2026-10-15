@@ -20,6 +20,6 @@ Las gráficas por día, hora y tienda combinan ingresos en barras con las aproba
 
 ## Actualización y privacidad
 
-En este equipo la carpeta configurada es HORAS PRODUCTIVAS WM indicada por el usuario. En otro equipo, la predeterminada es inputs/fuentes/horas_productivas. Guarda el Excel mensual actualizado y ejecuta el actualizador. No se modifica el archivo original. Solo se publican conteos por tienda, día, hora y estado; folios, ejecutivos, clientes y el Excel permanecen locales.
+En este equipo la carpeta configurada es HORAS PRODUCTIVAS WM indicada por el usuario. En otro equipo, la predeterminada es datos/fuentes/horas_productivas. Guarda el Excel mensual actualizado y ejecuta el actualizador. No se modifica el archivo original. Solo se publican conteos por tienda, día, hora y estado; folios, ejecutivos, clientes y el Excel permanecen locales.
 
-El formato anterior sin DETALLE conserva la lectura de hojas diarias con DETERMINANTE, SEDE, horas y TOTAL_TRAMITES. Si no hay Excel del periodo, se usa como respaldo el CSV inputs/fuentes/records/records_report_YYYYMMDD_YYYYMMDD.csv para Walmart. No se mezclan ambas fuentes. El CSV de respaldo no se descarga automáticamente.
+El formato anterior sin DETALLE conserva la lectura de hojas diarias con DETERMINANTE, SEDE, horas y TOTAL_TRAMITES. Si no hay Excel del periodo, se usa como respaldo el CSV datos/fuentes/records/records_report_YYYYMMDD_YYYYMMDD.csv para Walmart. No se mezclan ambas fuentes. El CSV de respaldo no se descarga automáticamente.

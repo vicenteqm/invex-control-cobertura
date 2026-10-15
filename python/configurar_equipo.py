@@ -10,11 +10,11 @@ import venv
 ROOT=Path(__file__).resolve().parents[1]
 
 def prepare(root,period):
-    for name in ['configuracion','inputs/fuentes/asistencias','inputs/fuentes/base_tiendas','inputs/fuentes/horas_productivas','logs']:
+    for name in ['configuracion','datos/fuentes/asistencias','datos/fuentes/base_tiendas','datos/fuentes/horas_productivas','datos/fuentes/bpi','datos/descargas/records','resultados/horas_productivas','registros']:
         (root/name).mkdir(parents=True,exist_ok=True)
     destination=root/'configuracion/config.local.json'
     if not destination.exists():
-        config={'attendance_folder':'inputs/fuentes/asistencias','base_folder':'inputs/fuentes/base_tiendas','attendance_pattern':'ASISTENCIA*.xlsx','base_pattern':'*BASE*TIENDAS*.xlsx','productive_hours_folder':'inputs/fuentes/horas_productivas','period':period,'download_maat':True,'maat_manual_login':False,'publish':False,'download_pandape':True,'pandape_visible':True,'pandape_browser':'edge','pandape_manual_login':True,'pandape_user':''}
+        config={'attendance_folder':'datos/fuentes/asistencias','base_folder':'datos/fuentes/base_tiendas','attendance_pattern':'ASISTENCIA*.xlsx','base_pattern':'*BASE*TIENDAS*.xlsx','productive_hours_folder':'datos/fuentes/horas_productivas','period':period,'automate_productive_hours':True,'download_maat':True,'maat_manual_login':False,'publish':False,'download_pandape':True,'pandape_visible':True,'pandape_browser':'edge','pandape_manual_login':True,'pandape_user':''}
         destination.write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8')
     return destination
 
@@ -29,7 +29,7 @@ def main():
         if not python.exists():venv.EnvBuilder(with_pip=True).create(environment)
         subprocess.run([str(python),'-m','pip','install','-r',str(ROOT/'requirements.txt')],check=True,cwd=ROOT)
     print('Preparación completa. No se copian ni guardan contraseñas.')
-    print('Coloca los Excel fuente en inputs/fuentes/asistencias y inputs/fuentes/base_tiendas.')
+    print('Coloca los Excel fuente en datos/fuentes/asistencias y datos/fuentes/base_tiendas.')
     print('Comprueba el periodo en configuracion/config.local.json y abre ACTUALIZAR_INVEX.bat.')
     print('La configuración existente se conserva; en equipos nuevos publicar está desactivado.')
 

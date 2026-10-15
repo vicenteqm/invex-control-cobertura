@@ -85,7 +85,7 @@ def process(base, attendance, period, maat=None, now=None):
         kwargs=dict(zip(names,values));available=set(values[0])
     raw=engine.analyze(a,b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
     raw['meta']['period']=period
-    private=Path(__file__).resolve().parents[1]/'inputs'
+    private=Path(__file__).resolve().parents[1]/'datos'
     private.mkdir(exist_ok=True)
     (private/'analisis_actual.json').write_text(json.dumps(raw,ensure_ascii=False,default=str),encoding='utf-8')
     from detalle_promotores import export as export_promoters

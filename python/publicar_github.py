@@ -9,7 +9,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import requests
 
 ROOT=Path(__file__).resolve().parents[1]
-FILES=['.gitignore','.github','site','tests','README.md','docs','python','ACTUALIZAR_INVEX.bat','ACTUALIZAR_CON_REPORTE.bat','ACTUALIZAR_BASE_TIENDAS.bat','ACTUALIZAR_ASISTENCIAS.bat','ACTUALIZAR_HORAS_PRODUCTIVAS.bat','CONFIGURAR_EQUIPO.bat','requirements.txt','requirements-build.txt']
+FILES=['.gitignore','.github','sitio','pruebas','README.md','documentacion','python','ACTUALIZAR_INVEX.bat','ACTUALIZAR_CON_REPORTE.bat','ACTUALIZAR_BASE_TIENDAS.bat','ACTUALIZAR_ASISTENCIAS.bat','ACTUALIZAR_HORAS_PRODUCTIVAS.bat','CONFIGURAR_EQUIPO.bat','requirements.txt','requirements-build.txt']
 
 def repository_from_remote(remote):
     match=re.fullmatch(r'(?:https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?/?',remote)
@@ -45,7 +45,7 @@ def main():
     git('add','--',*FILES)
     git('add','-u')
     staged=subprocess.check_output(['git','diff','--cached','--name-only'],cwd=ROOT,text=True).splitlines()
-    if any(p.startswith(('inputs/','.private/','logs/','.build-deps/','configuracion/','previews/')) or p.endswith(('.xlsx','.xlsm','.csv')) or p=='config.local.json' for p in staged):raise RuntimeError('El índice contiene archivos privados; publicación detenida')
+    if any(p.startswith(('datos/','resultados/','inputs/','logs/','previews/','.private/','registros/','.build-deps/','configuracion/','vistas_previas/')) or p.endswith(('.xlsx','.xlsm','.xls','.csv')) or p=='config.local.json' for p in staged):raise RuntimeError('El índice contiene archivos privados; publicación detenida')
     if staged:git('commit','-m','Publicar tablero de cobertura INVEX y proceso de actualización')
     git('branch','-M','main')
     remotes=subprocess.check_output(['git','remote'],cwd=ROOT,text=True).splitlines()
@@ -57,12 +57,12 @@ def main():
         pages=api('POST','/repos/'+owner+'/'+name+'/pages',expected=(201,202),json={'build_type':'workflow'})
     print('Pages configurado: '+str(pages.get('html_url','despliegue pendiente')),flush=True)
     # Pages puede habilitarse después del primer push; se vuelve a solicitar el despliegue.
-    if pages_created or not any(p.startswith('site/') or p=='.github/workflows/pages.yml' for p in staged):
+    if pages_created or not any(p.startswith('sitio/') or p=='.github/workflows/pages.yml' for p in staged):
         api('POST','/repos/'+owner+'/'+name+'/actions/workflows/pages.yml/dispatches',expected=(204,),json={'ref':'main'})
     else:
         print('Publicación solicitada por el push; se evita duplicar el despliegue.',flush=True)
-    (ROOT/'logs').mkdir(exist_ok=True)
-    (ROOT/'logs'/'publicacion.json').write_text(json.dumps({'repository':info['html_url'],'pages':pages.get('html_url'),'status':'deployment_requested'},indent=2),encoding='utf-8')
+    (ROOT/'registros').mkdir(exist_ok=True)
+    (ROOT/'registros'/'publicacion.json').write_text(json.dumps({'repository':info['html_url'],'pages':pages.get('html_url'),'status':'deployment_requested'},indent=2),encoding='utf-8')
 
 if __name__=='__main__':
     try:main()

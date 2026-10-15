@@ -31,7 +31,7 @@ def import_file(kind,source,config,root):
     period=config['period']
     base=latest(root/config['base_folder'],config.get('base_pattern','*BASE*TIENDAS*.xlsx'))
     attendance=latest(root/config['attendance_folder'],config.get('attendance_pattern','ASISTENCIA*.xlsx'))
-    generated=root/'inputs'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
+    generated=root/'datos'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
     if config.get('download_pandape') and generated.exists():attendance=generated
     # Validar la fuente completa antes de reemplazar una copia de trabajo.
     if kind=='tiendas':
@@ -40,16 +40,16 @@ def import_file(kind,source,config,root):
         return
     if kind=='asistencias':
         generate(base,source,period)
-        target=root/'inputs'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
-        config['attendance_folder']='inputs/asistencias'
+        target=root/'datos'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
+        config['attendance_folder']='datos/asistencias'
         config['attendance_pattern']=target.name
     elif kind=='horas':
         from horas_productivas import read_productivity
         stores=generate(base,attendance,period)['stores']
         result=read_productivity(source,period,stores)
         if result.get('status')!='available':raise ValueError('El Excel no contiene horas productivas del periodo configurado')
-        target=root/'inputs'/'fuentes'/'horas_productivas'/'Horas Productivas Actual.xlsx'
-        config['productive_hours_folder']='inputs/fuentes/horas_productivas'
+        target=root/'datos'/'fuentes'/'horas_productivas'/'Horas Productivas Actual.xlsx'
+        config['productive_hours_folder']='datos/fuentes/horas_productivas'
         config['productive_hours_pattern']=target.name
     else:raise ValueError('Tipo de archivo desconocido')
     target.parent.mkdir(parents=True,exist_ok=True)
@@ -64,9 +64,9 @@ def main(kind):
     if not selected:
         print('Selección cancelada. No se modificaron ni publicaron datos.',flush=True);return 3
     import msvcrt
-    (ROOT/'logs').mkdir(exist_ok=True)
-    logging.basicConfig(level=logging.INFO,format='%(asctime)s | %(levelname)s | %(message)s',handlers=[logging.FileHandler(ROOT/'logs'/'actualizacion.log',encoding='utf-8'),logging.StreamHandler()])
-    with (ROOT/'logs'/'proceso.lock').open('a+b') as lock:
+    (ROOT/'registros').mkdir(exist_ok=True)
+    logging.basicConfig(level=logging.INFO,format='%(asctime)s | %(levelname)s | %(message)s',handlers=[logging.FileHandler(ROOT/'registros'/'actualizacion.log',encoding='utf-8'),logging.StreamHandler()])
+    with (ROOT/'registros'/'proceso.lock').open('a+b') as lock:
         lock.seek(0);lock.write(b'0');lock.flush();lock.seek(0)
         try:msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
         except OSError:
@@ -78,9 +78,9 @@ def main(kind):
             import_file(kind,selected,config,ROOT)
             save_config(path,config)
             local=dict(config,publish=True,download_pandape=False,download_maat=False)
-            generated=ROOT/'inputs'/'asistencias'/('ASISTENCIA_INVEX_'+config['period']+'.xlsx')
+            generated=ROOT/'datos'/'asistencias'/('ASISTENCIA_INVEX_'+config['period']+'.xlsx')
             if kind!='asistencias' and config.get('download_pandape') and generated.exists():
-                local['attendance_folder']='inputs/asistencias'
+                local['attendance_folder']='datos/asistencias'
                 local['attendance_pattern']=generated.name
             # Usar las copias locales al actualizar una única fuente.
             local.pop('base_source_file',None)

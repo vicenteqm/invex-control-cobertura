@@ -1,14 +1,20 @@
 __pycache__/
 .venv/
 .env
+datos/
 inputs/
+logs/
+previews/
+resultados/
+*.csv
+*.xls
 *.xlsx
 .private/
 config.local.json
-logs/
+registros/
 .build-deps/
 
 configuracion/
-previews/
+vistas_previas/
 *.xlsm
 *.xlsb

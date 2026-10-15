@@ -65,13 +65,13 @@ def read_productivity(path,period,base_stores):
     return {'status':'available','period':period,'daysInMonth':count,'capturedDays':sorted(captured),'lastDay':max(captured),'hours':hour_labels,'stores':list(stores.values()),'sourceName':Path(path).name,'sourceModifiedAt':datetime.fromtimestamp(Path(path).stat().st_mtime,timezone.utc).isoformat(),'warnings':warnings,'total':total}
 
 def load_productivity(config,root,period,stores):
-    folder=Path(config.get('productive_hours_folder','inputs/fuentes/horas_productivas'))
+    folder=Path(config.get('productive_hours_folder','datos/fuentes/horas_productivas'))
     if not folder.is_absolute():folder=root/folder
     files=sorted((p for p in folder.glob(config.get('productive_hours_pattern','Horas Productivas*.xlsx')) if not p.name.startswith('~$')),key=lambda p:p.stat().st_mtime,reverse=True)
     for path in files:
         try:return read_productivity(path,period,stores)
         except PeriodNotFound:continue
-    records_folder=Path(config.get('productive_records_folder','inputs/fuentes/records'))
+    records_folder=Path(config.get('productive_records_folder','datos/fuentes/records'))
     if not records_folder.is_absolute():records_folder=root/records_folder
     for path in sorted(records_folder.glob('records_report_*.csv'),key=lambda p:p.stat().st_mtime,reverse=True):
         try:return read_records_productivity(path,period,stores)

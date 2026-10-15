@@ -5,7 +5,7 @@
 1. Instala Python 3.10 o posterior y Microsoft Edge. Para publicar instala también Git.
 2. Clona el repositorio o copia el código. No copies `.private`, `.venv`, `.build-deps` ni cachés de otro equipo.
 3. Abre `CONFIGURAR_EQUIPO.bat`. Crea el entorno `.venv`, instala `requirements.txt` y prepara las carpetas y la configuración cuando no existen. Requiere conexión para instalar las dependencias.
-4. Coloca el Excel de asistencia en `inputs/fuentes/asistencias/` y la base de tiendas en `inputs/fuentes/base_tiendas/`.
+4. Coloca el Excel de asistencia en `datos/fuentes/asistencias/` y la base de tiendas en `datos/fuentes/base_tiendas/`.
 5. Revisa el periodo en `configuracion/config.local.json`.
 6. Abre `ACTUALIZAR_INVEX.bat`. MAAT inicia sesión automáticamente; configura MAAT_USER y MAAT_PASSWORD en el entorno del equipo. Para Pandape configura pandape_user en el JSON local o PANDAPE_USER en el entorno: el correo se llena automáticamente y tú escribes la contraseña. Después continúa con la descarga y los cálculos. Dispones de cinco minutos para el ingreso en Pandape.
 

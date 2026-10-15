@@ -66,7 +66,7 @@ def main():
     parser.add_argument('--tablero', type=Path, required=True)
     args = parser.parse_args()
     data = import_board(args.tablero)
-    output = ROOT / 'site' / 'operacion-data.js'
+    output = ROOT / 'sitio' / 'operacion-data.js'
     tmp = output.with_suffix('.tmp')
     tmp.write_text('window.INVEX_OPERACION = '+json.dumps(data,ensure_ascii=False,allow_nan=False)+';\n',encoding='utf-8')
     tmp.replace(output)

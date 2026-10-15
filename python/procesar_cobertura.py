@@ -20,7 +20,7 @@ def latest(folder,pattern):
     return max(files,key=lambda p:p.stat().st_mtime)
 
 def load_history():
-    path=ROOT/'site'/'operacion-data.js'
+    path=ROOT/'sitio'/'operacion-data.js'
     if not path.exists():return dict(months={})
     text=path.read_text(encoding='utf-8');prefix='window.INVEX_OPERACION = '
     if not text.startswith(prefix):raise ValueError('Archivo de operación con formato inesperado')
@@ -37,12 +37,16 @@ def run(config,skip_download=False,pandape_report=None):
     base=latest(config['base_folder'],config.get('base_pattern','*BASE*TIENDAS*.xlsx'))
     logging.info('Base de tiendas seleccionada: %s · modificada: %s',base.name,time.strftime('%d/%m/%Y %H:%M:%S',time.localtime(base.stat().st_mtime)))
     period=config.get('period') or local_now().strftime('%Y-%m')
+    if config.get('automate_productive_hours') and not skip_download:
+        from automatizar_horas_productivas import rango_mes,ultima_bpi,validar_bpi
+        if period!=rango_mes()[0].strftime('%Y-%m'):raise ValueError('Actualiza el periodo y las fuentes mensuales antes de iniciar el proceso del mes actual')
+        validar_bpi(ultima_bpi(ROOT/'datos'/'fuentes'/'bpi'))
     month_names=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE']
     found_months=[i+1 for i,name in enumerate(month_names) if name in attendance.stem.upper()]
     iso_month=re.search(r'\d{4}-\d{2}',attendance.stem)
     if (found_months and int(period[-2:]) not in found_months) or (iso_month and iso_month.group()!=period):
         raise ValueError('El periodo configurado no coincide con el archivo de asistencia')
-    maat=ROOT/'inputs'/('asistencia_maat_'+period.replace('-','_')+'.csv')
+    maat=ROOT/'datos'/('asistencia_maat_'+period.replace('-','_')+'.csv')
     download_error=None
     if config.get('download_maat') and not skip_download:
         try:
@@ -60,7 +64,7 @@ def run(config,skip_download=False,pandape_report=None):
             download_error=type(error).__name__+': '+str(error)
             logging.error('No se descargó MAAT: %s',download_error)
     pandape_status='not_configured';pandape_result=None
-    generated=ROOT/'inputs'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
+    generated=ROOT/'datos'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
     if config.get('download_pandape') or pandape_report:
         if skip_download and not pandape_report:
             if generated.exists():attendance=generated
@@ -80,8 +84,12 @@ def run(config,skip_download=False,pandape_report=None):
                 # Se detiene el cálculo: no se presenta una captura anterior como recién descargada.
                 detail=str(error) if isinstance(error,ValueError) or (isinstance(error,RuntimeError) and str(error).startswith('Pandape: ')) else type(error).__name__
                 failure=dict(processedAt=local_now().isoformat(),period=period,pandape='error',stage='pandape',error=detail)
-                (ROOT/'logs'/'ultimo-proceso.json').write_text(json.dumps(failure,indent=2),encoding='utf-8')
+                (ROOT/'registros'/'ultimo-proceso.json').write_text(json.dumps(failure,indent=2),encoding='utf-8')
                 raise RuntimeError('Falló la descarga o generación de asistencia Pandape; se conserva el tablero anterior ('+detail+')') from None
+    if config.get('automate_productive_hours') and not skip_download:
+        from automatizar_horas_productivas import ejecutar as generar_horas
+        logging.info('Iniciando Records mensual → corrección de tiendas → BPI → horas productivas')
+        generar_horas(config,ROOT)
     result=generate(base,attendance,period)
     from horas_productivas import load_productivity
     try:
@@ -99,7 +107,7 @@ def run(config,skip_download=False,pandape_report=None):
     month['maatError']=download_error
     historical=load_history();historical['months'][period]=month;historical['currentPeriod']=period
     historical['processedAt']=month['processedAt'];historical['sourceName']=attendance.name+' + '+base.name
-    targets=[(ROOT/'site'/'data.js','window.INVEX_DATA',result),(ROOT/'site'/'operacion-data.js','window.INVEX_OPERACION',historical)]
+    targets=[(ROOT/'sitio'/'data.js','window.INVEX_DATA',result),(ROOT/'sitio'/'operacion-data.js','window.INVEX_OPERACION',historical)]
     for path,variable,data in targets:
         tmp=path.with_suffix('.tmp');tmp.write_text(variable+' = '+json.dumps(data,ensure_ascii=False,allow_nan=False)+';\n',encoding='utf-8')
     for path,_,_ in targets:path.with_suffix('.tmp').replace(path)
@@ -110,23 +118,28 @@ def run(config,skip_download=False,pandape_report=None):
     current_days=[next((d for d in s['days'] if d['day']==month['referenceDay']),{}) for s in month['stores']]
     status=dict(processedAt=month['processedAt'],period=period,referenceDay=month['referenceDay'],stores=len(month['stores']),alarmantes=sum(d.get('semaphore')=='ALARMANTE' for d in current_days),criticas=sum(d.get('semaphore')=='CRITICA' for d in current_days),maat=month['maatStatus'],maatDays=month['maatDays'],downloadError=download_error)
     status['pandape']=pandape_status;status['pandapeResult']=pandape_result
-    (ROOT/'logs'/'ultimo-proceso.json').write_text(json.dumps(status,ensure_ascii=False,indent=2),encoding='utf-8')
+    if config.get('automate_productive_hours') and not skip_download:
+        status['productiveHoursSource']={k:config[k] for k in ('productive_hours_folder','productive_hours_pattern')}
+    (ROOT/'registros'/'ultimo-proceso.json').write_text(json.dumps(status,ensure_ascii=False,indent=2),encoding='utf-8')
     logging.info('Proceso completado: %s',json.dumps(status,ensure_ascii=False))
     return status
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--config',type=Path,default=ROOT/'configuracion'/'config.local.json');parser.add_argument('--sin-descarga',action='store_true');parser.add_argument('--reporte-pandape',type=Path,help='Reporte del día actual exportado desde Pandape');args=parser.parse_args()
-    (ROOT/'logs').mkdir(exist_ok=True)
-    logging.basicConfig(level=logging.INFO,format='%(asctime)s | %(levelname)s | %(message)s',handlers=[logging.FileHandler(ROOT/'logs'/'actualizacion.log',encoding='utf-8'),logging.StreamHandler()])
+    (ROOT/'registros').mkdir(exist_ok=True)
+    logging.basicConfig(level=logging.INFO,format='%(asctime)s | %(levelname)s | %(message)s',handlers=[logging.FileHandler(ROOT/'registros'/'actualizacion.log',encoding='utf-8'),logging.StreamHandler()])
     config=json.loads(args.config.read_text(encoding='utf-8'))
     # Un bloqueo del sistema operativo evita procesos simultáneos y se libera al salir.
     import msvcrt
-    with (ROOT/'logs'/'proceso.lock').open('a+b') as lock:
+    with (ROOT/'registros'/'proceso.lock').open('a+b') as lock:
         lock.seek(0);lock.write(b'0');lock.flush();lock.seek(0)
         try:msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
         except OSError:logging.info('Ya hay una actualización en curso');raise SystemExit(3)
         try:
             status=run(config,args.sin_descarga,args.reporte_pandape)
+            if status.get('productiveHoursSource'):
+                config.update(status['productiveHoursSource'])
+                temporary=args.config.with_suffix('.tmp.json');temporary.write_text(json.dumps(config,ensure_ascii=False,indent=2),encoding='utf-8');temporary.replace(args.config)
             if status['downloadError']:raise SystemExit(2)
         except Exception as error:
             logging.error('%s',error)

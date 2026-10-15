@@ -54,7 +54,7 @@ def prepare_session(config,root):
     from selenium import webdriver
     browser=config.get('pandape_browser','edge').lower()
     if browser not in ('edge','chrome'):raise ValueError('Usa edge o chrome para Pandape')
-    folder=root/'inputs'/'pandape';folder.mkdir(parents=True,exist_ok=True)
+    folder=root/'datos'/'pandape';folder.mkdir(parents=True,exist_ok=True)
     options=session_options(webdriver,root,browser,folder)
     driver=webdriver.Edge(options=options) if browser=='edge' else webdriver.Chrome(options=options)
     try:
@@ -84,7 +84,7 @@ def download(config, root):
     username=os.environ.get('PANDAPE_USER') or config.get('pandape_user')
     now=local_now()
     if config['period']!=now.strftime('%Y-%m'):raise ValueError('La descarga diaria de Pandape requiere configurar el mes actual')
-    folder=root/'inputs'/'pandape'/'descargas'/now.strftime('%Y%m%d_%H%M%S_%f')
+    folder=root/'datos'/'pandape'/'descargas'/now.strftime('%Y%m%d_%H%M%S_%f')
     folder.mkdir(parents=True)
     browser=config.get('pandape_browser','chrome').lower()
     if browser not in ('chrome','edge'):raise ValueError('Navegador Pandape no admitido: usa chrome o edge')
@@ -133,13 +133,13 @@ def download(config, root):
         report=wait_download(folder)
         from generar_asistencia import summarize
         summarize(report,now.date())
-        current=root/'inputs'/'pandape'/'Reporte_Pandape_actual.xlsx'
+        current=root/'datos'/'pandape'/'Reporte_Pandape_actual.xlsx'
         if report.suffix.lower()!='.xlsx':raise ValueError('La exportación debe ser un Excel XLSX')
         temporary=current.with_suffix('.tmp.xlsx');shutil.copyfile(report,temporary);temporary.replace(current)
         logging.info('[7/7] Reporte validado y reemplazado: %s',current.name)
         return current
     except Exception as error:
-        private=root/'inputs'/'pandape'
+        private=root/'datos'/'pandape'
         from urllib.parse import urlsplit
         title='';page='';screenshot=False
         try:

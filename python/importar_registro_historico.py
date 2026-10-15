@@ -9,7 +9,7 @@ from registro_maat import aggregate
 ROOT=Path(__file__).resolve().parents[1]
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--zip',required=True,type=Path);args=parser.parse_args()
-    path=ROOT/'site'/'operacion-data.js';prefix='window.INVEX_OPERACION = '
+    path=ROOT/'sitio'/'operacion-data.js';prefix='window.INVEX_OPERACION = '
     data=json.loads(path.read_text(encoding='utf-8')[len(prefix):].strip().removesuffix(';'))
     with zipfile.ZipFile(args.zip) as archive:
         embedded=EmbeddedMonths();embedded.feed(archive.read('control_cobertura.html').decode('utf-8-sig'));raws=json.loads(''.join(embedded.parts))
@@ -27,7 +27,7 @@ def main():
         registration=aggregate(raw,month['daysInMonth'],maat_days)
         for store in month['stores']:store['registration']=registration[store['id']]
         month.update(maatLoaded=True,maatDays=sorted(maat_days),attendanceDays=sorted(pandape_days))
-        directory=ROOT/'inputs'/'historico';directory.mkdir(exist_ok=True)
+        directory=ROOT/'datos'/'historico';directory.mkdir(exist_ok=True)
         (directory/('analisis_'+period+'.json')).write_text(json.dumps(raw,ensure_ascii=False),encoding='utf-8')
         print('Registro histórico incorporado: '+period)
     temporary=path.with_suffix('.tmp');temporary.write_text(prefix+json.dumps(data,ensure_ascii=False,allow_nan=False)+';\n',encoding='utf-8');temporary.replace(path)

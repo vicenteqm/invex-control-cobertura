@@ -15,7 +15,7 @@ class ImportTests(unittest.TestCase):
             source=root/'new.xlsx';source.write_bytes(b'new')
             config=dict(period='2026-10',base_folder='base',base_pattern='*.xlsx',attendance_folder='attendance')
             with patch('actualizar.generate',return_value={'stores':[]}):import_file('asistencias',source,config,root)
-            target=root/'inputs/asistencias/ASISTENCIA_INVEX_2026-10.xlsx'
+            target=root/'datos/asistencias/ASISTENCIA_INVEX_2026-10.xlsx'
             self.assertEqual(target.read_bytes(),b'new')
             self.assertEqual(config['attendance_pattern'],target.name)
             source.write_bytes(b'invalid')
