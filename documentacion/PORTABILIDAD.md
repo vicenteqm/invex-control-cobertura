@@ -28,7 +28,7 @@ python python/publicar_github.py
 
 `publicar_github.py` toma el propietario y nombre desde `origin`; no está vinculado a una cuenta específica ni crea repositorios automáticamente. Necesita una sesión GitHub disponible en Git Credential Manager para las operaciones de la API. GitHub puede exigir configurar Pages en los ajustes del repositorio según sus permisos y disponibilidad.
 
-Los Excel, credenciales, configuración y logs continúan excluidos del repositorio. El directorio `site` contiene los datos del tablero: su visibilidad depende del repositorio y alojamiento elegidos.
+Los Excel, credenciales, configuración y registros continúan excluidos del repositorio. El directorio `sitio` contiene los datos del tablero: su visibilidad depende del repositorio y alojamiento elegidos.
 
 ## Opciones existentes
 

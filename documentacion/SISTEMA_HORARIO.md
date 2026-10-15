@@ -1,5 +1,7 @@
 # Consulta automática del detalle
 
+Actualización vigente del 15 de octubre: el flujo completo es MAAT diario → Pandape con sesión persistente → Records mensual → correcciones de determinantes → cruce BPI → horas productivas → cálculo y publicación. Consulta [AUTOMATIZACION_HORAS.md](AUTOMATIZACION_HORAS.md) y [SESION_PANDAPE.md](SESION_PANDAPE.md). Las notas de pruebas del 13 y 14 de octubre que siguen describen el historial de implementación, no el modo de acceso actual. La tarea horaria permanece pausada.
+
 ## Ingreso manual y procesamiento automático
 
 Prueba del 13 de octubre de 2026: se verificaron el ingreso manual en Edge, los filtros Compañía/Departamento/INVEX y la descarga diaria. El reporte de 531 personas permitió 342 coincidencias con la asistencia; MAAT descargó 1,907 registros. La actualización y publicación terminaron a las 14:18. El lector reconoce reportes diarios con dos pares Ent./Sal., además de los reportes con tres o cuatro pares. Un reporte ya validado queda como `Reporte_Pandape_actual.xlsx`.
