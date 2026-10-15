@@ -52,11 +52,15 @@ def main():
     if 'origin' not in remotes:git('remote','add','origin',info['clone_url'])
     git('push','-u','origin','main')
     pages=api('GET','/repos/'+owner+'/'+name+'/pages',expected=(200,404))
-    if not pages or not pages.get('html_url'):
+    pages_created=not pages or not pages.get('html_url')
+    if pages_created:
         pages=api('POST','/repos/'+owner+'/'+name+'/pages',expected=(201,202),json={'build_type':'workflow'})
     print('Pages configurado: '+str(pages.get('html_url','despliegue pendiente')),flush=True)
     # Pages puede habilitarse después del primer push; se vuelve a solicitar el despliegue.
-    api('POST','/repos/'+owner+'/'+name+'/actions/workflows/pages.yml/dispatches',expected=(204,),json={'ref':'main'})
+    if pages_created or not any(p.startswith('site/') or p=='.github/workflows/pages.yml' for p in staged):
+        api('POST','/repos/'+owner+'/'+name+'/actions/workflows/pages.yml/dispatches',expected=(204,),json={'ref':'main'})
+    else:
+        print('Publicación solicitada por el push; se evita duplicar el despliegue.',flush=True)
     (ROOT/'logs').mkdir(exist_ok=True)
     (ROOT/'logs'/'publicacion.json').write_text(json.dumps({'repository':info['html_url'],'pages':pages.get('html_url'),'status':'deployment_requested'},indent=2),encoding='utf-8')
 
