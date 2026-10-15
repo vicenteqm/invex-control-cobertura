@@ -72,7 +72,10 @@ def ejecutar(config,root,ahora=None,descargar=None):
         archivo_corregido=records.parent/'Records_corregido.csv'
         shutil.copy2(corregido,archivo_corregido)
         try:preparado.replace(final)
-        except PermissionError:raise RuntimeError('Cierra el Excel de horas productivas y vuelve a ejecutar el proceso') from None
+        except PermissionError:
+            final=destino/(final.stem+'_'+datetime.now().strftime('%Y%m%d_%H%M%S_%f')+final.suffix)
+            preparado.replace(final)
+            logging.warning('El reporte anterior está abierto en Excel; se guardó una nueva versión: %s',final.name)
     config['productive_hours_folder']=str(destino.relative_to(root))
     config['productive_hours_pattern']=final.name
     estado={'periodo':period,'inicio':inicio.isoformat(),'fin':fin.isoformat(),'bpi':bpi.name,'records':str(records.relative_to(root)),'reporte':str(final.relative_to(root)),**cambios,'ingresos':resultado['total']}

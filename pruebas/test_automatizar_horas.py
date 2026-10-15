@@ -65,4 +65,14 @@ class AutomaticHoursTests(unittest.TestCase):
             def failure(*args):raise RuntimeError('Descarga fallida')
             with self.assertRaisesRegex(RuntimeError,'Descarga fallida'):ejecutar(config,root,now,failure)
             self.assertEqual(final.read_bytes(),previous)
+            original_replace=Path.replace
+            def locked_replace(path,target):
+                if Path(target)==final:raise PermissionError('Excel abierto')
+                return original_replace(path,target)
+            with patch.object(Path,'replace',locked_replace):
+                alternative=ejecutar(config,root,now,download)
+            self.assertNotEqual(alternative,final)
+            self.assertTrue(alternative.is_file())
+            self.assertEqual(final.read_bytes(),previous)
+            self.assertEqual(read_productivity(alternative,'2026-10',[])['total'],2)
             with self.assertRaises(ValueError):ejecutar({'period':'2026-09'},root,now,download)

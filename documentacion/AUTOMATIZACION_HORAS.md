@@ -1,7 +1,7 @@
 # Horas productivas automáticas
 
 1. Guarda la BPI actualizada `.xlsx` en `datos/fuentes/bpi/`. Debe incluir la hoja principal y PROIND. Se elige por fecha de modificación; no se usan los archivos temporales `~$` de Excel.
-2. Abre `ACTUALIZAR_INVEX.bat`. Mantén cerrados los Excel que deban reemplazarse.
+2. Abre `ACTUALIZAR_INVEX.bat`. Si el reporte mensual está abierto en Excel, el ejecutor guarda una versión con fecha y hora y usa esa versión para publicar, sin cerrar el archivo que estás consultando.
 3. El ejecutor descarga la asistencia diaria MAAT y los fichajes Pandape. Reutiliza la sesión de Pandape; si venció, espera el ingreso manual.
 4. En Edge visible abre `https://invex.maatai.com/admin/records/recordreportoptimized/`, inicia sesión con el acceso local de MAAT y descarga desde el primer hasta el último día del mes de ejecución (Ciudad de México). No solicita fechas.
 5. Conserva la descarga original y crea Records_corregido.csv aplicando estas coincidencias exactas, normalizadas por espacios, acentos y mayúsculas:
