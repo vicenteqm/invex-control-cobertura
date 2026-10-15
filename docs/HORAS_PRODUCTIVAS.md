@@ -23,3 +23,6 @@ Cada hoja diaria contiene DETERMINANTE, SEDE, intervalos `HH:00 - HH:59` y TOTAL
 Se identifica cada determinante como WM y se toma su región de la base de tiendas. El universo de productividad es el del Excel: no se excluyen automáticamente tiendas por el estatus de cobertura, para conservar la concordancia con la fuente. Las gráficas explican ese universo.
 
 Si falta el archivo del periodo o no puede validarse, la sección muestra el problema y no presenta los datos de otro mes como actuales. El resto del tablero puede procesarse normalmente.
+
+## Records y aprobaciones
+Coloca el CSV records_report_YYYYMMDD_YYYYMMDD.csv en inputs/fuentes/records. El ejecutor selecciona el más reciente del periodo y lo usa para ambas series, con prioridad sobre el Excel de horas. No suma varios exports superpuestos. Cuenta cada fila de módulo Walmart por F. Creación, y separa Aprobada de Aprobada con Garantía. La página permite incluir las de garantía. La línea muestra el resultado actual agrupado por fecha de creación, no por fecha de aprobación. El último día puede estar incompleto. Solo se publican agregados por tienda/día/hora; el archivo original permanece local. Para refrescar, reemplaza el CSV por una exportación mensual completa y ejecuta el actualizador. No se ha agregado una descarga automática de este reporte.

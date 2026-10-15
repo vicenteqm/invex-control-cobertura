@@ -1,5 +1,6 @@
 """Trámites Walmart por día y hora; no incluye filas TOTAL ni duplica GENERAL."""
 import calendar
+import csv
 import math
 import re
 from datetime import date,datetime,timezone
@@ -63,6 +64,11 @@ def read_productivity(path,period,base_stores):
     return {'status':'available','period':period,'daysInMonth':count,'capturedDays':sorted(captured),'lastDay':max(captured),'hours':hour_labels,'stores':list(stores.values()),'sourceName':Path(path).name,'sourceModifiedAt':datetime.fromtimestamp(Path(path).stat().st_mtime,timezone.utc).isoformat(),'warnings':warnings,'total':total}
 
 def load_productivity(config,root,period,stores):
+    records_folder=Path(config.get('productive_records_folder','inputs/fuentes/records'))
+    if not records_folder.is_absolute():records_folder=root/records_folder
+    for path in sorted(records_folder.glob('records_report_*.csv'),key=lambda p:p.stat().st_mtime,reverse=True):
+        try:return read_records_productivity(path,period,stores)
+        except PeriodNotFound:continue
     folder=Path(config.get('productive_hours_folder','inputs/fuentes/horas_productivas'))
     if not folder.is_absolute():folder=root/folder
     files=sorted((p for p in folder.glob('Horas Productivas*.xlsx') if not p.name.startswith('~$')),key=lambda p:p.stat().st_mtime,reverse=True)
@@ -70,3 +76,42 @@ def load_productivity(config,root,period,stores):
         try:return read_productivity(path,period,stores)
         except PeriodNotFound:continue
     return {'status':'missing','period':period,'message':'No se encontró un Excel de horas productivas con hojas del periodo '+period+'.'}
+
+
+def read_records_productivity(path,period,base_stores):
+    """Publish aggregate counts only; customer/executive identifiers stay local."""
+    year,month=map(int,period.split('-'));count=calendar.monthrange(year,month)[1]
+    metadata={s['id']:s for s in base_stores};stores={};dates=[]
+    hours=[f'{h:02}:00 - {h:02}:59' for h in range(24)]
+    required={'Lugar de venta','Segundo lugar de venta','Aprobación','F. Creación'}
+    with Path(path).open(encoding='utf-8-sig',newline='') as f:
+        reader=csv.DictReader(f)
+        if not required.issubset(reader.fieldnames or []):raise ValueError('Records: faltan columnas de tienda, aprobación o fecha de creación')
+        for row in reader:
+            if 'WALMART' not in row['Lugar de venta'].upper():continue
+            try:created=datetime.fromisoformat(row['F. Creación'].strip())
+            except ValueError:raise ValueError('Records: fecha de creación inválida') from None
+            if created.strftime('%Y-%m')!=period:continue
+            match=re.match(r'\s*(\d+)\b',row['Segundo lugar de venta'])
+            if not match:raise ValueError('Records: tienda Walmart sin determinante')
+            key='WM '+str(int(match[1]));info=metadata.get(key,{})
+            s=stores.setdefault(key,{'id':key,'name':info.get('name') or row['Segundo lugar de venta'],'region':info.get('region','Sin región en base'),'status':info.get('status','Sin coincidencia en base'),'days':{},'approvedDays':{},'guaranteedDays':{}})
+            day=str(created.day);dates.append(created)
+            for field in ('days','approvedDays','guaranteedDays'):s[field].setdefault(day,[0]*24)
+            s['days'][day][created.hour]+=1
+            status=row['Aprobación'].strip().casefold()
+            if status=='aprobada':s['approvedDays'][day][created.hour]+=1
+            elif status=='aprobada con garantía':s['guaranteedDays'][day][created.hour]+=1
+    if not dates:raise PeriodNotFound('Records sin registros Walmart del periodo '+period)
+    # The export filename declares the requested coverage, including zero-volume days.
+    match=re.fullmatch(r'records_report_(\d{8})_(\d{8})',Path(path).stem)
+    start=min(dates).date();end=max(dates).date()
+    if match:
+        start=max(date(year,month,1),datetime.strptime(match[1],'%Y%m%d').date())
+        end=min(date(year,month,count),datetime.strptime(match[2],'%Y%m%d').date())
+        if any(not start<=d.date()<=end for d in dates):raise ValueError('Records: fechas fuera del rango indicado en el nombre')
+    captured=list(range(start.day,end.day+1))
+    for s in stores.values():
+        for d in captured:
+            for field in ('days','approvedDays','guaranteedDays'):s[field].setdefault(str(d),[0]*24)
+    return {'status':'available','period':period,'daysInMonth':count,'capturedDays':captured,'lastDay':end.day,'hours':hours,'stores':list(stores.values()),'sourceName':Path(path).name,'sourceModifiedAt':datetime.fromtimestamp(Path(path).stat().st_mtime,timezone.utc).isoformat(),'warnings':[],'total':sum(sum(v) for s in stores.values() for v in s['days'].values()),'hasApprovals':True,'sourceType':'records','lastRecordAt':max(dates).isoformat(),'approvalBasis':'Aprobación actual del registro, agrupada por F. Creación; no es la fecha en que se aprobó.'}
