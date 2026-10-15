@@ -1,28 +1,25 @@
-# Horas productivas Walmart
+# Horas productivas Walmart y SAMS
 
-La sección está dentro de la misma página, después de Cobertura. Presenta volumen diario, distribución por franja horaria, diez tiendas con mayor volumen y un mapa de actividad por día y hora. Incluye filtros de fechas, región y tienda. Los números son trámites, no horas trabajadas ni duración de los trámites.
+Guarda el Excel en productive_hours_folder de configuracion/config.local.json y ejecuta ACTUALIZAR_INVEX.bat. El procesador lo integra al completar la actualización; --sin-descarga recalcula con las fuentes locales siguiendo las reglas de asistencia existentes. El periodo se cambia explícitamente junto con las fuentes mensuales.
 
-## Actualización
+## Prioridad de fuentes
 
-`python/procesar_cobertura.py` lee la carpeta indicada por `productive_hours_folder` en `configuracion/config.local.json`. En este equipo se configuró la carpeta HORAS PRODUCTIVAS WM proporcionada por el usuario. El archivo original no se modifica ni se sube a GitHub; solo se publican conteos por tienda, día y hora.
+El Excel Horas Productivas*.xlsx más reciente del periodo tiene prioridad sobre el CSV records. DETALLE aporta los folios únicos, ingresos y estados. GENERAL, las hojas diarias YYYY-MM-DD y HORAS PICO validan los conteos; no se suman de nuevo. La tabla Hojas del Excel muestra la validación del archivo completo, independientemente de los filtros. Las notas al pie no se interpretan como registros ni instrucciones.
 
-Guarda los cambios del Excel en esa carpeta y ejecuta ACTUALIZAR_INVEX.bat. El proceso actualiza también estas gráficas cuando completa la actualización. Para recalcular con las fuentes locales sin iniciar MAAT/Pandape puedes usar `python python/procesar_cobertura.py --sin-descarga`; esta opción sigue la selección de asistencia local que ya utiliza el proceso.
+Cadena y determinante identifican la tienda: WM 123 y SAMS 123 son unidades distintas. La región procede de la base de tiendas. El universo conserva las tiendas de la fuente independientemente de su estatus de cobertura.
 
-En otro equipo la carpeta predeterminada es `inputs/fuentes/horas_productivas/`. También puedes configurar una ruta propia.
+## Indicadores
 
-## Archivo mensual
+- Ingresos: un folio de DETALLE, agrupado por fecha y hora de creación.
+- Aprobada y Aprobada con Garantía: categorías independientes de Aprobación.
+- Aprobadas finalizadas: aprobada o con garantía y proceso Finalizado. Es un subconjunto, no un ingreso adicional.
+- Conversión a finalizada: aprobadas finalizadas / ingresos.
+- Aprobación, proceso y banco: distribuciones independientes del mismo universo; no se suman entre sí.
 
-Se buscan archivos `Horas Productivas*.xlsx` y se elige el más reciente que tenga hojas del periodo configurado. Por ejemplo, para octubre de 2026 las hojas deben llamarse `2026-10-01`, `2026-10-02`, etc. En noviembre puede guardarse `Horas Productivas Noviembre.xlsx` en la misma carpeta, con las hojas `2026-11-DD`. El periodo de todo el tablero se cambia explícitamente junto con las fuentes mensuales de plantilla y asistencia; esta integración no lo cambia automáticamente.
+Las gráficas por día, hora y tienda combinan ingresos en barras con las aprobadas seleccionadas en línea. Fecha, cadena, región y tienda filtran los indicadores, gráficos, estados y detalle por tienda. El calendario muestra todo el mes y distingue las fechas sin datos. El corte es la última fecha real de creación; una nota con un periodo posterior no extiende el corte. Los estados se agrupan por creación, no por fecha de aprobación.
 
-El calendario siempre muestra desde el día 1 hasta el último del mes (28, 29, 30 o 31). Los días sin hoja aparecen como Sin datos; los ceros reportados se conservan como ceros. La pantalla muestra la última hoja disponible y la fecha de modificación del archivo.
+## Actualización y privacidad
 
-## Cálculo y validaciones
+En este equipo la carpeta configurada es HORAS PRODUCTIVAS WM indicada por el usuario. En otro equipo, la predeterminada es inputs/fuentes/horas_productivas. Guarda el Excel mensual actualizado y ejecuta el actualizador. No se modifica el archivo original. Solo se publican conteos por tienda, día, hora y estado; folios, ejecutivos, clientes y el Excel permanecen locales.
 
-Cada hoja diaria contiene DETERMINANTE, SEDE, intervalos `HH:00 - HH:59` y TOTAL_TRAMITES. Se validan cantidades enteras no negativas, tiendas no repetidas por día y concordancia entre columnas horarias y totales. La fila TOTAL se verifica pero no se suma como una tienda. GENERAL y HORAS PICO no se agregan otra vez. El resumen GENERAL se contrasta con los días; si difiere, se advierte y se usan las hojas diarias.
-
-Se identifica cada determinante como WM y se toma su región de la base de tiendas. El universo de productividad es el del Excel: no se excluyen automáticamente tiendas por el estatus de cobertura, para conservar la concordancia con la fuente. Las gráficas explican ese universo.
-
-Si falta el archivo del periodo o no puede validarse, la sección muestra el problema y no presenta los datos de otro mes como actuales. El resto del tablero puede procesarse normalmente.
-
-## Records y aprobaciones
-Coloca el CSV records_report_YYYYMMDD_YYYYMMDD.csv en inputs/fuentes/records. El ejecutor selecciona el más reciente del periodo y lo usa para ambas series, con prioridad sobre el Excel de horas. No suma varios exports superpuestos. Cuenta cada fila de módulo Walmart por F. Creación, y separa Aprobada de Aprobada con Garantía. La página permite incluir las de garantía. La línea muestra el resultado actual agrupado por fecha de creación, no por fecha de aprobación. El último día puede estar incompleto. Solo se publican agregados por tienda/día/hora; el archivo original permanece local. Para refrescar, reemplaza el CSV por una exportación mensual completa y ejecuta el actualizador. No se ha agregado una descarga automática de este reporte.
+El formato anterior sin DETALLE conserva la lectura de hojas diarias con DETERMINANTE, SEDE, horas y TOTAL_TRAMITES. Si no hay Excel del periodo, se usa como respaldo el CSV inputs/fuentes/records/records_report_YYYYMMDD_YYYYMMDD.csv para Walmart. No se mezclan ambas fuentes. El CSV de respaldo no se descarga automáticamente.

@@ -4,6 +4,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'python'))
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'.build-deps'))
 import tempfile
 import unittest
+from datetime import datetime
 from unittest.mock import patch
 from horas_productivas import read_productivity,PeriodNotFound,load_productivity
 
@@ -60,3 +61,32 @@ class ProductivityTests(unittest.TestCase):
         self.assertEqual(self.read(book,'2028-02')['daysInMonth'],29)
         with tempfile.TemporaryDirectory() as directory:
             self.assertEqual(load_productivity({},Path(directory),'2026-10',[])['status'],'missing')
+
+    def detailed_fixture(self):
+        h=('CADENA','DETERMINANTE','SEDE','FOLIO','FECHA HORA CREACION','Aprobación','Estatus del proceso','ESTATUS BANCO','Aprobadas finalizadas')
+        rows=[h,('Walmart',1,'WM UNO','folio1',datetime(2026,10,1,14),'Aprobada','Finalizado','COMPLETO',1),("Sam's",1,'SAMS UNO','folio2',datetime(2026,10,1,15),'Aprobada con Garantía','Solicitud aprobada','RECHAZO',0),('Nota al pie',None,None,None,None,None,None,None,None)]
+        summary=('CADENA','DETERMINANTE','SEDE','14:00 - 14:59','15:00 - 15:59','TOTAL_TRAMITES','Aprobada','Aprobada con Garantía','Aprobadas finalizadas')
+        values=[summary,('Walmart',1,'WM UNO',1,0,1,1,0,1),("Sam's",1,'SAMS UNO',0,1,1,0,1,0),('14:00 - 14:59',999,None,None,None,None,None,None,None)]
+        return Book([Sheet('DETALLE',rows),Sheet('GENERAL',values),Sheet('2026-10-01',values),Sheet('HORAS PICO',[('title',),('LUGAR','RANGO HORA','TOTAL_TRAMITES'),(1,'14:00 - 14:59',1),(2,'15:00 - 15:59',1),('2026-10-01','14:00 - 14:59',1)])])
+
+    def test_detail_two_chains_and_all_sheets_without_duplicate_summaries(self):
+        result=self.read(self.detailed_fixture())
+        self.assertEqual(result['total'],2)
+        self.assertEqual({s['id'] for s in result['stores']},{'WM 1','SAMS 1'})
+        self.assertTrue(all(s['matches'] for s in result['sheets']))
+        self.assertEqual(result['warnings'],[])
+        self.assertEqual(sum(result['stores'][0]['finalizedDays']['1']),1)
+        self.assertNotIn('folio1',str(result))
+        self.assertEqual(result['stores'][1]['metricsDays']['1']['bank'],{'RECHAZO':1})
+
+    def test_detail_rejects_duplicate_folio_and_inconsistent_finalized(self):
+        book=self.detailed_fixture();book.sheets[0].rows.insert(2,book.sheets[0].rows[1])
+        with self.assertRaisesRegex(ValueError,'duplicado'):self.read(book)
+        book=self.detailed_fixture();row=list(book.sheets[0].rows[1]);row[-1]=0;book.sheets[0].rows[1]=row
+        with self.assertRaisesRegex(ValueError,'finalizadas'):self.read(book)
+
+    def test_detail_reports_summary_discrepancies(self):
+        book=self.detailed_fixture();r=list(book.sheets[1].rows[1]);r[5]=10;book.sheets[1].rows=[book.sheets[1].rows[0],r]
+        result=self.read(book)
+        self.assertEqual(result['total'],2)
+        self.assertFalse(next(s for s in result['sheets'] if s['name']=='GENERAL')['matches'])

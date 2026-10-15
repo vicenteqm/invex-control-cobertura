@@ -21,6 +21,7 @@ def read_productivity(path,period,base_stores):
     book=openpyxl.load_workbook(path,read_only=True,data_only=True)
     stores={};captured=[];hour_labels=None;warnings=[]
     try:
+        if 'DETALLE' in book:return read_detailed_workbook(book,path,period,base_stores)
         for sheet in book:
             if not re.fullmatch(r'\d{4}-\d{2}-\d{2}',sheet.title) or not sheet.title.startswith(period+'-'):continue
             day=date.fromisoformat(sheet.title).day
@@ -64,18 +65,107 @@ def read_productivity(path,period,base_stores):
     return {'status':'available','period':period,'daysInMonth':count,'capturedDays':sorted(captured),'lastDay':max(captured),'hours':hour_labels,'stores':list(stores.values()),'sourceName':Path(path).name,'sourceModifiedAt':datetime.fromtimestamp(Path(path).stat().st_mtime,timezone.utc).isoformat(),'warnings':warnings,'total':total}
 
 def load_productivity(config,root,period,stores):
-    records_folder=Path(config.get('productive_records_folder','inputs/fuentes/records'))
-    if not records_folder.is_absolute():records_folder=root/records_folder
-    for path in sorted(records_folder.glob('records_report_*.csv'),key=lambda p:p.stat().st_mtime,reverse=True):
-        try:return read_records_productivity(path,period,stores)
-        except PeriodNotFound:continue
     folder=Path(config.get('productive_hours_folder','inputs/fuentes/horas_productivas'))
     if not folder.is_absolute():folder=root/folder
     files=sorted((p for p in folder.glob('Horas Productivas*.xlsx') if not p.name.startswith('~$')),key=lambda p:p.stat().st_mtime,reverse=True)
     for path in files:
         try:return read_productivity(path,period,stores)
         except PeriodNotFound:continue
+    records_folder=Path(config.get('productive_records_folder','inputs/fuentes/records'))
+    if not records_folder.is_absolute():records_folder=root/records_folder
+    for path in sorted(records_folder.glob('records_report_*.csv'),key=lambda p:p.stat().st_mtime,reverse=True):
+        try:return read_records_productivity(path,period,stores)
+        except PeriodNotFound:continue
     return {'status':'missing','period':period,'message':'No se encontró un Excel de horas productivas con hojas del periodo '+period+'.'}
+
+
+def read_detailed_workbook(book,path,period,base_stores):
+    year,month=map(int,period.split('-'));days=calendar.monthrange(year,month)[1]
+    metadata={s['id']:s for s in base_stores};stores={};seen=set();dates=[]
+    hours=[f'{h:02}:00 - {h:02}:59' for h in range(24)]
+    it=book['DETALLE'].iter_rows(values_only=True);headers=next(it,())
+    required={'CADENA','DETERMINANTE','SEDE','FOLIO','FECHA HORA CREACION','Aprobación','Estatus del proceso','ESTATUS BANCO','Aprobadas finalizadas'}
+    if not required.issubset(headers):raise ValueError('DETALLE: faltan columnas requeridas')
+    for values in it:
+        r=dict(zip(headers,values));chain=str(r['CADENA'] or '').strip()
+        partner={'Walmart':'WM',"Sam's":'SAMS','SAMS':'SAMS'}.get(chain)
+        if not partner:continue # blank rows and explanatory footer are not records
+        stamp=r['FECHA HORA CREACION']
+        if not isinstance(stamp,datetime):
+            try:stamp=datetime.fromisoformat(str(stamp))
+            except ValueError:raise ValueError('DETALLE: fecha de creación inválida') from None
+        if stamp.strftime('%Y-%m')!=period:continue
+        folio=str(r['FOLIO'] or '').strip()
+        if not folio or folio=='-':raise ValueError('DETALLE: falta folio')
+        if folio in seen:raise ValueError('DETALLE: folio duplicado; revisar el Excel')
+        seen.add(folio)
+        raw=str(r['DETERMINANTE'] or '').strip()
+        if not re.fullmatch(r'\d+(?:\.0+)?',raw):raise ValueError('DETALLE: determinante inválido')
+        key=partner+' '+str(int(float(raw)));info=metadata.get(key,{})
+        s=stores.setdefault(key,{'id':key,'chain':'Walmart' if partner=='WM' else 'SAMS','name':str(r['SEDE'] or key),'region':info.get('region','Sin región en base'),'status':info.get('status','Sin coincidencia en base'),'days':{},'approvedDays':{},'guaranteedDays':{},'finalizedDays':{},'metricsDays':{}})
+        d=str(stamp.day);h=stamp.hour;dates.append(stamp)
+        for field in ('days','approvedDays','guaranteedDays','finalizedDays'):s[field].setdefault(d,[0]*24)
+        s['days'][d][h]+=1
+        approval=str(r['Aprobación'] or 'Sin dato').strip();process=str(r['Estatus del proceso'] or 'Sin dato').strip()
+        if approval=='Aprobada':s['approvedDays'][d][h]+=1
+        if approval=='Aprobada con Garantía':s['guaranteedDays'][d][h]+=1
+        final=volume(r['Aprobadas finalizadas'])
+        if final not in (0,1) or final!=int(approval in ('Aprobada','Aprobada con Garantía') and process=='Finalizado'):raise ValueError('DETALLE: aprobadas finalizadas no coincide con aprobación y proceso')
+        s['finalizedDays'][d][h]+=final
+        metrics=s['metricsDays'].setdefault(d,{'approval':{},'process':{},'bank':{}})
+        for field,label in [('approval',approval),('process',process),('bank',str(r['ESTATUS BANCO'] or 'Sin dato').strip())]:metrics[field][label]=metrics[field].get(label,0)+1
+    if not dates:raise PeriodNotFound('DETALLE sin registros del periodo '+period)
+    total=len(seen);sheets=[];warnings=[]
+    approval_fields=['Aprobada con Garantía','Pendiente','Rechazada','Aprobada','Otras aprobaciones','Aprobadas finalizadas']
+    def totals(selected,day=None,hour=None):
+        result={'TOTAL_TRAMITES':0,**{k:0 for k in approval_fields}}
+        for s in selected:
+            for d,values in s['days'].items():
+                if day is not None and int(d)!=day:continue
+                result['TOTAL_TRAMITES']+=sum(values) if hour is None else values[hour]
+                # Approval summary validation is by day/store; peak is validated by volume.
+                if hour is None:
+                    a=s['metricsDays'][d]['approval']
+                    for k,n in a.items():result[k if k in approval_fields[:4] else 'Otras aprobaciones']+=n
+                    result['Aprobadas finalizadas']+=sum(s['finalizedDays'][d])
+        return result
+    for sheet in book:
+        if sheet.title=='DETALLE':sheets.append({'name':sheet.title,'role':'Fuente por folio','total':total,'matches':True});continue
+        day=None
+        if re.fullmatch(r'\d{4}-\d{2}-\d{2}',sheet.title):
+            if not sheet.title.startswith(period+'-'):continue
+            day=date.fromisoformat(sheet.title).day
+        elif sheet.title not in ('GENERAL','HORAS PICO'):
+            warnings.append('Hoja sin estructura reconocida: '+sheet.title);sheets.append({'name':sheet.title,'role':'Sin estructura reconocida','total':None,'matches':False});continue
+        rows=sheet.iter_rows(values_only=True);hs=next(rows,())
+        if sheet.title=='HORAS PICO':
+            hs=next(rows,());reported=0;ok=True
+            for row in rows:
+                r=dict(zip(hs,row));label=str(r.get('RANGO HORA') or '')
+                if not isinstance(r.get('LUGAR'),(int,float)):continue
+                if not re.fullmatch(r'\d{2}:00 - \d{2}:59',label):continue
+                n=volume(r['TOTAL_TRAMITES']);reported+=n
+                ok=ok and n==totals(stores.values(),hour=int(label[:2]))['TOTAL_TRAMITES']
+            ok=ok and reported==total
+        else:
+            reported=0;ok=True
+            for row in rows:
+                r=dict(zip(hs,row));raw=str(r.get('DETERMINANTE') or '')
+                if not re.fullmatch(r'\d+(?:\.0+)?',raw):continue
+                partner={'Walmart':'WM',"Sam's":'SAMS','SAMS':'SAMS'}.get(str(r.get('CADENA')))
+                if not partner:continue
+                key=str(partner)+' '+str(int(float(raw)));s=stores.get(key)
+                expected=totals([s] if s else [],day=day)
+                reported+=volume(r['TOTAL_TRAMITES'])
+                for col in ['TOTAL_TRAMITES']+approval_fields:
+                    if col in hs:ok=ok and volume(r[col])==expected[col]
+                for col in hs:
+                    if re.fullmatch(r'\d{2}:00 - \d{2}:59',str(col)):ok=ok and volume(r[col])==totals([s] if s else [],day=day,hour=int(col[:2]))['TOTAL_TRAMITES']
+            ok=ok and reported==totals(stores.values(),day=day)['TOTAL_TRAMITES']
+        sheets.append({'name':sheet.title,'role':'Validación de resumen' if day is None else 'Validación diaria','total':reported,'matches':ok})
+        if not ok:warnings.append('La hoja '+sheet.title+' difiere de DETALLE; se conserva el conteo por folio de DETALLE.')
+    captured=sorted({d.day for d in dates})
+    return {'status':'available','period':period,'daysInMonth':days,'capturedDays':captured,'lastDay':max(captured),'hours':hours,'stores':list(stores.values()),'sourceName':Path(path).name,'sourceModifiedAt':datetime.fromtimestamp(Path(path).stat().st_mtime,timezone.utc).isoformat(),'warnings':warnings,'total':total,'hasApprovals':True,'hasFinalized':True,'sourceType':'workbook-detail','lastRecordAt':max(dates).isoformat(),'approvalBasis':'Resultados del Excel agrupados por fecha y hora de creación. Finalizadas es un subconjunto de las aprobadas, no un ingreso adicional.','sheets':sheets}
 
 
 def read_records_productivity(path,period,base_stores):
