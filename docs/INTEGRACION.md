@@ -48,3 +48,6 @@ Al final de Cobertura se muestran faltantes por bloque y tienda a la izquierda, 
 El reparto se limita al faltante global y favorece Cierre cuando los huecos empatan. Si la suma de huecos es inferior al faltante global, la diferencia queda sin asignación y se informa en la tabla. No se fuerza a un turno. PLANTILLA BETTER corresponde a la plantilla requerida del tablero.
 
 Excepciones confirmadas: WM 5296, apertura 10:00–16:00 y cierre 13:00–19:00; SAMS 4968, ambos bloques 11:00–20:00. Solo modifican los textos horarios; no se proporcionaron metas especiales. El usuario confirmó que no se agregan otras excepciones por ahora. El ejecutor regenera los datos de estas tablas en cada actualización válida.
+
+Actualización del 15 de octubre de 2026: todas las tiendas con clave SAMS usan 11:00–20:00 en los textos de Apertura y Cierre para las vacantes. SPECIAL_HOURS tiene prioridad y conserva los horarios de las excepciones. Los horarios asignados al personal activo siguen mostrando lo capturado en el Excel de asistencia.
+

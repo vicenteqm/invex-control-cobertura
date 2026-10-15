@@ -5,6 +5,12 @@ SPECIAL_HOURS={
     'SAMS 4968':{'Apertura':'11:00 - 20:00','Cierre':'11:00 - 20:00'},
 }
 
+def scheduled_hours(store_id):
+    if store_id in SPECIAL_HOURS:return dict(SPECIAL_HOURS[store_id])
+    if store_id.strip().upper().startswith('SAMS '):
+        return {'Apertura':'11:00 - 20:00','Cierre':'11:00 - 20:00'}
+    return {'Apertura':'11:00 - 17:00','Cierre':'15:00 - 21:00'}
+
 def operational_shift(schedule):
     # CONTAINSSTRING sobre todo el texto, en el mismo orden que el DAX.
     if any(hour in schedule for hour in ('14:00','15:00','13:00')):return 'Cierre'
@@ -22,7 +28,7 @@ def enrich(stores):
         gaps=allocate(store['gap'],opening,closing,counts['Apertura'],counts['Cierre'])
         store['shiftCoverage']={
             'targets':{'Apertura':opening,'Cierre':closing},'active':counts,'gaps':gaps,
-            'hours':SPECIAL_HOURS.get(store['id'],{'Apertura':'11:00 - 17:00','Cierre':'15:00 - 21:00'}),
+            'hours':scheduled_hours(store['id']),
             'unallocated':store['gap']-sum(gaps.values()),
         }
 

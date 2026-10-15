@@ -2,9 +2,13 @@ import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'python'))
 import unittest
-from turnos_cobertura import allocate,enrich,operational_shift
+from turnos_cobertura import allocate,enrich,operational_shift,scheduled_hours,SPECIAL_HOURS
 
 class ShiftAllocationTests(unittest.TestCase):
+    def test_sams_full_time_preserves_special_hours(self):
+        self.assertEqual(scheduled_hours('SAMS 6248'),{'Apertura':'11:00 - 20:00','Cierre':'11:00 - 20:00'})
+        for key,hours in SPECIAL_HOURS.items():self.assertEqual(scheduled_hours(key),hours)
+        self.assertEqual(scheduled_hours('WM 6248'),{'Apertura':'11:00 - 17:00','Cierre':'15:00 - 21:00'})
     def test_classification_matches_containsstring_priority(self):
         self.assertEqual(operational_shift('L - D 11:00 - 15:00'),'Cierre')
         self.assertEqual(operational_shift('L - D 11:00 - 20:00'),'Apertura')
