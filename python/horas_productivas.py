@@ -67,7 +67,7 @@ def read_productivity(path,period,base_stores):
 def load_productivity(config,root,period,stores):
     folder=Path(config.get('productive_hours_folder','inputs/fuentes/horas_productivas'))
     if not folder.is_absolute():folder=root/folder
-    files=sorted((p for p in folder.glob('Horas Productivas*.xlsx') if not p.name.startswith('~$')),key=lambda p:p.stat().st_mtime,reverse=True)
+    files=sorted((p for p in folder.glob(config.get('productive_hours_pattern','Horas Productivas*.xlsx')) if not p.name.startswith('~$')),key=lambda p:p.stat().st_mtime,reverse=True)
     for path in files:
         try:return read_productivity(path,period,stores)
         except PeriodNotFound:continue

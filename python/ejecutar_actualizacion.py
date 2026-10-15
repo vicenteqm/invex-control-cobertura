@@ -26,6 +26,7 @@ def check():
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--actualizar-archivo',choices=['asistencias','tiendas','horas'],help='Selecciona un Excel y publica sin descargar MAAT ni Pandape')
     parser.add_argument('--comprobar',action='store_true',help='Verifica la configuración sin descargar ni publicar')
     parser.add_argument('--guardar-sesion-pandape',action='store_true',help='Abre solo Pandape para guardar la sesión del ejecutor')
     parser.add_argument('--seleccionar-base',action='store_true',help='Selecciona y vincula el Excel de base de tiendas antes de actualizar')
@@ -35,6 +36,9 @@ def main():
     parser.add_argument('reporte',nargs='?',type=Path,help='Permite arrastrar un reporte diario sobre el BAT')
     args=parser.parse_args()
     try:
+        if args.actualizar_archivo:
+            from actualizar_archivo import main as actualizar_archivo
+            return actualizar_archivo(args.actualizar_archivo)
         config=check()
         print('Periodo: '+str(config.get('period','mes actual')),flush=True)
         print('Configuración y dependencias disponibles.',flush=True)

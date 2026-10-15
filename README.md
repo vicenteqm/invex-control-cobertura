@@ -106,3 +106,15 @@ Abre ACTUALIZAR_BASE_TIENDAS.bat, elige el Excel actualizado y guarda los cambio
 ## Filtros de Cobertura
 Región y Tienda filtran las KPI, cobertura general, perfiles, vacantes por región, estatus y ambas tablas de horarios. Ver general restablece la vista nacional. Las KPI conservan el universo OPERANDO; el gráfico de estatus muestra todos los estatus de la selección. Los filtros de Tiendas y Horas productivas son independientes.
 
+# Actualizar un solo Excel y publicar
+
+Abre con doble clic el ejecutor correspondiente y selecciona el archivo `.xlsx`:
+
+- `ACTUALIZAR_ASISTENCIAS.bat`: asistencia mensual actualizada (no el reporte diario de fichajes).
+- `ACTUALIZAR_BASE_TIENDAS.bat`: base de tiendas actualizada.
+- `ACTUALIZAR_HORAS_PRODUCTIVAS.bat`: libro de horas productivas con sus hojas.
+
+Estos tres ejecutores validan el archivo para el periodo configurado, recalculan con las demás fuentes locales y hacen commit y push de los datos agregados a GitHub. No descargan MAAT ni Pandape. Requieren conexión a internet y Git autenticado; Pages puede tardar unos minutos. Si cancelas la selección no se cambia nada. Si la publicación falla, vuelve a ejecutar el mismo acceso para reintentar. Los Excel originales permanecen locales.
+
+`ACTUALIZAR_INVEX.bat` conserva el flujo completo de descargas MAAT y Pandape.
+
