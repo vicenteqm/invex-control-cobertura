@@ -52,12 +52,8 @@ def run(config,skip_download=False,pandape_report=None):
         try:
             logging.info('Primera etapa: actualización MAAT en Edge visible')
             from descarga_asistencia import download_visible as download
-            manual_maat=config.get('maat_manual_login',False)
-            username=os.environ.get('MAAT_USER');password=os.environ.get('MAAT_PASSWORD')
-            # Compatibilidad con este equipo; otros equipos pueden usar su propio entorno.
-            if not manual_maat and (not username or not password) and (ROOT/'.private'/'maat.json').exists():
-                from secretos_locales import read_credentials
-                username,password=read_credentials(ROOT/'.private'/'maat.json')
+            from accesos import leer_maat
+            username,password,manual_maat=leer_maat(config,ROOT)
             fresh,total=download(maat,period,username,password,manual_login=manual_maat)
             logging.info('MAAT: %s registros descargados; %s en concentrado',fresh,total)
         except Exception as error:
