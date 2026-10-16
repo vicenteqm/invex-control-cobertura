@@ -28,5 +28,5 @@ class SessionTests(unittest.TestCase):
             a=session_options(webdriver,root,'edge',root/'downloads1')
             b=session_options(webdriver,root,'edge',root/'downloads2')
             self.assertEqual(a.args[0],b.args[0])
-            self.assertIn('sesiones',a.args[0])
+            self.assertIn('.private',a.args[0])
             self.assertFalse(a.prefs['prefs']['profile.password_manager_enabled'])

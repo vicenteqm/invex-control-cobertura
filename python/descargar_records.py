@@ -9,8 +9,14 @@ from urllib.parse import urljoin,urlparse
 URL='https://invex.maatai.com/admin/records/recordreportoptimized/'
 
 def acceso_local(config,root):
-    from accesos import leer_maat
-    return leer_maat(config,root)
+    usuario=os.environ.get('MAAT_USER');clave=os.environ.get('MAAT_PASSWORD')
+    manual=config.get('maat_manual_login',False)
+    if not manual and (not usuario or not clave):
+        from secretos_locales import read_credentials
+        ruta=root/'.private'/'maat.json'
+        if ruta.exists():usuario,clave=read_credentials(ruta)
+    if not manual and (not usuario or not clave):raise ValueError('Falta el acceso local de MAAT. Configura MAAT_USER y MAAT_PASSWORD o el ingreso manual.')
+    return usuario,clave,manual
 
 def origen_correcto(url):
     parsed=urlparse(url)

@@ -21,12 +21,7 @@ def authenticated_page(driver):
 
 def session_options(webdriver,root,browser,folder):
     options=webdriver.EdgeOptions() if browser=='edge' else webdriver.ChromeOptions()
-    profile=root/'configuracion'/'sesiones'/('pandape_'+browser)
-    anterior=root/'.private'/('pandape_perfil_'+browser)
-    if anterior.exists() and not profile.exists():
-        profile.parent.mkdir(parents=True,exist_ok=True)
-        try:anterior.rename(profile)
-        except PermissionError:raise ValueError('Cierra la ventana del ejecutor de Pandape antes de mover su sesión a configuracion/sesiones') from None
+    profile=root/'.private'/('pandape_perfil_'+browser)
     profile.mkdir(parents=True,exist_ok=True)
     options.add_argument('--user-data-dir='+str(profile.resolve()))
     options.add_argument('--window-size=1440,1000')

@@ -1,7 +1,5 @@
 # INVEX · Control de cobertura
 
-Accesos actuales sin cifrado: MAAT y Records usan `configuracion/accesos.json`. Consulta [ACCESOS.md](documentacion/ACCESOS.md). Esta configuración se puede copiar entre equipos; Pandape mantiene el ingreso manual de contraseña cuando su sesión vence.
-
 Tablero publicado: https://vicenteqm.github.io/invex-control-cobertura/
 
 Repositorio: https://github.com/vicenteqm/invex-control-cobertura
