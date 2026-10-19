@@ -2,6 +2,7 @@
 import base64
 import re
 import subprocess
+import zipfile
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -32,6 +33,10 @@ def generar(root):
     html=html.replace('</body>','\n'.join(contenido)+'</body>')
     final=root/'INVEX_ACTUALIZADO.html';temporary=final.with_suffix('.tmp.html')
     temporary.write_text(html,encoding='utf-8');temporary.replace(final)
+    paquete=root/'INVEX_ACTUALIZADO.zip';tmp_zip=paquete.with_suffix('.tmp.zip')
+    with zipfile.ZipFile(tmp_zip,'w',compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.write(final,arcname=final.name)
+    tmp_zip.replace(paquete)
     return final
 
 def guardar_enlace(root):
@@ -40,8 +45,8 @@ def guardar_enlace(root):
     remote=subprocess.check_output(['git','remote','get-url','origin'],cwd=root,text=True).strip()
     owner,name=repository_from_remote(remote)
     sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
-    fijo=f'https://github.com/{owner}/{name}/raw/{sha}/INVEX_ACTUALIZADO.html'
-    reciente=f'https://github.com/{owner}/{name}/raw/refs/heads/main/INVEX_ACTUALIZADO.html'
+    fijo=f'https://github.com/{owner}/{name}/raw/{sha}/INVEX_ACTUALIZADO.zip'
+    reciente=f'https://github.com/{owner}/{name}/raw/refs/heads/main/INVEX_ACTUALIZADO.zip'
     folder=root/'registros';folder.mkdir(exist_ok=True)
     (folder/'enlace-html.txt').write_text('Descargar este corte:\n'+fijo+'\n\nDescargar la última versión:\n'+reciente+'\n',encoding='utf-8')
     print('HTML para compartir: '+fijo,flush=True)

@@ -197,7 +197,7 @@ def generate(base, attendance, period):
 def publish_data(root):
     from exportar_html import generar as generar_html
     generar_html(root)
-    files=['sitio/data.js','INVEX_ACTUALIZADO.html']
+    files=['sitio/data.js','INVEX_ACTUALIZADO.html','INVEX_ACTUALIZADO.zip']
     if (root/'sitio'/'operacion-data.js').exists():files.append('sitio/operacion-data.js')
     subprocess.run(['git','add','--',*files],cwd=root,check=True)
     diff=subprocess.run(['git','diff','--cached','--quiet','--',*files],cwd=root)

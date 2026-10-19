@@ -44,7 +44,7 @@ def main():
     # Solo archivos de implementación y datos agregados; nunca fuentes o secretos.
     from exportar_html import generar as generar_html
     generar_html(ROOT)
-    git('add','--',*FILES,'INVEX_ACTUALIZADO.html')
+    git('add','--',*FILES,'INVEX_ACTUALIZADO.html','INVEX_ACTUALIZADO.zip')
     git('add','-u')
     staged=subprocess.check_output(['git','diff','--cached','--name-only'],cwd=ROOT,text=True).splitlines()
     if any(p.startswith(('datos/','resultados/','inputs/','logs/','previews/','.private/','registros/','.build-deps/','configuracion/','vistas_previas/')) or p.endswith(('.xlsx','.xlsm','.xls','.csv')) or p=='config.local.json' for p in staged):raise RuntimeError('El índice contiene archivos privados; publicación detenida')
