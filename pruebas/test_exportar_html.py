@@ -1,6 +1,7 @@
 import sys
 import tempfile
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'python'))
 from exportar_html import generar
@@ -16,7 +17,12 @@ class PortableTests(unittest.TestCase):
             for name in ['app.js','operacion-data.js','operacion.js']:(site/name).write_text('// '+name)
             text=generar(root).read_text(encoding='utf-8')
             self.assertNotIn('src="',text)
-            self.assertNotIn('<script>bad()',text)
+            class Scripts(HTMLParser):
+                count=0
+                def handle_starttag(self,tag,attrs):
+                    if tag=='script':self.count+=1
+            parsed=Scripts();parsed.feed(text)
+            self.assertEqual(parsed.count,5)
             self.assertIn('<\\/script>',text)
             self.assertLess(text.index('window.INVEX_PORTABLE=true'),text.index('window.INVEX_DATA='))
             self.assertLess(text.index('id="kpis"'),text.index('window.INVEX_DATA='))
