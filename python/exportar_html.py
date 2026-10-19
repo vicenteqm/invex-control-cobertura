@@ -4,6 +4,7 @@ import re
 import subprocess
 import zipfile
 import json
+import shutil
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -45,7 +46,29 @@ def generar(root):
     with zipfile.ZipFile(tmp_zip,'w',compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(final,arcname=nombre)
     tmp_zip.replace(paquete)
+    guardar_copia_local(root,final,nombre)
     return final
+
+def guardar_copia_local(root,html,nombre):
+    config_path=Path(root)/'configuracion'/'config.local.json'
+    if not config_path.exists():return None
+    config=json.loads(config_path.read_text(encoding='utf-8-sig'))
+    carpeta=config.get('html_output_folder')
+    if not carpeta:return None
+    carpeta=Path(carpeta)
+    if not carpeta.is_absolute():carpeta=Path(root)/carpeta
+    carpeta.mkdir(parents=True,exist_ok=True)
+    for archivo in dict.fromkeys([nombre,'INVEX_ACTUALIZADO.html']):
+        destino=carpeta/archivo
+        if destino.resolve()==Path(html).resolve():continue
+        temporal=destino.with_suffix('.tmp.html')
+        try:
+            shutil.copyfile(html,temporal)
+            temporal.replace(destino)
+        finally:
+            if temporal.exists():temporal.unlink()
+    print('HTML guardado para compartir: '+str(carpeta/nombre),flush=True)
+    return carpeta/nombre
 
 def guardar_enlace(root):
     root=Path(root)

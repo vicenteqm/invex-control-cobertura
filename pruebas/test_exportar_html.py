@@ -4,9 +4,22 @@ import unittest
 from html.parser import HTMLParser
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'python'))
-from exportar_html import generar
+from exportar_html import generar,guardar_copia_local
+import json
 
 class PortableTests(unittest.TestCase):
+    def test_local_copies_exist_even_without_github_and_replace_previous(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);config=root/'configuracion';config.mkdir()
+            (config/'config.local.json').write_text(json.dumps({'html_output_folder':'copias'}))
+            source=root/'INVEX_ACTUALIZADO.html';source.write_text('corte nuevo')
+            result=guardar_copia_local(root,source,'INVEX_2026-10-19_10-24.html')
+            self.assertEqual(result.read_text(),'corte nuevo')
+            self.assertEqual((root/'copias/INVEX_ACTUALIZADO.html').read_text(),'corte nuevo')
+            source.write_text('siguiente corte')
+            guardar_copia_local(root,source,'INVEX_2026-10-19_11-00.html')
+            self.assertEqual(result.read_text(),'corte nuevo')
+            self.assertEqual((root/'copias/INVEX_ACTUALIZADO.html').read_text(),'siguiente corte')
     def test_standalone_keeps_data_and_escapes_script_end(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder);site=root/'sitio';site.mkdir()

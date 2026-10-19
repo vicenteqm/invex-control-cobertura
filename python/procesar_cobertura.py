@@ -115,6 +115,9 @@ def run(config,skip_download=False,pandape_report=None):
         logging.info('Publicando los datos y el detalle por promotor en GitHub')
         from actualizar import publish_data
         publish_data(ROOT)
+    else:
+        from exportar_html import generar as generar_html
+        generar_html(ROOT)
     current_days=[next((d for d in s['days'] if d['day']==month['referenceDay']),{}) for s in month['stores']]
     status=dict(processedAt=month['processedAt'],period=period,referenceDay=month['referenceDay'],stores=len(month['stores']),alarmantes=sum(d.get('semaphore')=='ALARMANTE' for d in current_days),criticas=sum(d.get('semaphore')=='CRITICA' for d in current_days),maat=month['maatStatus'],maatDays=month['maatDays'],downloadError=download_error)
     status['pandape']=pandape_status;status['pandapeResult']=pandape_result

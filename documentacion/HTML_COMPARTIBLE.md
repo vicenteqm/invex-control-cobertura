@@ -1,5 +1,11 @@
 # Compartir el tablero sin esperar a GitHub Pages
 
+## Copia local para WhatsApp
+
+La opción local `html_output_folder` en `configuracion/config.local.json` indica dónde guardar el HTML para compartir. Cada generación conserva una copia con fecha y hora y actualiza INVEX_ACTUALIZADO.html con el corte más reciente. El guardado se realiza antes del envío a GitHub, por lo que un fallo de publicación no elimina la copia local. También se genera al procesar con publicar desactivado.
+
+Envía por WhatsApp el HTML como documento. El destinatario debe descargarlo y abrirlo en Edge o Chrome; el visor de documentos de WhatsApp puede no ejecutar las gráficas. La copia corresponde al último procesamiento terminado correctamente, no a una actualización en curso o fallida.
+
 Cada actualización publicada genera `INVEX_ACTUALIZADO.html` en la raíz y lo envía al mismo repositorio. Contiene estilos, datos, gráficas, filtros, exportaciones y Seguimiento operativo. Funciona al descargarlo y abrirlo en Edge o Chrome, sin cargar archivos adicionales.
 
 El enlace de descarga de la versión más reciente es:
