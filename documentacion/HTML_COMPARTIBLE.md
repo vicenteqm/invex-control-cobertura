@@ -6,7 +6,7 @@ El enlace de descarga de la versión más reciente es:
 
 https://github.com/vicenteqm/invex-control-cobertura/raw/refs/heads/main/INVEX_ACTUALIZADO.zip
 
-La descarga es un ZIP que contiene únicamente INVEX_ACTUALIZADO.html. Descomprime y abre ese HTML en el navegador. Se ofrece como ZIP porque GitHub sirve los HTML directamente como texto; el ZIP permite descargarlos y pesa menos. El HTML sin comprimir también queda en la raíz del repositorio.
+La descarga es un ZIP que contiene únicamente un HTML con la fecha y hora del corte en su nombre, por ejemplo INVEX_2026-10-19_10-24-44.html. Descomprime y abre ese HTML nuevo en el navegador. Así se distingue de las descargas anteriores. Se ofrece como ZIP porque GitHub sirve los HTML directamente como texto; el ZIP permite descargarlos y pesa menos. El HTML sin comprimir también queda en la raíz del repositorio como INVEX_ACTUALIZADO.html.
 
 La consola imprime además un enlace al corte concreto. Ambos enlaces quedan en `registros/enlace-html.txt`. Comparte el enlace o envía el archivo HTML como documento. La persona debe descargarlo y abrir el archivo en su navegador; los visores de documentos de correo o mensajería pueden no ejecutar las gráficas.
 

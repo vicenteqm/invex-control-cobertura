@@ -3,6 +3,8 @@ import base64
 import re
 import subprocess
 import zipfile
+import json
+from datetime import datetime,timedelta,timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -34,8 +36,14 @@ def generar(root):
     final=root/'INVEX_ACTUALIZADO.html';temporary=final.with_suffix('.tmp.html')
     temporary.write_text(html,encoding='utf-8');temporary.replace(final)
     paquete=root/'INVEX_ACTUALIZADO.zip';tmp_zip=paquete.with_suffix('.tmp.zip')
+    data=(sitio/'data.js').read_text(encoding='utf-8')
+    stamp=re.search(r'"updatedAt"\s*:\s*"([^"]+)"',data)
+    nombre=final.name
+    if stamp:
+        corte=datetime.fromisoformat(stamp[1]).astimezone(timezone(timedelta(hours=-6)))
+        nombre='INVEX_'+corte.strftime('%Y-%m-%d_%H-%M-%S')+'.html'
     with zipfile.ZipFile(tmp_zip,'w',compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.write(final,arcname=final.name)
+        archive.write(final,arcname=nombre)
     tmp_zip.replace(paquete)
     return final
 
