@@ -195,13 +195,17 @@ def generate(base, attendance, period):
     return result
 
 def publish_data(root):
-    files=['sitio/data.js']
+    from exportar_html import generar as generar_html
+    generar_html(root)
+    files=['sitio/data.js','INVEX_ACTUALIZADO.html']
     if (root/'sitio'/'operacion-data.js').exists():files.append('sitio/operacion-data.js')
     subprocess.run(['git','add','--',*files],cwd=root,check=True)
     diff=subprocess.run(['git','diff','--cached','--quiet','--',*files],cwd=root)
     if diff.returncode==1:subprocess.run(['git','commit','--only','-m','Actualizar cobertura INVEX','--',*files],cwd=root,check=True)
     elif diff.returncode!=0:raise RuntimeError('No se pudieron comprobar los cambios de datos')
     subprocess.run(['git','push'],cwd=root,check=True)
+    from exportar_html import guardar_enlace
+    guardar_enlace(root)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

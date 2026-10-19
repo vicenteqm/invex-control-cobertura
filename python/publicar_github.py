@@ -42,7 +42,9 @@ def main():
     print('Repositorio: '+info['html_url'],flush=True)
     def git(*args):subprocess.run(['git',*args],cwd=ROOT,env=env,check=True)
     # Solo archivos de implementación y datos agregados; nunca fuentes o secretos.
-    git('add','--',*FILES)
+    from exportar_html import generar as generar_html
+    generar_html(ROOT)
+    git('add','--',*FILES,'INVEX_ACTUALIZADO.html')
     git('add','-u')
     staged=subprocess.check_output(['git','diff','--cached','--name-only'],cwd=ROOT,text=True).splitlines()
     if any(p.startswith(('datos/','resultados/','inputs/','logs/','previews/','.private/','registros/','.build-deps/','configuracion/','vistas_previas/')) or p.endswith(('.xlsx','.xlsm','.xls','.csv')) or p=='config.local.json' for p in staged):raise RuntimeError('El índice contiene archivos privados; publicación detenida')
@@ -51,6 +53,8 @@ def main():
     remotes=subprocess.check_output(['git','remote'],cwd=ROOT,text=True).splitlines()
     if 'origin' not in remotes:git('remote','add','origin',info['clone_url'])
     git('push','-u','origin','main')
+    from exportar_html import guardar_enlace
+    guardar_enlace(ROOT)
     pages=api('GET','/repos/'+owner+'/'+name+'/pages',expected=(200,404))
     pages_created=not pages or not pages.get('html_url')
     if pages_created:
