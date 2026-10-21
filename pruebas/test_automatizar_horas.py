@@ -65,6 +65,15 @@ class AutomaticHoursTests(unittest.TestCase):
             def failure(*args):raise RuntimeError('Descarga fallida')
             with self.assertRaisesRegex(RuntimeError,'Descarga fallida'):ejecutar(config,root,now,failure)
             self.assertEqual(final.read_bytes(),previous)
+            manual=root/'datos/fuentes/horas_productivas/Horas Productivas Actual.xlsx'
+            manual.parent.mkdir(parents=True);manual.write_bytes(b'reporte actualizado')
+            with patch('horas_productivas.latest_productivity',return_value=(manual,{'lastDay':19})):
+                retained=ejecutar(config,root,now,download)
+            self.assertEqual(retained,manual)
+            self.assertEqual(manual.read_bytes(),b'reporte actualizado')
+            self.assertEqual(final.read_bytes(),previous)
+            self.assertEqual(config['productive_hours_pattern'],manual.name)
+            manual.unlink()
             original_replace=Path.replace
             def locked_replace(path,target):
                 if Path(target)==final:raise PermissionError('Excel abierto')

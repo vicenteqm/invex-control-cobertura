@@ -22,6 +22,20 @@ class Book:
     def close(self):pass
 
 class ProductivityTests(unittest.TestCase):
+    def test_generated_report_cannot_hide_manual_report_with_later_data(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            automatic=root/'resultados/horas_productivas/2026/Horas Productivas Octubre.xlsx'
+            manual=root/'datos/fuentes/horas_productivas/Horas Productivas Actual.xlsx'
+            for path in (automatic,manual):
+                path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(b'fixture')
+            config={'productive_hours_folder':str(automatic.parent),'productive_hours_pattern':automatic.name}
+            def read(path,*args):return {'status':'available','lastDay':19 if path==manual else 15,'total':12967 if path==manual else 9924}
+            with patch('horas_productivas.read_productivity',side_effect=read):
+                self.assertEqual(load_productivity(config,root,'2026-10',[])['lastDay'],19)
+            with patch('horas_productivas.read_productivity',side_effect=lambda path,*args:{'status':'available','lastDay':21 if path==automatic else 19}):
+                self.assertEqual(load_productivity(config,root,'2026-10',[])['lastDay'],21)
+
     def fixture(self):
         return Book([Sheet('GENERAL',[HEADERS,(1,'WM UNO',3,4,7),('TOTAL',None,3,4,7)]),Sheet('2026-10-01',[HEADERS,(1,'WM UNO',3,4,7),('TOTAL',None,3,4,7)]),Sheet('2026-10-02',[HEADERS,(1,'WM UNO',0,0,0),('TOTAL',None,0,0,0)]),Sheet('2026-09-30',[HEADERS,(1,'WM UNO',100,0,100)]),Sheet('HORAS PICO',[('TITULO',),(99999,)])])
 

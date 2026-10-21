@@ -103,6 +103,8 @@ Abre CONFIGURAR_EQUIPO.bat para preparar un equipo Windows nuevo. MAAT inicia se
 
 Coloca la BPI nueva en `datos/fuentes/bpi/` y abre ACTUALIZAR_INVEX.bat. No se solicitan fechas ni archivos: Records abarca el mes completo de Ciudad de México y se usa la BPI más reciente. Los días futuros no generan ingresos ficticios. El reporte mensual se valida contra DETALLE antes de reemplazar el anterior; un fallo detiene la publicación del tablero. Consulta [AUTOMATIZACION_HORAS.md](documentacion/AUTOMATIZACION_HORAS.md).
 
+El tablero compara el corte real de los reportes configurados y del Excel cargado con `ACTUALIZAR_HORAS_PRODUCTIVAS.bat`. Conserva el que tenga datos hasta la fecha más avanzada del periodo; copiar o generar un archivo hoy no lo convierte en una fuente más actual. Si la BPI genera un corte anterior al ya disponible, el ejecutor conserva el reporte más completo y registra un aviso para actualizar la BPI.
+
 
 ## Actualizar la base de tiendas con un selector
 Abre ACTUALIZAR_BASE_TIENDAS.bat, elige el Excel actualizado y guarda los cambios antes de ejecutar. También puedes arrastrar una base sobre ACTUALIZAR_INVEX.bat: el ejecutor distingue sus columnas del reporte Pandape. Se valida y copia a datos/fuentes/base_tiendas/BASE_TIENDAS_ACTUAL.xlsx. La ruta seleccionada queda vinculada en la configuración local y sus futuras ediciones se sincronizan al ejecutar el proceso. Si mueves el archivo, vuelve a seleccionarlo. Si no has vinculado una fuente, se conserva la selección de la carpeta interna existente. La base debe estar disponible y guardada para copiarla; no se sustituye por una copia vieja si falta la fuente vinculada.

@@ -48,7 +48,7 @@ def corregir_records(origen,destino):
 
 def ejecutar(config,root,ahora=None,descargar=None):
     from generar_horas_productivas import generar
-    from horas_productivas import read_productivity
+    from horas_productivas import read_productivity,latest_productivity,productivity_cut
     inicio,fin=rango_mes(ahora);period=inicio.strftime('%Y-%m')
     if config.get('period')!=period:
         raise ValueError('El mes de ejecución es '+period+' pero cobertura está configurada para '+str(config.get('period'))+'. Actualiza el periodo y los Excel mensuales antes de publicar; no se mezclarán meses.')
@@ -69,6 +69,13 @@ def ejecutar(config,root,ahora=None,descargar=None):
         resultado=read_productivity(preparado,period,[])
         if resultado.get('status')!='available':raise ValueError('El reporte no contiene horas productivas del mes de ejecución')
         if any(s.get('matches') is False for s in resultado.get('sheets',[])):raise ValueError('Los resúmenes de horas productivas no coinciden con el detalle; se conserva el Excel anterior')
+        anterior=latest_productivity(config,root,period,[])
+        if anterior and productivity_cut(resultado)<productivity_cut(anterior[1]):
+            conservado,datos=anterior
+            config['productive_hours_folder']=str(conservado.parent.relative_to(root))
+            config['productive_hours_pattern']=conservado.name
+            logging.warning('Horas productivas: el reporte generado con %s llega al día %s; se conserva %s con datos al día %s. Actualiza la BPI para avanzar el corte.',bpi.name,resultado['lastDay'],conservado.name,datos['lastDay'])
+            return conservado
         archivo_corregido=records.parent/'Records_corregido.csv'
         shutil.copy2(corregido,archivo_corregido)
         try:preparado.replace(final)

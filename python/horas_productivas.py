@@ -64,13 +64,27 @@ def read_productivity(path,period,base_stores):
     finally:book.close()
     return {'status':'available','period':period,'daysInMonth':count,'capturedDays':sorted(captured),'lastDay':max(captured),'hours':hour_labels,'stores':list(stores.values()),'sourceName':Path(path).name,'sourceModifiedAt':datetime.fromtimestamp(Path(path).stat().st_mtime,timezone.utc).isoformat(),'warnings':warnings,'total':total}
 
-def load_productivity(config,root,period,stores):
+def productivity_cut(result):
+    """Corte real de los datos, independiente de cuándo se copió el archivo."""
+    return (int(result.get('lastDay') or 0),str(result.get('lastRecordAt') or ''))
+
+
+def latest_productivity(config,root,period,stores):
     folder=Path(config.get('productive_hours_folder','datos/fuentes/horas_productivas'))
     if not folder.is_absolute():folder=root/folder
     files=sorted((p for p in folder.glob(config.get('productive_hours_pattern','Horas Productivas*.xlsx')) if not p.name.startswith('~$')),key=lambda p:p.stat().st_mtime,reverse=True)
+    manual=root/'datos'/'fuentes'/'horas_productivas'/'Horas Productivas Actual.xlsx'
+    if manual.is_file() and manual.resolve() not in {p.resolve() for p in files}:files.append(manual)
+    candidates=[]
     for path in files:
-        try:return read_productivity(path,period,stores)
+        try:candidates.append((path,read_productivity(path,period,stores)))
         except PeriodNotFound:continue
+    return max(candidates,key=lambda item:productivity_cut(item[1])) if candidates else None
+
+
+def load_productivity(config,root,period,stores):
+    selected=latest_productivity(config,root,period,stores)
+    if selected:return selected[1]
     records_folder=Path(config.get('productive_records_folder','datos/fuentes/records'))
     if not records_folder.is_absolute():records_folder=root/records_folder
     for path in sorted(records_folder.glob('records_report_*.csv'),key=lambda p:p.stat().st_mtime,reverse=True):
