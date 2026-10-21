@@ -27,6 +27,25 @@ class CalculationTests(unittest.TestCase):
         self.assertEqual(module.store_identifier('|',6248,'SAMS 6248'),'SAMS 6248')
         self.assertEqual(module.store_identifier('WM',6248,'SAMS 6248'),'WM 6248')
         self.assertEqual(module.store_identifier('|',6248,'SAMS 6249'),'| 6248')
+        self.assertEqual(module.store_identifier('WN',1623,'WM 1623',{'WM 1623'}),'WM 1623')
+        self.assertEqual(module.store_identifier('SAMS',6234,'WM 1623',{'SAMS 6234','WM 1623'}),'SAMS 6234')
+        self.assertEqual(module.store_identifier('WN',1623,'WM 6248',{'WM 6248'}),'WN 1623')
+
+    def test_one_required_one_active_other_profile_is_not_a_headcount_vacancy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base,attendance=self.make_files(directory)
+            book=openpyxl.load_workbook(base);book['BASE DE TIENDAS INVEX'].cell(2,8,0);book.save(base);book.close()
+            book=openpyxl.load_workbook(attendance);sheet=book['Hoja1'];sheet.delete_rows(3,2);book.save(attendance);book.close()
+            store=module.generate(base,attendance,'2026-10')['stores'][0]
+            self.assertEqual((store['required'],store['active'],store['gap'],store['covered']),(1,1,0,1))
+            self.assertEqual((store['gapSub'],store['profileAdjustment']),(1,1))
+
+    def test_inconsistent_authorized_total_stops_calculation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base,attendance=self.make_files(directory)
+            book=openpyxl.load_workbook(base);sheet=book['BASE DE TIENDAS INVEX'];col=sheet.max_column+1
+            sheet.cell(1,col,'TOTAL DE PLANTILLA AUTORIZA');sheet.cell(2,col,99);book.save(base);book.close()
+            with self.assertRaisesRegex(ValueError,'plantilla autorizada'):module.generate(base,attendance,'2026-10')
 
     def make_files(self, directory, conflict=False):
         base = Path(directory) / 'base.xlsx'
@@ -52,7 +71,8 @@ class CalculationTests(unittest.TestCase):
             base, attendance = self.make_files(directory)
             result = module.generate(base, attendance, '2026-10')
             store=result['stores'][0]
-            self.assertEqual((store['required'], store['active'], store['gap'], store['covered'], store['extra']), (2,2,1,1,1))
+            self.assertEqual((store['required'], store['active'], store['gap'], store['covered'], store['extra']), (2,2,0,2,0))
+            self.assertEqual((store['profileGap'],store['profileAdjustment']),(1,1))
             self.assertEqual(store['activeSchedules'],{'Sin horario asignado':2})
             self.assertEqual(len(result['attendance']),1)
             self.assertEqual(result['attendance'][0]['codes'],{'A':1,'F':1})

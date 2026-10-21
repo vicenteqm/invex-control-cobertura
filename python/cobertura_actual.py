@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import openpyxl
 import engine
-from actualizar import norm, identifier
+from actualizar import norm, identifier,store_identifier
 from importar_operacion import sanitize_months
 
 def local_now():
@@ -22,7 +22,7 @@ def read_rows(path, sheet):
         return [list(row) for row in book[sheet].iter_rows(values_only=True)]
     finally: book.close()
 
-def adapt_rows(rows, kind, days):
+def adapt_rows(rows, kind, days,known_stores=None):
     heads={}
     for i,h in enumerate(rows[0]):heads.setdefault(norm(h),[]).append(i)
     mappings = {1:'REGION',2:'ESTADO',3:'CIUDAD',4:'SOCIO',5:'DETERMINANTE',7:'NOMBRE DE LA TIENDA',8:'PERFIL DE PUESTO BANCO',9:'NOMBRE COMPLETO',10:'ESTATUS',11:'USUARIO',13:'PIN PANDAPE',14:'JORNADA',15:'HORARIO',16:'FECHA DE ALTA',17:'FECHA DE INGRESO A PDV',18:'FECHA DE BAJA',20:'DESCANSO OFICIAL'} if kind=='attendance' else {0:'PROYECTO',1:'ZONAS',3:'REGION',4:'SUB REGION OPERATIVA',5:'ESTADO',6:'CIUDAD',7:'SOCIO',8:'NUMERO DE TIENDA/DETERMINANTE',10:'TIENDA',19:'ESTATUS',20:'HORARIO (RESPETAR FORMATO DE HORA)',25:'TOTAL DE PLANTILLA AUTORIZA',36:'EJECUTIVA RH'}
@@ -39,7 +39,7 @@ def adapt_rows(rows, kind, days):
         cached=norm(original[heads[key_name][0]]) if key_name in heads else ''
         socio=row[4 if kind=='attendance' else 7];det=row[5 if kind=='attendance' else 8]
         if not det:continue
-        key=cached or norm(socio)+' '+identifier(det)
+        key=store_identifier(socio,det,cached,known_stores)
         row[6 if kind=='attendance' else 9]=key
         if kind=='attendance':
             row[10]=norm(row[10]);row[20]=norm(row[20])
@@ -68,8 +68,8 @@ def adapt_rows(rows, kind, days):
 
 def process(base, attendance, period, maat=None, now=None):
     year,month=map(int,period.split('-'));days=calendar.monthrange(year,month)[1]
-    a=adapt_rows(read_rows(attendance,'Hoja1'),'attendance',days)
     b=adapt_rows(read_rows(base,'BASE DE TIENDAS INVEX'),'stores',days)
+    a=adapt_rows(read_rows(attendance,'Hoja1'),'attendance',days,{r[9] for r in b[1:]})
     employees=engine.build_employees(a,days)
     reference=max((d for employee in employees if employee['estatus']=='ACTIVO' for d in employee['dias']),default=0)
     if not reference:raise ValueError('Sin captura para calcular cobertura operativa')

@@ -56,8 +56,9 @@ Documentación: https://docs.github.com/en/pages/getting-started-with-github-pag
 - Tiendas operando: estatus OPERANDO en la hoja BASE DE TIENDAS INVEX.
 - Plantilla requerida: PROMOTORES REQUERIDOS + primera columna SUBLIDER (numérica). La segunda SUBLIDER contiene nombres y no se usa como plantilla.
 - Personal activo: ACTIVO y perfil PROMOTOR DE CREDITO o SUBLIDER, en Hoja1 de asistencia, unido por socio + determinante a tiendas operando. Se cuentan personas, sin ponderación por jornada. Se excluye ACTIVO TEAM.
-- Vacantes: suma de `max(requeridos - activos, 0)` por tienda y perfil. Los excedentes no compensan otros faltantes.
-- Cobertura: suma de plazas cubiertas por tienda y perfil / plantilla requerida. No hay cobertura calculable cuando la plantilla es cero.
+- Vacantes de plantilla: suma de `max(requeridos - activos, 0)` por tienda. Los excedentes de una tienda no compensan faltantes de otra.
+- Cobertura: suma de `min(activos, requeridos)` por tienda / plantilla requerida. No hay cobertura calculable cuando la plantilla es cero.
+- Ajuste de perfil: diferencia entre los faltantes por perfil y las vacantes de plantilla. Una tienda con una plaza de sublíder y un promotor activo tiene 0 vacantes de personas y 1 ajuste de perfil. Los perfiles originales del Excel se conservan.
 - Identificador de personal: nómina + nombre normalizado, o solo nombre cuando la nómina está ausente o es PENDIENTE. Una nómina asociada a nombres distintos genera advertencia y se conserva cada persona. Duplicados idénticos se omiten con advertencia; duplicados de la misma identidad con datos contradictorios detienen el proceso. Los identificadores no se publican.
 - Asistencia: códigos diarios del mismo universo elegible. Catálogo confirmado: A = Asistencia, F = Falta, R = Retardo, V = Vacaciones, I = Incapacidad. Los demás códigos se conservan sin atribuirles un significado.
 - Cada encabezado numérico de día está seguido de Entr y Sal. Se leen horas Excel, fracciones de día y textos HH:MM[:SS]. Celdas vacías y 00:00:00 se tratan como sin registro, siguiendo el marcador usado en esta fuente. Se publican únicamente resúmenes diarios de horas.
