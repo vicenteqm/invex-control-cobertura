@@ -7,13 +7,30 @@ from openpyxl.utils import get_column_letter
 HEADERS=['Fecha','Nombre','Perfil de Puesto','Tienda','Clave de tienda','Zona','Región','Ejecutiva','Tipo de jornada','Horario asignado (texto)','Hora inicio programada','Hora fin programada','Registra Pandape','Hora entrada Pandape','Hora salida Pandape','Registra MAAT','Hora entrada MAAT','Hora salida MAAT','Estatus','Se movió de tienda (según MAAT)','Cerró jornada manualmente (MAAT)','Llegó tarde','Salió antes de su horario','Horario estimado por','No está en asistencia (agregado desde MAAT)']
 LABELS={'COMPLETO':'Completo','SEGUIMIENTO_MAAT':'Falta MAAT','ALERTA_PANDAPE':'Falta Pandape','ALARMANTE':'Sin registro'}
 
+def export_attendance(rows):
+    """Amplía únicamente la población del Excel, sin modificar los KPI."""
+    result=[list(row) for row in rows]
+    for row in result[1:]:
+        status=str(row[10] or '').strip()
+        if status in ('ACTIVA',) or status.startswith(('ACTIVO/','ACTIVO ')):
+            row[10]='ACTIVO'
+    return result
+
+
+def attach_excel_detail(raw,expanded):
+    """El detalle ampliado reemplaza el del Excel, no se suma ni duplica."""
+    for key,store in raw['stores'].items():
+        source=expanded['stores'].get(key,store)
+        store['personal_excel']=source.get('empleados_activos',[])
+        store['externos_excel']=source.get('externos_maat',[])
+
 def public_detail(raw):
     """Solo los campos nominales autorizados para la consulta del tablero."""
     fields=['registra_pandape','registra_maat','estatus_registro','tienda_maat','se_movio_de_tienda','hora_entrada_pandape','hora_salida_pandape','hora_entrada_maat','hora_salida_maat','cerro_jornada_manual','llego_tarde','minutos_tarde','salio_antes_de_horario','minutos_antes_de_hora','hora_inicio_programada','hora_fin_programada','fuente_horario_programado']
     result={'meta':{'period':raw['meta']['period']},'stores':{}}
     for key,store in raw['stores'].items():
         target={}
-        for group in ['empleados_activos','externos_maat']:
+        for group in ['empleados_activos','externos_maat','personal_excel','externos_excel']:
             target[group]=[dict(nombre=p['nombre'],puesto=p.get('puesto'),jornada=p.get('jornada'),horario_personal=p.get('horario_personal'),registro_por_dia={str(day):{f:r.get(f) for f in fields} for day,r in p.get('registro_por_dia',{}).items() if 1<=int(day)<=raw['meta']['reference_day']}) for p in store.get(group,[])]
         result['stores'][key]=target
     return result
@@ -23,7 +40,7 @@ def rows(raw,day):
     output=[]
     for key,store in raw['stores'].items():
         info=store['info']
-        for external,people in [(False,store['empleados_activos']),(True,store.get('externos_maat',[]))]:
+        for external,people in [(False,store.get('personal_excel',store['empleados_activos'])),(True,store.get('externos_excel',store.get('externos_maat',[])))]:
             for person in people:
                 record=person.get('registro_por_dia',{}).get(str(day))
                 if not record:continue

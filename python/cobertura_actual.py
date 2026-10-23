@@ -84,6 +84,9 @@ def process(base, attendance, period, maat=None, now=None):
         names=['maat_usuarios_por_dia','maat_ubicacion_por_usuario_dia','maat_entrada_por_usuario_dia','maat_salida_por_usuario_dia','maat_cierre_manual_por_usuario_dia','maat_dia_min','maat_dia_max']
         kwargs=dict(zip(names,values));available=set(values[0])
     raw=engine.analyze(a,b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
+    from detalle_promotores import export_attendance,attach_excel_detail
+    expanded=engine.analyze(export_attendance(a),b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
+    attach_excel_detail(raw,expanded)
     raw['meta']['period']=period
     private=Path(__file__).resolve().parents[1]/'datos'
     private.mkdir(exist_ok=True)

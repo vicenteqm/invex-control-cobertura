@@ -49,7 +49,7 @@ const labels={A:'Asistencia',F:'Falta',R:'Retardo',V:'Vacaciones',I:'Incapacidad
 if(!window.INVEX_PORTABLE){
 const attendanceStyle=el('link');attendanceStyle.rel='stylesheet';attendanceStyle.href='asistencia.css';document.head.append(attendanceStyle);
 const operationStyle=el('link');operationStyle.rel='stylesheet';operationStyle.href='operacion.css?v=detalle-auto-20261013';document.head.append(operationStyle);
-const operationData=el('script');operationData.src='operacion-data.js?v='+Date.now();operationData.onload=()=>{const module=el('script');module.src='operacion.js?v=perfil-puesto-20261013';document.head.append(module);};document.head.append(operationData);
+const operationData=el('script');operationData.src='operacion-data.js?v='+Date.now();operationData.onload=()=>{const module=el('script');module.src='operacion.js?v=excel-perfiles-20261023';document.head.append(module);};document.head.append(operationData);
 }
 const allCodes={};for(const day of data.attendance)for(const [code,n] of Object.entries(day.codes))allCodes[code]=(allCodes[code]||0)+n;
 const monthDays=new Date(Date.UTC(Number(data.period.slice(0,4)),Number(data.period.slice(5,7)),0)).getUTCDate();
