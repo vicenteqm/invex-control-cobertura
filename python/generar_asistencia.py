@@ -86,7 +86,8 @@ def generate(source,report,destination,day):
         sheet.cell(1,audit_column,'Nombre Cruce (Resumen_Salidas)')
         matched=unmatched=protected=0
         for row in range(2,sheet.max_row+1):
-            if normalized(sheet.cell(row,headers['ESTATUS']).value) not in ('ACTIVO','PENDIENTE'):continue
+            status=normalized(sheet.cell(row,headers['ESTATUS']).value)
+            if status not in ('ACTIVO','ACTIVA','PENDIENTE') and not status.startswith(('ACTIVO/','ACTIVO ')):continue
             if normalized(sheet.cell(row,column).value) in ('V','I'):protected+=1;continue
             key=name_key(sheet.cell(row,headers['NOMBRE COMPLETO']).value)
             if not key:continue

@@ -38,6 +38,21 @@ class PandapeTests(unittest.TestCase):
         self.assertEqual(attendance_code(None,None,'MARTES',date(2026,10,13)),'D')
         self.assertEqual(attendance_code(None,None,'LUNES',date(2026,10,13)),'F')
         self.assertEqual(attendance_code(616,None,'',date(2026,10,13)),'A')
+    def test_swat_team_and_comodin_receive_actual_pandape_times(self):
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d);source,report=self.fixtures(folder);target=folder/'output.xlsx'
+            w=load_workbook(source);s=w['Hoja1'];s.delete_rows(2,s.max_row)
+            statuses=['ACTIVO/TEAM','ACTIVO/SWAT','ACTIVO/COMODIN','ACTIVO COMODIN','BAJA']
+            for status in statuses:s.append(['Ana Pérez',status,'MARTES',None,None,None])
+            w.save(source);w.close()
+            result=generate(source,report,target,date(2026,10,13))
+            self.assertEqual(result['matched'],4)
+            w=load_workbook(target);s=w['Hoja1']
+            for row in range(2,6):
+                self.assertEqual(s.cell(row,4).value,'R')
+                self.assertEqual(s.cell(row,5).value.hour,10)
+                self.assertEqual(s.cell(row,5).value.minute,5)
+            self.assertIsNone(s.cell(6,4).value);w.close()
     def test_report_date_must_match_capture_day(self):
         with tempfile.TemporaryDirectory() as d:
             _,report=self.fixtures(Path(d))
