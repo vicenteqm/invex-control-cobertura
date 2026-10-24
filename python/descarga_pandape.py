@@ -76,6 +76,46 @@ def wait_download(folder, timeout=180):
         time.sleep(1)
     raise TimeoutError('Pandape no entregó un reporte nuevo dentro del tiempo permitido')
 
+
+def submit_export(driver,timeout=15):
+    """El cambio de fecha puede consumir el primer clic al cerrar el calendario."""
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.common.exceptions import TimeoutException
+    for attempt in range(3):
+        button=WebDriverWait(driver,timeout).until(EC.element_to_be_clickable(('id','btnExportReportPopupOk')))
+        button.click()
+        def accepted(d):
+            # No volver a pulsar si la solicitud está en curso o el diálogo cerró.
+            buttons=d.find_elements('id','btnExportReportPopupOk')
+            return not any(b.is_displayed() and b.is_enabled() for b in buttons)
+        try:
+            WebDriverWait(driver,3).until(accepted)
+            return
+        except TimeoutException:
+            logging.warning('Pandape: el diálogo sigue abierto; confirmando Exportar (intento %s/3)',attempt+1)
+    raise ValueError('Pandape no confirmó la solicitud de exportación; el diálogo sigue abierto')
+
+
+def wait_report_ready(driver,timeout=600):
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.common.exceptions import TimeoutException
+    next_notice=time.monotonic()+30
+    def ready(d):
+        nonlocal next_notice
+        for field in ('offlineReportFinalRetryMessage','offlineReportIntitalRetryMessage','offlineReportFinalNoDataMessage'):
+            for element in d.find_elements('id',field):
+                if element.is_displayed():raise ValueError('Pandape: '+element.text.strip())
+        for element in d.find_elements('id','getOfflineReportFromDeafultPopUp'):
+            if element.is_displayed() and element.is_enabled():return element
+        if time.monotonic()>=next_notice:
+            logging.info('Pandape sigue generando el reporte en el servidor; esperando el enlace de descarga')
+            next_notice=time.monotonic()+30
+        return False
+    try:return WebDriverWait(driver,timeout,poll_frequency=1).until(ready)
+    except TimeoutException:
+        raise ValueError('Pandape aceptó la exportación, pero no entregó el enlace en 10 minutos. Revisa Reportes generados en Pandape; se conserva el tablero anterior.') from None
+
 def download(config, root):
     from selenium import webdriver
     from selenium.webdriver.common.by import By
@@ -125,10 +165,10 @@ def download(config, root):
             from selenium.webdriver.common.keys import Keys
             element.send_keys(Keys.TAB)
             if element.get_attribute('value')!=now.strftime('%d/%m/%Y'):raise ValueError('Pandape no aceptó la fecha del reporte en '+field)
-        driver.find_element(By.ID,'btnExportReportPopupOk').click()
+        submit_export(driver)
         stage='generar_reporte'
         logging.info('[6/7] Esperando el reporte de Pandape y descargando el Excel')
-        WebDriverWait(driver,180).until(EC.element_to_be_clickable((By.ID,'getOfflineReportFromDeafultPopUp'))).click()
+        wait_report_ready(driver).click()
         stage='descargar_reporte'
         report=wait_download(folder)
         from generar_asistencia import summarize
