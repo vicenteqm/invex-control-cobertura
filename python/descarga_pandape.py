@@ -77,6 +77,28 @@ def wait_download(folder, timeout=180):
     raise TimeoutError('Pandape no entregó un reporte nuevo dentro del tiempo permitido')
 
 
+def wait_page_idle(driver,timeout=45):
+    """Los filtros recargan la página; no exportar durante esa navegación."""
+    from selenium.webdriver.support.ui import WebDriverWait
+    stable_since=None
+    def idle(d):
+        nonlocal stable_since
+        ready=d.execute_script("return document.readyState === 'complete' && (!window.jQuery || window.jQuery.active === 0)")
+        signature=d.current_url if ready else None
+        if not signature:
+            stable_since=None
+            return False
+        if stable_since is None or stable_since[0]!=signature:
+            stable_since=(signature,time.monotonic())
+            return False
+        return time.monotonic()-stable_since[1]>=1.5
+    WebDriverWait(driver,timeout,poll_frequency=.25).until(idle)
+
+
+def report_dialog_visible(driver):
+    return any(e.is_displayed() for e in driver.find_elements('id','OfflineReportGeneratedPopUp'))
+
+
 def submit_export(driver,timeout=15):
     """El cambio de fecha puede consumir el primer clic al cerrar el calendario."""
     from selenium.webdriver.support.ui import WebDriverWait
@@ -86,9 +108,7 @@ def submit_export(driver,timeout=15):
         button=WebDriverWait(driver,timeout).until(EC.element_to_be_clickable(('id','btnExportReportPopupOk')))
         button.click()
         def accepted(d):
-            # No volver a pulsar si la solicitud está en curso o el diálogo cerró.
-            buttons=d.find_elements('id','btnExportReportPopupOk')
-            return not any(b.is_displayed() and b.is_enabled() for b in buttons)
+            return report_dialog_visible(d)
         try:
             WebDriverWait(driver,3).until(accepted)
             return
@@ -101,13 +121,19 @@ def wait_report_ready(driver,timeout=600):
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.common.exceptions import TimeoutException
     next_notice=time.monotonic()+30
+    missing_since=None
     def ready(d):
-        nonlocal next_notice
+        nonlocal next_notice,missing_since
         for field in ('offlineReportFinalRetryMessage','offlineReportIntitalRetryMessage','offlineReportFinalNoDataMessage'):
             for element in d.find_elements('id',field):
                 if element.is_displayed():raise ValueError('Pandape: '+element.text.strip())
         for element in d.find_elements('id','getOfflineReportFromDeafultPopUp'):
             if element.is_displayed() and element.is_enabled():return element
+        if not report_dialog_visible(d):
+            if missing_since is None:missing_since=time.monotonic()
+            if time.monotonic()-missing_since>5:
+                raise ValueError('La ventana de generación de Pandape desapareció; no se confirma una exportación en curso. Vuelve a ejecutar la actualización.')
+        else:missing_since=None
         if time.monotonic()>=next_notice:
             logging.info('Pandape sigue generando el reporte en el servidor; esperando el enlace de descarga')
             next_notice=time.monotonic()+30
@@ -155,6 +181,7 @@ def download(config, root):
             option=wait.until(matching)
             Select(driver.find_element(By.ID,field)).select_by_value(option.get_attribute('value'))
             wait.until(lambda d: normalized(Select(d.find_element(By.ID,field)).first_selected_option.text)==wanted)
+            wait_page_idle(driver)
         logging.info('[5/7] Exportando los fichajes del día %s',now.strftime('%d/%m/%Y'))
         stage='abrir_exportacion'
         if not any(el.is_displayed() for el in driver.find_elements(By.ID,'date-start')):
