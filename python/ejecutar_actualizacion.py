@@ -96,7 +96,12 @@ def main():
         elif result.returncode==2:print('\nEl cálculo terminó con un fallo de MAAT. Revisa el registro antes de compartir los datos.',flush=True)
         else:
             print('\nLA ACTUALIZACIÓN NO SE COMPLETÓ. Revisa registros/actualizacion.log.',flush=True)
-            print('Si Pandape rechaza el acceso con HTTP 403, no se actualiza el tablero.',flush=True)
+            status_file=ROOT/'registros'/'ultimo-proceso.json'
+            try:
+                failure=json.loads(status_file.read_text(encoding='utf-8'))
+                detail=failure.get('error')
+                if detail:print('Detalle del último proceso: '+str(detail),flush=True)
+            except (OSError,ValueError):pass
             print('Puedes descargar el reporte del día desde Pandape y arrastrarlo sobre ACTUALIZAR_INVEX.bat.',flush=True)
         return result.returncode
     except (ValueError,OSError,json.JSONDecodeError) as error:

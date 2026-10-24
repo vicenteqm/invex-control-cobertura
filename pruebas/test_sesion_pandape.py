@@ -32,6 +32,7 @@ class SessionTests(unittest.TestCase):
             def __init__(self):self.args=[];self.prefs={}
             def add_argument(self,arg):self.args.append(arg)
             def add_experimental_option(self,key,value):self.prefs[key]=value
+            def set_capability(self,key,value):pass
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);webdriver=SimpleNamespace(EdgeOptions=Options,ChromeOptions=Options)
             a=session_options(webdriver,root,'edge',root/'downloads1')

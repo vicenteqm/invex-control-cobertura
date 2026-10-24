@@ -25,6 +25,7 @@ def session_options(webdriver,root,browser,folder):
     profile.mkdir(parents=True,exist_ok=True)
     options.add_argument('--user-data-dir='+str(profile.resolve()))
     options.add_argument('--window-size=1440,1000')
+    options.set_capability('goog:loggingPrefs',{'browser':'ALL'})
     options.add_experimental_option('prefs',{'download.default_directory':str(folder.resolve()),'download.prompt_for_download':False,'download.directory_upgrade':True,'credentials_enable_service':False,'profile.password_manager_enabled':False})
     return options
 
@@ -132,7 +133,12 @@ def wait_report_ready(driver,timeout=600):
         if not report_dialog_visible(d):
             if missing_since is None:missing_since=time.monotonic()
             if time.monotonic()-missing_since>5:
-                raise ValueError('La ventana de generación de Pandape desapareció; no se confirma una exportación en curso. Vuelve a ejecutar la actualización.')
+                d.get('https://betterlatinoamericano.holmeshr.com/Reportes/ReportesDescargados')
+                wait_page_idle(d)
+                rows=d.find_elements('css selector','table[aria-label="Reportes generados"] tbody tr')
+                if rows and 'En proceso' in rows[0].text:
+                    raise ValueError('Pandape recibió la solicitud, pero el último reporte sigue En proceso en Reportes generados y no permite descargarlo. Se conserva el tablero anterior; no es un fallo de GitHub ni HTTP 403.')
+                raise ValueError('La ventana de generación cerró sin entregar el archivo. Revisa el estado en Reportes generados de Pandape; se conserva el tablero anterior.')
         else:missing_since=None
         if time.monotonic()>=next_notice:
             logging.info('Pandape sigue generando el reporte en el servidor; esperando el enlace de descarga')
@@ -212,6 +218,8 @@ def download(config, root):
         try:
             title=driver.title;location=urlsplit(driver.current_url);page=location.netloc+location.path
             screenshot=driver.save_screenshot(str(private/'diagnostico.png'))
+            (private/'diagnostico-pagina.html').write_text(driver.page_source,encoding='utf-8')
+            (private/'diagnostico-navegador.json').write_text(json.dumps(driver.get_log('browser'),ensure_ascii=False,indent=2),encoding='utf-8')
         except Exception:pass
         (private/'diagnostico.json').write_text(json.dumps({'stage':stage,'error':type(error).__name__,'page':page,'title':title,'screenshotAvailable':screenshot}),encoding='utf-8')
         reason='El navegador se cerró o perdió la conexión; vuelve a iniciar el ejecutor y conserva la ventana abierta' if type(error).__name__ in ('InvalidSessionIdException','NoSuchWindowException') else 'HTTP 403: el servidor rechazó el acceso automático antes de iniciar sesión' if '403' in title or 'Forbidden' in title else 'No se completó el ingreso manual dentro de cinco minutos' if stage=='ingreso_manual' and type(error).__name__=='TimeoutException' else 'CAPTCHA: se requiere completar el inicio de sesión en el navegador' if stage=='verificacion_humana' else str(error) if isinstance(error,ValueError) else type(error).__name__
