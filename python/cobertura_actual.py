@@ -88,11 +88,15 @@ def process(base, attendance, period, maat=None, now=None):
     expanded=engine.analyze(export_attendance(a),b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
     attach_excel_detail(raw,expanded)
     raw['meta']['period']=period
+    captured={d for employee in employees if employee['estatus']=='ACTIVO' for d in employee['dias']}
+    detail_day=max([reference,*available])
+    raw['meta']['attendance_days']=sorted(captured)
+    raw['meta']['detail_reference_day']=detail_day
     private=Path(__file__).resolve().parents[1]/'datos'
     private.mkdir(exist_ok=True)
     (private/'analisis_actual.json').write_text(json.dumps(raw,ensure_ascii=False,default=str),encoding='utf-8')
     from detalle_promotores import export as export_promoters
-    export_promoters(raw,private/('Detalle_promotores_'+period+'_'+str(reference).zfill(2)+'.xlsx'),reference)
+    export_promoters(raw,private/('Detalle_promotores_'+period+'_'+str(detail_day).zfill(2)+'.xlsx'),detail_day)
     # Los días sin captura global permanecen sin datos, no se convierten en alarmas.
     captured={d for employee in employees if employee['estatus']=='ACTIVO' for d in employee['dias']}
     for store in raw['stores'].values():

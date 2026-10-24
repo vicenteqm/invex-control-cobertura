@@ -40,7 +40,7 @@ function renderSystems(month,stores,day){
   if(!month.maatLoaded){systemsView.append(e('p',month.maatStatus==='error'?'La descarga de MAAT falló. Se conserva la cobertura desde los Excel y se suspende el cruce para evitar falsas alertas.':'No hay concentrado MAAT para este mes.','operation-source'));return;}
   const selectDay=e('select');selectDay.setAttribute('aria-label','Día de registro MAAT');
   for(let d=1;d<=month.daysInMonth;d++)selectDay.append(new Option('Día '+d,String(d)));
-  if(registrationPeriod!==monthSelect.value){registrationPeriod=monthSelect.value;registrationDay=day;}
+  if(registrationPeriod!==monthSelect.value){registrationPeriod=monthSelect.value;registrationDay=Math.max(day,...(month.maatDays||[]));}
   selectDay.value=registrationDay;systemsView.append(selectDay);const results=e('div');systemsView.append(results);
   function show(){
     results.replaceChildren();const selected=selectDay.value;registrationDay=Number(selected);

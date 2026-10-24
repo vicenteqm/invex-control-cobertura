@@ -29,3 +29,7 @@ class ExpandedExcelTests(unittest.TestCase):
         public=public_detail(raw)['stores']['WM 1']
         self.assertEqual(len(public['personal_excel']),3)
         self.assertEqual(len(public['empleados_activos']),1)
+        raw['meta']['attendance_days']=[22]
+        exported=rows(raw,23)
+        self.assertTrue(all(row[12]=='Sin evaluar' and row[18]=='Sin evaluar' for row in exported))
+        self.assertTrue(all(row[15]=='Sí' for row in exported))

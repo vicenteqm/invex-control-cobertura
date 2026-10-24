@@ -63,7 +63,8 @@ def run(config,skip_download=False,pandape_report=None):
         except Exception as error:
             download_error=type(error).__name__+': '+str(error)
             logging.error('No se descargó MAAT: %s',download_error)
-    pandape_status='not_configured';pandape_result=None
+    pandape_status='paused' if not config.get('download_pandape') else 'not_configured';pandape_result=None
+    if pandape_status=='paused' and not pandape_report:logging.info('Pandape pausado: se omite su descarga y se continúa con MAAT y las demás etapas')
     generated=ROOT/'datos'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
     if config.get('download_pandape') or pandape_report:
         if skip_download and not pandape_report:
