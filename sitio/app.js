@@ -26,9 +26,6 @@ const storeMaps=el('div',undefined,'coverage-store-maps');storeMaps.id='coverage
 function drawStoreMaps(stores){
  storeMaps.replaceChildren();
  const heading=el('div',undefined,'section-title');heading.append(el('h2','Cobertura por tienda'),el('span','MAPAS POR SOCIO'));storeMaps.append(heading);
- const legend=el('div',undefined,'coverage-map-legend');
- for(const [cls,text]of [['full','Completa · 100% o más'],['partial','Parcial · 50% a menos de 100%'],['low','Crítica · menos de 50%'],['unknown','Sin plantilla / no operando']])legend.append(el('span',text,cls));
- storeMaps.append(legend,el('p','Plantilla cubierta / plantilla requerida. Cada cuadro representa una tienda y responde a los filtros de Cobertura.','note'));
  for(const [prefix,title]of [['SAMS','SAMS'],['WM','WALMART'],['CH','CHEDRAUI']]){
   const panel=el('article',undefined,'panel coverage-map-panel');panel.setAttribute('aria-label','Mapa de cobertura '+title);
   const selected=stores.filter(s=>s.id.split(' ')[0]===prefix).sort((a,b)=>a.id.localeCompare(b.id,'es',{numeric:true}));
