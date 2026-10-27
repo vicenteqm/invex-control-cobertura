@@ -6,7 +6,7 @@ const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefi
 const section=make('section',undefined,'productivity-section');section.id='productividad';
 const heading=make('div',undefined,'section-title');heading.append(make('h2','Horas productivas · Walmart y SAMS'),make('span','INGRESOS POR DÍA Y HORA'));section.append(heading);
 document.getElementById('tiendas').before(section);
-const nav=document.querySelector('nav'),link=make('a','Horas productivas');link.href='#productividad';nav.querySelector('a[href="#tiendas"]').before(link);
+const nav=document.querySelector('nav'),link=nav.querySelector('a[href="#productividad"]')||make('a','Horas productivas');link.href='#productividad';if(!link.isConnected)nav.append(link);
 nav.addEventListener('click',event=>{const a=event.target.closest('a');if(a)for(const l of nav.querySelectorAll('a'))l.classList.toggle('selected',a===l);});
 if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(x=>x.isIntersecting))for(const l of nav.querySelectorAll('a'))l.classList.toggle('selected',l===link);},{rootMargin:'-10% 0px -70% 0px'});observer.observe(section);}
 if(source.status!=='available'){const box=make('article',undefined,'panel');box.append(make('h3',source.status==='error'?'Revisar archivo de productividad':'Sin datos de productividad para este mes'),make('p',source.message||'Ejecuta la actualización con el Excel de horas productivas.'));section.append(box);return;}
