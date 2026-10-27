@@ -26,5 +26,5 @@
     for(const {body} of [missing,active])if(!body.children.length){const tr=make('tr'),cell=make('td','Sin resultados con estos filtros.');cell.colSpan=body===missing.body?5:4;tr.append(cell);body.append(tr);}
   }
   window.addEventListener('invex:coverage-filter',draw);
-  for(const n of [search,region,block])n.addEventListener(n===search?'input':'change',draw);reset.addEventListener('click',()=>{search.value='';region.value='';block.value='';draw();});wrap.append(heading,controls,panels);section.append(wrap);draw();
+  for(const n of [search,region,block])n.addEventListener(n===search?'input':'change',draw);reset.addEventListener('click',()=>{search.value='';region.value='';block.value='';draw();});wrap.append(heading,controls,panels);section.insertBefore(wrap,document.getElementById("coverage-store-maps"));draw();
 })();

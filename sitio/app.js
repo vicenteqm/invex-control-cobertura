@@ -22,6 +22,29 @@ const general=el('button','Ver general');general.type='button';
 for(const [title,control]of [['Región',coverageRegion],['Tienda',coverageStore]]){const label=el('label');label.append(el('span',title),control);coverageControls.append(label);}coverageControls.append(general);$('kpis').before(coverageControls);
 const coverageSummary=el('p',undefined,'note');coverageSummary.setAttribute('role','status');coverageControls.after(coverageSummary);
 function coverageStoreOptions(){const previous=coverageStore.value;coverageStore.replaceChildren(new Option('Todas las tiendas',''));for(const s of data.stores.filter(s=>!coverageRegion.value||s.region===coverageRegion.value).sort((a,b)=>a.name.localeCompare(b.name,'es')))coverageStore.append(new Option(s.id+' · '+s.name,s.id));if([...coverageStore.options].some(o=>o.value===previous))coverageStore.value=previous;}
+const storeMaps=el('div',undefined,'coverage-store-maps');storeMaps.id='coverage-store-maps';$('cobertura').append(storeMaps);
+function drawStoreMaps(stores){
+ storeMaps.replaceChildren();
+ const heading=el('div',undefined,'section-title');heading.append(el('h2','Cobertura por tienda'),el('span','MAPAS POR SOCIO'));storeMaps.append(heading);
+ const legend=el('div',undefined,'coverage-map-legend');
+ for(const [cls,text]of [['full','Completa · 100% o más'],['partial','Parcial · 50% a menos de 100%'],['low','Crítica · menos de 50%'],['unknown','Sin plantilla / no operando']])legend.append(el('span',text,cls));
+ storeMaps.append(legend,el('p','Plantilla cubierta / plantilla requerida. Cada cuadro representa una tienda y responde a los filtros de Cobertura.','note'));
+ for(const [prefix,title]of [['SAMS','SAMS'],['WM','WALMART'],['CH','CHEDRAUI']]){
+  const panel=el('article',undefined,'panel coverage-map-panel');panel.setAttribute('aria-label','Mapa de cobertura '+title);
+  const selected=stores.filter(s=>s.id.split(' ')[0]===prefix).sort((a,b)=>a.id.localeCompare(b.id,'es',{numeric:true}));
+  const top=el('div',undefined,'panel-title');top.append(el('h3',title),el('span',selected.length+' tiendas','tag'));panel.append(top);
+  const grid=el('div',undefined,'coverage-map-grid');
+  for(const s of selected){
+   const evaluated=s.status==='OPERANDO'&&s.required>0;const value=evaluated?100*s.covered/s.required:null;
+   const cls=value===null?'unknown':value>=100?'full':value>=50?'partial':'low';
+   const card=el('article',undefined,'coverage-map-tile '+cls);card.dataset.store=s.id;card.dataset.level=cls;
+   card.append(el('span',s.id,'coverage-map-id'),el('strong',s.name,'coverage-map-name'),el('b',value===null?'Sin evaluar':value.toFixed(1)+'%','coverage-map-percent'),el('small',evaluated?s.covered+' de '+s.required+' plazas cubiertas':s.status==='OPERANDO'?'Sin plantilla requerida':s.status));
+   card.title=s.id+' · '+s.name+' · '+s.region+' · '+s.active+' activos · '+s.gap+' vacantes';grid.append(card);
+  }
+  if(!selected.length)grid.append(el('p','No hay tiendas de este socio con los filtros seleccionados.','note'));
+  panel.append(grid);storeMaps.append(panel);
+ }
+}
 function drawCoverage(){
  const all=data.stores.filter(s=>(!coverageRegion.value||s.region===coverageRegion.value)&&(!coverageStore.value||s.id===coverageStore.value));const rows=all.filter(s=>s.status==='OPERANDO');
  const required=sum(rows,'required'),active=sum(rows,'active'),covered=sum(rows,'covered'),gap=sum(rows,'gap');
@@ -32,6 +55,7 @@ function drawCoverage(){
  for(const [title,r,a]of [['Promotores',sum(rows,'requiredProm'),sum(rows,'activeProm')],['Sublíderes',sum(rows,'requiredSub'),sum(rows,'activeSub')]]){const block=el('div',undefined,'profile');block.append(el('strong',title));for(const [label,n,light]of [['Requeridos',r,true],['Activos',a,false]]){const row=el('div',undefined,'bar-line');row.append(el('span',label),bar(n,Math.max(r,a),light),el('strong',num(n)));block.append(row);}$('profiles').append(block);}
  const regions={};for(const s of rows)regions[s.region]=(regions[s.region]||0)+s.gap;for(const [r,n]of Object.entries(regions).sort((a,b)=>b[1]-a[1])){const row=el('div',undefined,'region-row');row.append(el('span',r),bar(n,Math.max(0,...Object.values(regions))),el('strong',num(n)));$('regions').append(row);}
  const statuses={};for(const s of all)statuses[s.status]=(statuses[s.status]||0)+1;for(const [status,n]of Object.entries(statuses)){const row=el('div');row.append(el('span',status||'Sin estatus'),el('strong',num(n)));$('statuses').append(row);}
+ drawStoreMaps(all);
  coverageSummary.textContent=num(all.length)+' tiendas en la selección · '+num(rows.length)+' operando. KPI y gráficas calculadas con estos filtros.';
  $('scope').textContent=coverageStore.value||coverageRegion.value||'Vista nacional';
  window.INVEX_COVERAGE_SELECTION=all.map(s=>s.id);window.dispatchEvent(new CustomEvent('invex:coverage-filter',{detail:window.INVEX_COVERAGE_SELECTION}));
