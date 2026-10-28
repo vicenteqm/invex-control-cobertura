@@ -24,32 +24,37 @@ function badge(semaphore){return e('span',labels[semaphore]||labels.SIN_DATOS,'o
 function filtered(){const month=data.months[monthSelect.value];const q=search.value.trim().toLowerCase();return month.stores.filter(s=>(!zoneSelect.value||s.zone===zoneSelect.value)&&(!regionSelect.value||s.region===regionSelect.value)&&(!executiveSelect.value||s.executive===executiveSelect.value)&&(!q||(s.id+' '+s.name).toLowerCase().includes(q))&&(!semaphoreSelect.value||(dayRecord(s,daySelect.value)?.semaphore||'SIN_DATOS')===semaphoreSelect.value));}
 function fillFilter(select,rows,key,label){select.replaceChildren(new Option(label,''));for(const value of [...new Set(rows.map(s=>s[key]))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})))select.append(new Option(value,value));}
 function monthChanged(){const month=data.months[monthSelect.value];daySelect.replaceChildren();for(let day=1;day<=month.referenceDay;day++)daySelect.append(new Option('Día '+day,String(day)));daySelect.value=month.referenceDay;fillFilter(zoneSelect,month.stores,'zone','Todas las zonas');fillFilter(regionSelect,month.stores,'region','Todas las regiones');fillFilter(executiveSelect,month.stores,'executive','Todas las ejecutivas');semaphoreSelect.value='';search.value='';render();}
-const maatMap=e('div',undefined,'coverage-store-maps');maatMap.id='maat-store-maps';section.append(maatMap);
+function createRegistrationMap(system){
+const isMaat=system==='MAAT';
+const maatMap=e('div',undefined,'coverage-store-maps');maatMap.id=system.toLowerCase()+'-store-maps';section.append(maatMap);
 let mapPeriod=null,mapDay=null;
-function renderMaatMap(month,stores){
+return function renderMap(month,stores){
   maatMap.replaceChildren();
-  const heading=e('div',undefined,'section-title');heading.append(e('h2','Registro MAAT por tienda'),e('span','RH / PERSONAS ÚNICAS'));maatMap.append(heading);
-  const days=month.maatDays||[];
+  const heading=e('div',undefined,'section-title');heading.append(e('h2','Registro '+system+' por tienda'),e('span','RH / PERSONAS ÚNICAS'));maatMap.append(heading);
+  const days=(isMaat?month.maatDays:month.attendanceDays)||[];
   if(mapPeriod!==monthSelect.value){mapPeriod=monthSelect.value;mapDay=Math.max(0,...days);}
-  const field=e('label',undefined,'operation-filter');field.append(e('span','Día de registro del mapa'));const date=e('select');date.setAttribute('aria-label','Día del mapa MAAT');
+  const field=e('label',undefined,'operation-filter');field.append(e('span','Día de registro del mapa'));const date=e('select');date.setAttribute('aria-label','Día del mapa '+system);
   for(const d of days)date.append(new Option(monthSelect.value+'-'+String(d).padStart(2,'0'),String(d)));
-  date.value=String(mapDay);date.addEventListener('change',()=>{mapDay=Number(date.value);renderMaatMap(month,stores);});field.append(date);maatMap.append(field);
-  const available=month.maatLoaded&&month.maatStatus!=='error'&&days.includes(mapDay);
-  maatMap.append(e('p','Una persona cuenta una vez por día, aunque registre salida y regreso del descanso. Se compara con la plantilla requerida y se asigna a la tienda de destino registrada en MAAT. No representa presencia en tiempo real.','note'));
-  maatMap.append(e('p','Última actualización del proceso: '+new Date(month.processedAt).toLocaleString('es-MX',{timeZone:'America/Mexico_City'})+(available?' · Día consultado: '+mapDay:' · Sin descarga válida de MAAT para evaluar este corte.'),'operation-source'));
+  date.value=String(mapDay);date.addEventListener('change',()=>{mapDay=Number(date.value);renderMap(month,stores);});field.append(date);maatMap.append(field);
+  const available=days.includes(mapDay)&&(!isMaat||(month.maatLoaded&&month.maatStatus!=='error'));
+  maatMap.append(e('p',isMaat?'Una persona cuenta una vez por día, aunque registre salida y regreso del descanso. Se compara con la plantilla requerida y se asigna a la tienda de destino registrada en MAAT. No representa presencia en tiempo real.':'Una persona cuenta una vez por día en su tienda asignada, aunque tenga varios fichajes. Se compara el registro Pandape del Excel de asistencia con la plantilla requerida, independientemente de MAAT. No representa presencia en tiempo real.','note'));
+  maatMap.append(e('p','Última actualización del proceso: '+new Date(month.processedAt).toLocaleString('es-MX',{timeZone:'America/Mexico_City'})+(available?' · Día consultado: '+mapDay:' · Sin datos de '+system+' para evaluar este corte.'),'operation-source'));
   for(const [prefix,label] of [['SAMS','SAMS'],['WM','WALMART'],['CH','CHEDRAUI'],['CC','OTROS SOCIOS']]){
     const group=stores.filter(s=>s.id.split(' ')[0]===prefix);if(!group.length)continue;
     const block=e('article',undefined,'panel coverage-map-panel');block.append(e('h3',label));const grid=e('div',undefined,'coverage-map-grid');
-    for(const s of group){const r=s.registration?.[String(mapDay)];const valid=available&&r?.available&&s.required>0;const count=valid?Number(r.maat||0):null;const percent=valid?count/s.required*100:null;const level=percent===null?'unknown':percent>=100?'full':percent>=50?'partial':'low';const tile=e('article',undefined,'coverage-map-tile '+level);tile.dataset.store=s.id;tile.dataset.level=level;
+    for(const s of group){const r=s.registration?.[String(mapDay)];const valid=available&&r&&(!isMaat||r.available)&&s.required>0;const count=valid?Number((isMaat?r.maat:r.cohort?.pandape)||0):null;const percent=valid?count/s.required*100:null;const level=percent===null?'unknown':percent>=100?'full':percent>=50?'partial':'low';const tile=e('article',undefined,'coverage-map-tile '+level);tile.dataset.store=s.id;tile.dataset.level=level;
       tile.append(e('span',s.id,'coverage-map-id'),e('strong',s.name,'coverage-map-name'),e('b',percent===null?'Sin evaluar':percent.toFixed(1)+'%','coverage-map-percent'),e('small',percent===null?'Sin datos / sin plantilla':count+' de '+s.required+' registraron'));
       tile.title=s.id+' · '+s.name+' · '+s.region+(valid?' · '+Math.max(0,s.required-count)+' pendientes de registrar':' · Sin evaluación');grid.append(tile);
     }block.append(grid);maatMap.append(block);
   }
   if(!stores.length)maatMap.append(e('p','No hay tiendas para los filtros seleccionados.','note'));
 }
+}
+const renderMaatMap=createRegistrationMap('MAAT');
+const renderPandapeMap=createRegistrationMap('Pandape');
 function render(){const month=data.months[monthSelect.value];const stores=filtered();const day=Number(daySelect.value);const monthLabel=monthSelect.value;source.textContent=month.mode==='current'?'Calculado desde los Excel actuales · Corte de asistencia: '+monthLabel+'-'+String(month.referenceDay).padStart(2,'0')+' · '+month.cutoffTime+' · Procesado: '+new Date(month.processedAt).toLocaleString('es-MX',{timeZone:'America/Mexico_City'})+' · '+month.stores.length+' tiendas operando. MAAT: '+(month.maatStatus==='error'?'descarga fallida; no se muestran registros antiguos como actualizados':month.maatLoaded?'concentrado cargado':'sin concentrado disponible'):'Captura histórica de '+data.sourceName+' · Corte operativo: '+monthLabel+'-'+String(month.referenceDay).padStart(2,'0')+' '+month.cutoffTime+' · '+month.stores.length+' tiendas en ese histórico. Esta vista conserva las clasificaciones del origen.';
 title.lastElementChild.textContent=month.mode==='current'?'CONTROL / ALERTAS Y CALENDARIO':'HISTÓRICO / ALERTAS Y CALENDARIO';
-renderSystems(month,stores,day);renderMaatMap(month,stores);
+renderSystems(month,stores,day);renderMaatMap(month,stores);renderPandapeMap(month,stores);
 cards.replaceChildren();for(const [label,value] of [['Tiendas alarmantes',stores.filter(s=>dayRecord(s,day)?.semaphore==='ALARMANTE').length],['Tiendas críticas',stores.filter(s=>dayRecord(s,day)?.semaphore==='CRITICA').length],['Tiendas reincidentes',stores.filter(s=>s.recurrence==='REINCIDENTE').length],['Sin sublíder asignado',stores.filter(s=>s.noSubleader).length]]){const c=e('div',undefined,'hour-card');c.append(e('span',label),e('strong',value));cards.append(c);}
 alerts.replaceChildren(e('h3','Alertas por ejecutiva'));const byExecutive={};for(const s of stores){const item=byExecutive[s.executive]||(byExecutive[s.executive]={stores:0,alerts:0,recurring:0,coverage:0,observed:0,red:0,monthly:0});item.stores++;const d=dayRecord(s,day);if(d){item.coverage+=d.coverage;item.observed++;if(['ALARMANTE','CRITICA'].includes(d.semaphore))item.alerts++;}if(s.recurrence==='REINCIDENTE')item.recurring++;item.red+=s.redDays;item.monthly+=s.monthlyCoverage;}
 table(alerts,['Ejecutiva','Tiendas','Críticas / alarmantes','Reincidentes','Cobertura diaria promedio'],Object.entries(byExecutive).sort((a,b)=>b[1].alerts-a[1].alerts).map(([name,r])=>[name,r.stores,r.alerts,r.recurring,pct(r.observed?r.coverage/r.observed:null)]));
