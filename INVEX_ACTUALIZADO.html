@@ -263,6 +263,10 @@ updateFilters();
 const reset=make('button','Limpiar filtros');reset.type='button';filters.append(reset);section.append(filters);
 const approvals=control('Aprobadas',make('select'));approvals.append(new Option('Solo Aprobada','standard'),new Option('Incluir Aprobada con Garantía','guaranteed'));approvals.disabled=!source.hasApprovals;
 if(source.hasFinalized)approvals.append(new Option('Solo aprobadas finalizadas','finalized'));
+const download=make('button','Descargar Excel');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
+let excelRows=[];
+const excelHeaders=['Fecha','CPRO','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
+download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.xlsx(excelHeaders,excelRows,'INVEX_Horas_productivas_'+from.value+'_al_'+to.value);});
 const error=make('p',undefined,'productivity-error');error.setAttribute('role','status');section.append(error);
 const kpis=make('div',undefined,'productivity-kpis');section.append(kpis);
 const charts=make('div',undefined,'productivity-charts');section.append(charts);
@@ -283,9 +287,25 @@ function combo(target,items){
  items.forEach((item,i)=>{const x=55+step*(i+.5);const title=item.label+': '+(item.value===null?'Sin datos':number(item.value)+' ingresos'+(source.hasApprovals?' · '+number(item.approved)+' aprobadas':''));const bar=el('rect',{x:x-step*.3,y:item.value===null?245:y(item.value),width:step*.6,height:item.value===null?0:245-y(item.value),class:'combo-income'});const tip=document.createElementNS(svg.namespaceURI,'title');tip.textContent=title;bar.append(tip);el('text',{x,y:264,'text-anchor':'middle',class:'combo-axis'},item.short||item.label);if(item.value===null){flush();el('text',{x,y:237,'text-anchor':'middle',class:'combo-axis'},'—');}else if(source.hasApprovals){points.push(x+','+y(item.approved));const dot=el('circle',{cx:x,cy:y(item.approved),r:3.5,class:'combo-dot'});const t=document.createElementNS(svg.namespaceURI,'title');t.textContent=title;dot.append(t);}});flush();target.append(svg);
 }
 function draw(){
+ download.disabled=true;excelRows=[];
  const start=Number(from.value.slice(-2)),end=Number(to.value.slice(-2));
  if(!from.value.startsWith(source.period+'-')||!to.value.startsWith(source.period+'-')||!Number.isInteger(start)||!Number.isInteger(end)||start<1||end>source.daysInMonth||start>end){error.textContent='Selecciona un rango válido dentro del mes, con inicio anterior o igual al final.';return;}
  error.textContent='';const selected=matching();
+ const approvalLabel=approvals.selectedOptions[0]?.textContent||'';
+ for(const s of selected)for(const [day,values] of Object.entries(s.days)){
+  const d=Number(day);if(d<start||d>end||!source.capturedDays.includes(d))continue;
+  values.forEach((income,i)=>{
+   const standard=source.hasApprovals?(s.approvedDays?.[day]?.[i]||0):null;
+   const guaranteed=source.hasApprovals?(s.guaranteedDays?.[day]?.[i]||0):null;
+   const finalized=source.hasFinalized?(s.finalizedDays?.[day]?.[i]||0):null;
+   const approved=source.hasApprovals?(approvals.value==='finalized'?finalized:standard+(approvals.value==='guaranteed'?guaranteed:0)):null;
+   excelRows.push([dayDate(d),cproName(s),s.region,s.chain||'Walmart',s.id,s.name,source.hours[i],income,standard,guaranteed,finalized,approved,source.hasApprovals?approvalLabel:'Sin datos de aprobación']);
+  });
+ }
+ excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[4].localeCompare(b[4],'es',{numeric:true})||a[6].localeCompare(b[6]));
+ download.disabled=!excelRows.length||!window.INVEX_EXPORT?.xlsx;
+ download.title=excelRows.length?'Descarga el detalle filtrado de todas las franjas horarias disponibles; el mapa muestra únicamente de 08:00 a 22:00.':'Sin datos para exportar con estos filtros';
+
  const dayHours={},approvedHours={},hourApproved=source.hours.map(()=>0),hourTotals=source.hours.map(()=>0),storeTotals=[];let total=0,afternoon=0,observed=0;
  for(let d=1;d<=source.daysInMonth;d++)if(source.capturedDays.includes(d)&&d>=start&&d<=end&&selected.some(s=>s.days[d]))dayHours[d]=source.hours.map(()=>0);
  for(const d of Object.keys(dayHours))approvedHours[d]=source.hours.map(()=>0);
