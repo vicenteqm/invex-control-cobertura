@@ -53,6 +53,30 @@ function draw(){
  for(const s of selected){let count=0,approved=0,finalized=0;const statuses={};for(const [d,values] of Object.entries(s.days)){if(!dayHours[d])continue;for(const [kind,categories] of Object.entries(s.metricsDays?.[d]||{}))for(const [label,n] of Object.entries(categories)){breakdowns[kind][label]=(breakdowns[kind][label]||0)+n;if(kind==='approval')statuses[label]=(statuses[label]||0)+n;}values.forEach((value,i)=>{const f=s.finalizedDays?.[d]?.[i]||0;finalized+=f;finalizedTotal+=f;const a=approvals.value==='finalized'?f:(s.approvedDays?.[d]?.[i]||0)+(approvals.value==='guaranteed'?(s.guaranteedDays?.[d]?.[i]||0):0);approvedHours[d][i]+=a;hourApproved[i]+=a;approved+=a;dayHours[d][i]+=value;hourTotals[i]+=value;count+=value;total+=value;if(Number(source.hours[i].slice(0,2))>=14)afternoon+=value;});}storeTotals.push({s,count,approved,finalized,statuses});}
  observed=Object.keys(dayHours).length;const maximum=Math.max(0,...hourTotals),peak=maximum>0?source.hours[hourTotals.indexOf(maximum)]:'Sin actividad';
  kpis.replaceChildren();for(const [title,value,detail] of [['Franja con mayor volumen',peak,maximum>0?number(maximum)+' ingresos en esta franja':'Sin ingresos en la consulta'],['Ingresos desde las 14:00',total?number(100*afternoon/total)+'%':'—',number(afternoon)+' ingresos']]){const card=make('article',undefined,'productivity-kpi');card.append(make('span',title),make('strong',value),make('small',detail));kpis.append(card);}
+ // Comparativa por franja: las dos tarjetas utilizan exactamente el mismo Top 5.
+ const topHours=source.hours.map((hour,i)=>({hour,ingresos:hourTotals[i],aprobadas:hourApproved[i]}))
+  .filter(item=>item.ingresos>0)
+  .sort((a,b)=>b.ingresos-a.ingresos||a.hour.localeCompare(b.hour,'es'))
+  .slice(0,5);
+ function hoursKpi(title,description,approvalMode){
+  const card=make('article',undefined,'productivity-kpi productivity-hour-kpi');
+  card.append(make('span',title),make('p',description,'productivity-hour-description'));
+  if(!topHours.length){card.append(make('p','Sin ingresos para los filtros seleccionados.','productivity-hour-empty'));kpis.append(card);return;}
+  if(approvalMode&&!source.hasApprovals){card.append(make('p','La fuente seleccionada no contiene datos de aprobación.','productivity-hour-empty'));kpis.append(card);return;}
+  const list=make('ol',undefined,'productivity-hour-list');
+  for(const item of topHours){
+   const row=make('li',undefined,'productivity-hour-item');
+   const name=make('span',item.hour,'productivity-hour-label');
+   const value=approvalMode?number(100*item.aprobadas/item.ingresos)+'%':number(item.ingresos);
+   const result=make('strong',value,'productivity-hour-value');
+   const detail=approvalMode?number(item.aprobadas)+' / '+number(item.ingresos)+' ingresos':'ingresos';
+   row.append(name,result,make('small',detail));list.append(row);
+  }
+  card.append(list);kpis.append(card);
+ }
+ hoursKpi('Horas con mayor productividad','Top 5 de horas con más ingresos en el periodo seleccionado.',false);
+ hoursKpi('Aprobación en horas productivas','Porcentaje de aprobación para las mismas cinco horas, en el mismo orden.',true);
+
  function bars(target,items,max,empty){target.replaceChildren();if(!items.length){target.append(make('p',empty,'note'));return;}for(const {label,value,sub} of items){const row=make('div',undefined,'productivity-bar-row');const name=make('div',undefined,'productivity-bar-name');name.append(make('span',label));if(sub)name.append(make('small',sub));const track=make('div',undefined,'productivity-track');const fill=make('i');fill.style.width=(max?100*value/max:0)+'%';track.append(fill);row.append(name,track,make('strong',number(value)));target.append(row);}}
  combo(daily,Array.from({length:source.daysInMonth},(_,i)=>{const d=i+1;return {label:dayDate(d),short:String(d).padStart(2,'0'),value:dayHours[d]?dayHours[d].reduce((a,b)=>a+b,0):null,approved:approvedHours[d]?.reduce((a,b)=>a+b,0)||0};}));
  combo(hourly,source.hours.map((label,i)=>({label,short:label.slice(0,2),value:observed?hourTotals[i]:null,approved:hourApproved[i]})));
