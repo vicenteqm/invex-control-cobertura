@@ -16,3 +16,6 @@
 .halloween .productivity-hour-description,.halloween .productivity-hour-item small,.halloween .productivity-hour-empty{color:#cbb7d2}
 .halloween .productivity-hour-item{border-color:#45304c}
 @media(max-width:700px){.productivity-kpis{grid-template-columns:minmax(0,1fr)}.productivity-hour-description{min-height:0}}
+
+/* CPRO: filtro principal sobre el resto del tablero */
+.productivity-filters label:has(select[aria-label="CPRO"]){grid-column:1/-1;max-width:400px}
