@@ -26,6 +26,18 @@ class SessionTests(unittest.TestCase):
         self.assertTrue(authenticated_page(page('https://betterlatinoamericano.holmeshr.com/')))
         self.assertTrue(authenticated_page(page('https://betterlatinoamericano.hcm.pandape.com/FichajesOrganizacion/Empleados')))
 
+    def test_navigation_timeout_accepts_only_visible_known_controls(self):
+        from descarga_pandape import open_fichajes
+        from selenium.common.exceptions import TimeoutException
+        def timeout(url):raise TimeoutException('page load')
+        driver=SimpleNamespace(get=timeout,current_url='https://secure.holmeshr.com/Account/Login',find_elements=lambda by,key:[SimpleNamespace(is_displayed=lambda:True)] if key=='Username' else [])
+        open_fichajes(driver)
+        driver.find_elements=lambda *args:[]
+        with self.assertRaisesRegex(ValueError,'no terminó de abrir'):open_fichajes(driver)
+        driver.current_url='https://unrelated.example/'
+        driver.find_elements=lambda *args:[SimpleNamespace(is_displayed=lambda:True)]
+        with self.assertRaises(ValueError):open_fichajes(driver)
+
     def test_profile_is_private_stable_and_disables_password_saving(self):
         import tempfile
         class Options:

@@ -21,6 +21,8 @@ def authenticated_page(driver):
 
 def session_options(webdriver,root,browser,folder):
     options=webdriver.EdgeOptions() if browser=='edge' else webdriver.ChromeOptions()
+    # Continue at DOM readiness; third-party resources must not block login.
+    options.page_load_strategy='eager'
     profile=root/'.private'/('pandape_perfil_'+browser)
     profile.mkdir(parents=True,exist_ok=True)
     options.add_argument('--user-data-dir='+str(profile.resolve()))
@@ -28,6 +30,19 @@ def session_options(webdriver,root,browser,folder):
     options.set_capability('goog:loggingPrefs',{'browser':'ALL'})
     options.add_experimental_option('prefs',{'download.default_directory':str(folder.resolve()),'download.prompt_for_download':False,'download.directory_upgrade':True,'credentials_enable_service':False,'profile.password_manager_enabled':False})
     return options
+
+def open_fichajes(driver):
+    """A partially loaded page is usable only when known controls are visible."""
+    from selenium.common.exceptions import TimeoutException
+    try:
+        driver.get(FICHAJES_URL)
+    except TimeoutException:
+        location=urlsplit(driver.current_url)
+        known=location.scheme=='https' and location.hostname in TENANT_HOSTS|{'login.pandape.com','secure.holmeshr.com'}
+        visible=known and (authenticated_page(driver) or any(e.is_displayed() for e in driver.find_elements('id','Username')))
+        if not visible:
+            raise ValueError('Pandape no terminó de abrir en Edge y no muestra los controles de acceso ni de fichajes. Revisa la conexión y vuelve a intentar; se conserva el tablero anterior.') from None
+        logging.warning('Pandape agotó la espera de carga, pero sus controles ya están visibles; continuando con la pantalla disponible')
 
 def ensure_session(driver,username,browser,timeout=300):
     from selenium.webdriver.support.ui import WebDriverWait
@@ -40,7 +55,7 @@ def ensure_session(driver,username,browser,timeout=300):
         if authenticated_page(d):return True
         location=urlsplit(d.current_url)
         if location.hostname=='betterlatinoamericano.holmeshr.com' and location.path=='/' and not any(e.is_displayed() for e in d.find_elements('id','Username')):
-            d.get(FICHAJES_URL)
+            open_fichajes(d)
             return authenticated_page(d)
         # Only prepare the username on the known identity providers.
         if urlsplit(d.current_url).hostname not in {'login.pandape.com','secure.holmeshr.com'}:return False
@@ -60,7 +75,7 @@ def prepare_session(config,root):
     driver=webdriver.Edge(options=options) if browser=='edge' else webdriver.Chrome(options=options)
     try:
         driver.set_page_load_timeout(60)
-        driver.get(FICHAJES_URL)
+        open_fichajes(driver)
         ensure_session(driver,os.environ.get('PANDAPE_USER') or config.get('pandape_user'),browser)
         print('Sesión guardada para el ejecutor. Puedes usar ACTUALIZAR_INVEX.bat.',flush=True)
     finally:driver.quit()
@@ -170,13 +185,13 @@ def download(config, root):
         driver.execute_cdp_cmd('Browser.setDownloadBehavior',{'behavior':'allow','downloadPath':str(folder.resolve())})
         wait=WebDriverWait(driver,45)
         # Go to the protected page first so a saved login can be reused.
-        driver.get(FICHAJES_URL)
+        open_fichajes(driver)
         if '403' in driver.title or 'Forbidden' in driver.title:
             raise RuntimeError('El servidor rechaza el acceso automático con HTTP 403')
         stage='ingreso_manual'
         ensure_session(driver,username,browser)
         logging.info('[3/7] Abriendo Fichajes de empleados')
-        driver.get(FICHAJES_URL)
+        open_fichajes(driver)
         from generar_asistencia import normalized
         for field,label in [('SearchModel_MyTeam','COMPAÑÍA'),('company_group_type_id','DEPARTAMENTO'),('company_group_id','INVEX')]:
             stage='filtro_'+field
