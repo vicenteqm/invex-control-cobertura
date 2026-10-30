@@ -9,7 +9,7 @@ function build(rows,context){
  }
  const common=['Tienda','Determinante','Región','CPRO','CÉDULA'];const counts=['Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas totales','Aprobadas finalizadas'];const sheets=[],details=[];
  const ratio=(n,d)=>n===null||!d?null:n/d;
- const status=(n,d)=>n===null?'Sin datos':!d?'Sin ingresos':n/d>0.28?'Productiva':'No supera 28%';
+ const status=(n,d)=>n===null?null:d>0&&n/d>0.28?'PRODUCTIVA':'NO PRODUCTIVA';
  for(const [partner,label]of [['WM','WALMART'],['SAMS','SAMS']]){
   const summary=[],hourRows=[];
   for(const s of [...groups[partner].values()].sort((a,b)=>a.id.localeCompare(b.id,'es',{numeric:true}))){
@@ -26,8 +26,8 @@ function build(rows,context){
   }
   const definition=partner==='WM'?'Productividad = aprobadas finalizadas / ingresos. Productiva solo si supera 28%.':'Máximo de aprobación = mayor (aprobadas totales / ingresos) entre las horas con ingresos, acumuladas en el periodo. Se muestran todas las horas empatadas.';
   const subtitle=context.from+' al '+context.to+' · '+definition+' Aprobadas totales = sin garantía + con garantía. Fuente: '+context.sourceName;
-  sheets.push({name:label,title:'INVEX · REPORTE DE PRODUCTIVIDAD '+label,subtitle,headers:[...common,...counts,...(partner==='WM'?['Productividad finalizada %','Evaluación > 28%']:['Aprobación total %','Máximo de aprobación por hora %','Hora(s) de máximo','Ingresos en horas de máximo','Aprobadas en horas de máximo'])],rows:summary,percentColumns:partner==='WM'?[10]:[10,11]});
-  details.push({name:label+' HORAS',title:'INVEX · PRODUCTIVIDAD POR HORA '+label,subtitle,headers:[...common,'Hora',...counts,'Aprobación %','Productividad finalizada %',...(partner==='WM'?['Evaluación > 28%']:[])],rows:hourRows,percentColumns:[11,12]});
+  sheets.push({name:label,title:'INVEX · REPORTE DE PRODUCTIVIDAD '+label,subtitle,headers:[...common,...counts,...(partner==='WM'?['Productividad finalizada %','Evaluación']:['Aprobación total %','Máximo de aprobación por hora %','Hora(s) de máximo','Ingresos en horas de máximo','Aprobadas en horas de máximo'])],rows:summary,percentColumns:partner==='WM'?[10]:[10,11]});
+  details.push({name:label+' HORAS',title:'INVEX · PRODUCTIVIDAD POR HORA '+label,subtitle,headers:[...common,'Hora',...counts,'Aprobación %','Productividad finalizada %',...(partner==='WM'?['Evaluación']:[])],rows:hourRows,percentColumns:[11,12]});
  }
  return [...sheets,...details];
 }
