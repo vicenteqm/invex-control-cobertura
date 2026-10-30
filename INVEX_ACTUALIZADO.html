@@ -73,7 +73,24 @@ function xlsx(headers,rows,name){const sheet=[headers,...rows].map((row,i)=>'<ro
 'xl/_rels/workbook.xml.rels':'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>',
 'xl/worksheets/sheet1.xml':'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:'+column(headers.length-1)+(rows.length+1)+'"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="30"/><cols>'+headers.map((h,j)=>'<col min="'+(j+1)+'" max="'+(j+1)+'" width="'+Math.min(40,Math.max(14,String(h).length+2,...rows.slice(0,100).map(r=>Math.min(38,String(r[j]??'').length)+2)))+'" customWidth="1"/>').join('')+'</cols><sheetData>'+sheet+'</sheetData><autoFilter ref="A1:'+column(headers.length-1)+(rows.length+1)+'"/></worksheet>'}),name+'.xlsx');}
 function png(title,headers,rows,name){const width=headers.length*175,height=110+(rows.length+1)*52;const maxHeight=12000;for(let start=0,part=1;start<Math.max(1,rows.length);start+=220,part++){const chunk=rows.slice(start,start+220),canvas=document.createElement('canvas');canvas.width=width;canvas.height=Math.min(maxHeight,110+(chunk.length+1)*52);const ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,width,canvas.height);ctx.fillStyle='#111';ctx.font='bold 24px Arial';ctx.fillText('INVEX · '+title,20,36);ctx.font='12px Arial';ctx.fillText('Exportación de la consulta · '+new Date().toLocaleString('es-MX'),20,63);[headers,...chunk].forEach((row,i)=>{const y=85+i*52;ctx.fillStyle=i===0?'#111':i%2?'#f5f5f5':'#fff';ctx.fillRect(0,y,width,52);ctx.fillStyle=i===0?'#fff':'#111';ctx.font=(i===0?'bold ':'')+'12px Arial';row.forEach((value,j)=>{const text=String(value??'');const lines=text.match(/.{1,22}/g)||[''];lines.slice(0,3).forEach((line,k)=>ctx.fillText(line,j*175+10,y+15+k*13));});});canvas.toBlob(blob=>{if(blob)save(blob,name+(rows.length>220?'_'+part:'')+'.png');},'image/png');}}
-window.INVEX_EXPORT={xlsx,png};
+function workbook(sheets,name){
+ const files={};
+ files['[Content_Types].xml']='<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('')+'</Types>';
+ files['_rels/.rels']='<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+ files['xl/styles.xml']='<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="9"/><color rgb="FF000000"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="9"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF000000"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFFFF"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border/><border><left style="thin"><color rgb="FFE5E5E5"/></left><right style="thin"><color rgb="FFE5E5E5"/></right><top style="thin"><color rgb="FFE5E5E5"/></top><bottom style="thin"><color rgb="FFE5E5E5"/></bottom></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+ const percent='<xf numFmtId="10" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>';
+ files['xl/styles.xml']=files['xl/styles.xml'].replace('cellXfs count="3"','cellXfs count="4"').replace('</cellXfs>',percent+'</cellXfs>');
+ files['xl/workbook.xml']='<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sheets.map((sheet,i)=>'<sheet name="'+xml(sheet.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join('')+'</sheets></workbook>';
+ files['xl/_rels/workbook.xml.rels']='<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join('')+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+ sheets.forEach((sheet,i)=>{
+  const rows=[[sheet.title||sheet.name],[sheet.subtitle||''],[],sheet.headers,...sheet.rows];
+  const content=rows.map((row,r)=>'<row r="'+(r+1)+'" ht="'+(r<4?40:30)+'" customHeight="1">'+row.map((v,c)=>{const style=r===0||r===3?1:r>3&&(sheet.percentColumns||[]).includes(c)?3:2;const attrs=' r="'+column(c)+(r+1)+'" s="'+style+'"';return typeof v==='number'&&Number.isFinite(v)?'<c'+attrs+'><v>'+v+'</v></c>':'<c'+attrs+' t="inlineStr"><is><t xml:space="preserve">'+xml(v)+'</t></is></c>';}).join('')+'</row>').join('');
+  const end=column(sheet.headers.length-1),last=rows.length;
+  files['xl/worksheets/sheet'+(i+1)+'.xml']='<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:'+end+last+'"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="30"/><cols>'+sheet.headers.map((h,c)=>'<col min="'+(c+1)+'" max="'+(c+1)+'" width="'+Math.min(42,Math.max(16,h.length+2,...sheet.rows.slice(0,100).map(row=>typeof row[c]==='number'?14:Math.min(40,String(row[c]??'').length)+2)))+'" customWidth="1"/>').join('')+'</cols><sheetData>'+content+'</sheetData><autoFilter ref="A4:'+end+last+'"/><mergeCells count="2"><mergeCell ref="A1:'+end+'1"/><mergeCell ref="A2:'+end+'2"/></mergeCells></worksheet>';
+ });
+ save(zip(files),name+'.xlsx');
+}
+window.INVEX_EXPORT={xlsx,png,workbook};
 })();
 </script>
 <script>'use strict';
@@ -227,6 +244,42 @@ reduced.addEventListener('change',event=>{if(event.matches){paused=true;pause();
 })();
 </script>
 <script>'use strict';
+(()=>{
+function build(rows,context){
+ const groups={WM:new Map(),SAMS:new Map()};
+ for(const row of rows){const key=String(row[5]),partner=key.startsWith('SAMS ')?'SAMS':key.startsWith('WM ')?'WM':null;if(!partner)continue;
+  let store=groups[partner].get(key);if(!store){store={name:row[6],id:key.replace(/^(WM|SAMS)\s+/,''),region:row[3],cpro:row[1],executive:row[2],hours:new Map()};groups[partner].set(key,store);}
+  let h=store.hours.get(row[7]);if(!h){h={income:0,standard:context.hasApprovals?0:null,guaranteed:context.hasApprovals?0:null,finalized:context.hasFinalized?0:null};store.hours.set(row[7],h);}
+  h.income+=row[8]||0;if(h.standard!==null)h.standard+=row[9]||0;if(h.guaranteed!==null)h.guaranteed+=row[10]||0;if(h.finalized!==null)h.finalized+=row[11]||0;
+ }
+ const common=['Tienda','Determinante','Región','CPRO','CÉDULA'];const counts=['Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas totales','Aprobadas finalizadas'];const sheets=[],details=[];
+ const ratio=(n,d)=>n===null||!d?null:n/d;
+ const status=(n,d)=>n===null?'Sin datos':!d?'Sin ingresos':n/d>0.28?'Productiva':'No supera 28%';
+ for(const [partner,label]of [['WM','WALMART'],['SAMS','SAMS']]){
+  const summary=[],hourRows=[];
+  for(const s of [...groups[partner].values()].sort((a,b)=>a.id.localeCompare(b.id,'es',{numeric:true}))){
+   const identity=[s.name,s.id,s.region,s.cpro,s.executive];let income=0,standard=context.hasApprovals?0:null,guaranteed=context.hasApprovals?0:null,finalized=context.hasFinalized?0:null;const candidates=[];
+   for(const [hour,h]of [...s.hours].sort((a,b)=>a[0].localeCompare(b[0]))){const approved=h.standard===null?null:h.standard+h.guaranteed;const approvalRate=ratio(approved,h.income),finalRate=ratio(h.finalized,h.income);
+    hourRows.push([...identity,hour,h.income,h.standard,h.guaranteed,approved,h.finalized,approvalRate,finalRate,...(partner==='WM'?[status(h.finalized,h.income)]:[])]);
+    income+=h.income;if(standard!==null)standard+=h.standard;if(guaranteed!==null)guaranteed+=h.guaranteed;if(finalized!==null)finalized+=h.finalized;
+    if(approvalRate!==null)candidates.push({hour,rate:approvalRate,income:h.income,approved});
+   }
+   const totalApproved=standard===null?null:standard+guaranteed;
+   const base=[...identity,income,standard,guaranteed,totalApproved,finalized];
+   if(partner==='WM')summary.push([...base,ratio(finalized,income),status(finalized,income)]);
+   else {const maximum=candidates.length?Math.max(...candidates.map(c=>c.rate)):null;const best=candidates.filter(c=>Math.abs(c.rate-maximum)<1e-12);summary.push([...base,ratio(totalApproved,income),maximum,best.map(c=>c.hour).join(', '),best.length?best.reduce((a,c)=>a+c.income,0):null,best.length?best.reduce((a,c)=>a+c.approved,0):null]);}
+  }
+  const definition=partner==='WM'?'Productividad = aprobadas finalizadas / ingresos. Productiva solo si supera 28%.':'Máximo de aprobación = mayor (aprobadas totales / ingresos) entre las horas con ingresos, acumuladas en el periodo. Se muestran todas las horas empatadas.';
+  const subtitle=context.from+' al '+context.to+' · '+definition+' Aprobadas totales = sin garantía + con garantía. Fuente: '+context.sourceName;
+  sheets.push({name:label,title:'INVEX · REPORTE DE PRODUCTIVIDAD '+label,subtitle,headers:[...common,...counts,...(partner==='WM'?['Productividad finalizada %','Evaluación > 28%']:['Aprobación total %','Máximo de aprobación por hora %','Hora(s) de máximo','Ingresos en horas de máximo','Aprobadas en horas de máximo'])],rows:summary,percentColumns:partner==='WM'?[10]:[10,11]});
+  details.push({name:label+' HORAS',title:'INVEX · PRODUCTIVIDAD POR HORA '+label,subtitle,headers:[...common,'Hora',...counts,'Aprobación %','Productividad finalizada %',...(partner==='WM'?['Evaluación > 28%']:[])],rows:hourRows,percentColumns:[11,12]});
+ }
+ return [...sheets,...details];
+}
+window.INVEX_PRODUCTIVITY_REPORT={build};
+})();
+</script>
+<script>'use strict';
 (() => {
 const source=window.INVEX_DATA?.productiveHours;
 if(!source)return;
@@ -274,10 +327,10 @@ updateFilters();
 const reset=make('button','Limpiar filtros');reset.type='button';filters.append(reset);section.append(filters);
 const approvals=control('Aprobadas',make('select'));approvals.append(new Option('Solo Aprobada','standard'),new Option('Incluir Aprobada con Garantía','guaranteed'));approvals.disabled=!source.hasApprovals;
 if(source.hasFinalized)approvals.append(new Option('Solo aprobadas finalizadas','finalized'));
-const download=make('button','Descargar Excel');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
+const download=make('button','Descargar reporte de productividad');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
 let excelRows=[];
 const excelHeaders=['Fecha','CPRO','CÉDULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
-download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.xlsx(excelHeaders,excelRows,'INVEX_Horas_productivas_'+from.value+'_al_'+to.value);});
+download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.workbook(window.INVEX_PRODUCTIVITY_REPORT.build(excelRows,{from:from.value,to:to.value,hasApprovals:source.hasApprovals,hasFinalized:source.hasFinalized,sourceName:source.sourceName}),'INVEX_Reporte_productividad_'+from.value+'_al_'+to.value);});
 const error=make('p',undefined,'productivity-error');error.setAttribute('role','status');section.append(error);
 const kpis=make('div',undefined,'productivity-kpis');section.append(kpis);
 const charts=make('div',undefined,'productivity-charts');section.append(charts);
@@ -314,8 +367,8 @@ function draw(){
   });
  }
  excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[5].localeCompare(b[5],'es',{numeric:true})||a[7].localeCompare(b[7]));
- download.disabled=!excelRows.length||!window.INVEX_EXPORT?.xlsx;
- download.title=excelRows.length?'Descarga el detalle filtrado de todas las franjas horarias disponibles; el mapa muestra únicamente de 08:00 a 22:00.':'Sin datos para exportar con estos filtros';
+ download.disabled=!excelRows.length||!window.INVEX_EXPORT?.workbook||!window.INVEX_PRODUCTIVITY_REPORT?.build;
+ download.title=excelRows.length?'Descarga resúmenes de Walmart y SAMS y su detalle horario, respetando fechas y tiendas. Las aprobadas totales incluyen garantía; el selector de la gráfica no cambia esta definición.':'Sin datos para exportar con estos filtros';
 
  const dayHours={},approvedHours={},hourApproved=source.hours.map(()=>0),hourTotals=source.hours.map(()=>0),storeTotals=[];let total=0,afternoon=0,observed=0;
  for(let d=1;d<=source.daysInMonth;d++)if(source.capturedDays.includes(d)&&d>=start&&d<=end&&selected.some(s=>s.days[d]))dayHours[d]=source.hours.map(()=>0);

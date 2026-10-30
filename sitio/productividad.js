@@ -46,10 +46,10 @@ updateFilters();
 const reset=make('button','Limpiar filtros');reset.type='button';filters.append(reset);section.append(filters);
 const approvals=control('Aprobadas',make('select'));approvals.append(new Option('Solo Aprobada','standard'),new Option('Incluir Aprobada con Garantía','guaranteed'));approvals.disabled=!source.hasApprovals;
 if(source.hasFinalized)approvals.append(new Option('Solo aprobadas finalizadas','finalized'));
-const download=make('button','Descargar Excel');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
+const download=make('button','Descargar reporte de productividad');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
 let excelRows=[];
 const excelHeaders=['Fecha','CPRO','CÉDULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
-download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.xlsx(excelHeaders,excelRows,'INVEX_Horas_productivas_'+from.value+'_al_'+to.value);});
+download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.workbook(window.INVEX_PRODUCTIVITY_REPORT.build(excelRows,{from:from.value,to:to.value,hasApprovals:source.hasApprovals,hasFinalized:source.hasFinalized,sourceName:source.sourceName}),'INVEX_Reporte_productividad_'+from.value+'_al_'+to.value);});
 const error=make('p',undefined,'productivity-error');error.setAttribute('role','status');section.append(error);
 const kpis=make('div',undefined,'productivity-kpis');section.append(kpis);
 const charts=make('div',undefined,'productivity-charts');section.append(charts);
@@ -86,8 +86,8 @@ function draw(){
   });
  }
  excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[5].localeCompare(b[5],'es',{numeric:true})||a[7].localeCompare(b[7]));
- download.disabled=!excelRows.length||!window.INVEX_EXPORT?.xlsx;
- download.title=excelRows.length?'Descarga el detalle filtrado de todas las franjas horarias disponibles; el mapa muestra únicamente de 08:00 a 22:00.':'Sin datos para exportar con estos filtros';
+ download.disabled=!excelRows.length||!window.INVEX_EXPORT?.workbook||!window.INVEX_PRODUCTIVITY_REPORT?.build;
+ download.title=excelRows.length?'Descarga resúmenes de Walmart y SAMS y su detalle horario, respetando fechas y tiendas. Las aprobadas totales incluyen garantía; el selector de la gráfica no cambia esta definición.':'Sin datos para exportar con estos filtros';
 
  const dayHours={},approvedHours={},hourApproved=source.hours.map(()=>0),hourTotals=source.hours.map(()=>0),storeTotals=[];let total=0,afternoon=0,observed=0;
  for(let d=1;d<=source.daysInMonth;d++)if(source.capturedDays.includes(d)&&d>=start&&d<=end&&selected.some(s=>s.days[d]))dayHours[d]=source.hours.map(()=>0);
