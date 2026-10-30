@@ -1,0 +1,43 @@
+'use strict';
+(()=>{
+const prediction=window.INVEX_DATA?.productiveHours?.prediction;
+const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
+const section=el('section',undefined,'prediction-section');section.id='predictivo';
+const title=el('div',undefined,'section-title');title.append(el('h2','Análisis predictivo'),el('span','PROYECCIÓN DE INGRESOS'));section.append(title);document.getElementById('actualizacion').before(section);
+if(prediction?.status!=='available'){section.append(el('p',prediction?.message||'Aún no hay historial suficiente para calcular proyecciones. La siguiente actualización volverá a evaluar los datos.','panel'));return;}
+section.append(el('p','Estimaciones para los siete días posteriores al último día completo de la fuente. Se basan en el volumen histórico de ingresos; no representan metas ni resultados asegurados.','prediction-intro'));
+const cut=el('p','Historial hasta '+prediction.cutoff+' · Calculado el '+prediction.asOf,'operation-source');section.append(cut);
+if(prediction.staleDays>0)section.append(el('p','Fuente con '+prediction.staleDays+' día(s) de atraso. Las fechas proyectadas parten del corte de la fuente, no de la hora de publicación. Actualiza Horas productivas para avanzar el pronóstico.','prediction-warning'));
+const all=prediction.stores,filters=el('div',undefined,'prediction-filters');section.append(filters);
+function control(label){const select=el('select');select.setAttribute('aria-label',label+' predictivo');const field=el('label');field.append(el('span',label),select);filters.append(field);return select;}
+const cedula=control('CÉDULA'),cpro=control('CPRO'),region=control('Región'),chain=control('Cadena'),store=control('Tienda');const controls=[cedula,cpro,region,chain,store],keys=['executive','cpro','region','chain','id'];
+const value=(s,key)=>s[key]||'Sin asignar';
+function options(select,rows,key){const current=select.value;select.replaceChildren(new Option('Todas',''));for(const item of [...new Set(rows.map(s=>value(s,key)))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}))){const s=rows.find(s=>value(s,key)===item);select.append(new Option(key==='id'?item+' · '+s.name:item,item));}select.value=[...select.options].some(o=>o.value===current)?current:'';}
+function update(){let rows=all;controls.forEach((select,i)=>{options(select,rows,keys[i]);if(select.value)rows=rows.filter(s=>value(s,keys[i])===select.value);});return rows;}
+const reset=el('button','Limpiar filtros');reset.type='button';filters.append(reset);const cards=el('div',undefined,'productivity-kpis');section.append(cards);const charts=el('div',undefined,'prediction-charts');section.append(charts);
+const history=el('article',undefined,'panel');history.append(el('h3','Ingresos observados y proyectados'));const graph=el('div');history.append(graph,el('p','Línea continua: observado · Línea punteada: estimado · Banda: rango orientativo.','note'));charts.append(history);
+const ranking=el('article',undefined,'panel');ranking.append(el('h3','Tiendas con mayor volumen esperado'),el('p','Suma estimada de los próximos siete días de la fuente.','note'));const bars=el('div');ranking.append(bars);charts.append(ranking);
+const detail=el('article',undefined,'panel');detail.append(el('h3','Proyección diaria'));const table=el('div',undefined,'table-wrap');detail.append(table);section.append(detail);
+const explanation=el('details',undefined,'panel prediction-method');explanation.append(el('summary','Cómo se calcula'),el('p',prediction.method),el('p','Se excluye el día de ejecución para evitar entrenar con una jornada incompleta. Los días ausentes por tienda no se convierten en cero. El error mostrado es la suma conservadora del error absoluto medio por tienda, calculado sin usar datos posteriores al día evaluado. No se pronostican asistencias ni vacantes.'));section.append(explanation);
+const fmt=n=>new Intl.NumberFormat('es-MX',{maximumFractionDigits:1}).format(n);
+function draw(){const rows=update();cards.replaceChildren();const sum=(items,key)=>items.reduce((a,x)=>a+(x[key]||0),0),forecast=prediction.dates.map(date=>({date,value:sum(rows.flatMap(s=>s.forecast.filter(r=>r.date===date)),'value'),low:0,high:0}));
+const validated=rows.filter(s=>s.mae!==null),rangeAvailable=rows.length>0&&validated.length===rows.length;
+for(const day of forecast){const points=rows.flatMap(s=>s.forecast.filter(d=>d.date===day.date));day.low=rangeAvailable?sum(points,'low'):null;day.high=rangeAvailable?sum(points,'high'):null;}
+const total=sum(forecast,'value'),peak=forecast.reduce((a,b)=>b.value>a.value?b:a,forecast[0]);
+for(const [label,n,caption]of [['Ingresos estimados · 7 días',rows.length?fmt(total):'—',rows.length+' tiendas con historial suficiente'],['Día con mayor volumen esperado',rows.length?peak.date:'—',rows.length?fmt(peak.value)+' ingresos estimados':'Sin tiendas seleccionadas'],['Error histórico por día',rangeAvailable?fmt(sum(validated,'mae')):'Sin validación suficiente','Suma del error absoluto medio de las tiendas'],['Calidad del historial',rows.length?(rangeAvailable?'Con validación':'Historial limitado'):'Sin datos',rangeAvailable?'Hasta siete días de prueba por tienda':'Se requieren más días para evaluar el error']]){const c=el('article',undefined,'productivity-kpi');c.append(el('span',label),el('strong',n),el('small',caption));cards.append(c);}
+ graph.replaceChildren();bars.replaceChildren();table.replaceChildren();if(!rows.length){graph.append(el('p','No hay tiendas con historial suficiente para estos filtros.'));return;}
+ const dates=[...new Set(rows.flatMap(s=>s.history.map(d=>d.date)))].sort().slice(-14),actual=dates.map(date=>({date,value:sum(rows.flatMap(s=>s.history.filter(d=>d.date===date)),'value')}));
+ const width=1000,height=320,padding=55,max=Math.max(1,...actual.map(d=>d.value),...forecast.map(d=>d.high??d.value)),length=actual.length+forecast.length,x=i=>padding+i*(width-2*padding)/Math.max(1,length-1),y=v=>height-55-v*(height-100)/max;
+ const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 '+width+' '+height);svg.setAttribute('role','img');svg.setAttribute('aria-label','Ingresos observados y proyectados con rango orientativo');
+ function shape(tag,attrs,text){const n=document.createElementNS(svg.namespaceURI,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;svg.append(n);return n;}
+ for(let i=0;i<=4;i++){const v=max*i/4;shape('line',{x1:padding,x2:width-padding,y1:y(v),y2:y(v),class:'prediction-grid'});shape('text',{x:padding-8,y:y(v)+4,'text-anchor':'end'},fmt(v));}
+ if(rangeAvailable){const points=[...forecast.map((d,i)=>x(actual.length+i)+','+y(d.high)),...forecast.slice().reverse().map((d,i)=>x(length-1-i)+','+y(d.low))];shape('polygon',{points:points.join(' '),class:'prediction-band'});}
+ shape('polyline',{points:actual.map((d,i)=>x(i)+','+y(d.value)).join(' '),class:'prediction-actual',fill:'none'});
+ shape('polyline',{points:[actual.at(-1),...forecast].map((d,i)=>x(actual.length-1+i)+','+y(d.value)).join(' '),class:'prediction-estimate',fill:'none'});
+ [...actual,...forecast].forEach((d,i)=>{const dot=shape('circle',{cx:x(i),cy:y(d.value),r:3,class:i<actual.length?'prediction-observed-dot':'prediction-forecast-dot'});const tip=document.createElementNS(svg.namespaceURI,'title');tip.textContent=d.date+' · '+fmt(d.value)+(i<actual.length?' observados':' estimados');dot.append(tip);if(i%3===0||i===length-1)shape('text',{x:x(i),y:height-25,'text-anchor':'middle'},d.date.slice(5));});graph.append(svg);
+ const ranked=rows.map(s=>({s,total:sum(s.forecast,'value')})).sort((a,b)=>b.total-a.total).slice(0,10),top=Math.max(1,...ranked.map(r=>r.total));
+ for(const {s,total}of ranked){const row=el('div',undefined,'prediction-rank');row.append(el('span',s.id+' · '+s.name),el('strong',fmt(total)));const track=el('div');const fill=el('i');fill.style.width=100*total/top+'%';track.append(fill);row.append(track);bars.append(row);}
+ const t=el('table'),thead=el('thead'),tr=el('tr');for(const h of ['Fecha','Ingresos estimados','Rango inferior','Rango superior'])tr.append(el('th',h));thead.append(tr);t.append(thead);const tbody=el('tbody');for(const d of forecast){const tr=el('tr');for(const v of [d.date,fmt(d.value),d.low===null?'Sin validación':fmt(d.low),d.high===null?'Sin validación':fmt(d.high)])tr.append(el('td',v));tbody.append(tr);}t.append(tbody);table.append(t);
+}
+controls.forEach((select,i)=>select.addEventListener('change',()=>{controls.slice(i+1).forEach(c=>c.value='');draw();}));reset.addEventListener('click',()=>{controls.forEach(c=>c.value='');draw();});draw();
+})();

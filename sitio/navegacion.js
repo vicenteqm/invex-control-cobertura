@@ -1,7 +1,7 @@
 'use strict';
 (() => {
 const nav=document.querySelector('.area-nav'),main=document.querySelector('main');if(!nav||!main)return;
-const ids=['cobertura','tiendas','asistencia','operacion','productividad','actualizacion'];
+const ids=['cobertura','tiendas','asistencia','operacion','productividad','predictivo','actualizacion'];
 function arrange(){const sections=ids.map(id=>document.getElementById(id)).filter(Boolean),existing=[...main.children].filter(e=>ids.includes(e.id));if(existing.some((e,i)=>e!==sections[i])){const footer=main.querySelector('footer');for(const section of sections)main.insertBefore(section,footer);}for(const [id,label]of [['cobertura','RECLUTAMIENTO'],['asistencia','RH'],['productividad','ANÁLISIS']]){const section=document.getElementById(id);if(!section)continue;let divider=document.getElementById('area-'+id);if(!divider){divider=document.createElement('div');divider.id='area-'+id;divider.className='area-divider';divider.textContent=label;}if(divider.nextElementSibling!==section)section.before(divider);}}
 function activate(link){for(const a of nav.querySelectorAll('a')){const active=a===link;a.classList.toggle('selected',active);if(active)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current');}const area=link.closest('details');if(area)area.open=true;}
 nav.addEventListener('click',event=>{const link=event.target.closest('a');if(link)activate(link);});

@@ -82,7 +82,7 @@ def latest_productivity(config,root,period,stores):
     return max(candidates,key=lambda item:productivity_cut(item[1])) if candidates else None
 
 
-def load_productivity(config,root,period,stores):
+def _load_productivity(config,root,period,stores):
     selected=latest_productivity(config,root,period,stores)
     if selected:return selected[1]
     records_folder=Path(config.get('productive_records_folder','datos/fuentes/records'))
@@ -219,3 +219,11 @@ def read_records_productivity(path,period,base_stores):
         for d in captured:
             for field in ('days','approvedDays','guaranteedDays'):s[field].setdefault(str(d),[0]*24)
     return {'status':'available','period':period,'daysInMonth':count,'capturedDays':captured,'lastDay':end.day,'hours':hours,'stores':list(stores.values()),'sourceName':Path(path).name,'sourceModifiedAt':datetime.fromtimestamp(Path(path).stat().st_mtime,timezone.utc).isoformat(),'warnings':[],'total':sum(sum(v) for s in stores.values() for v in s['days'].values()),'hasApprovals':True,'sourceType':'records','lastRecordAt':max(dates).isoformat(),'approvalBasis':'Aprobación actual del registro, agrupada por F. Creación; no es la fecha en que se aprobó.'}
+
+
+def load_productivity(config,root,period,stores):
+    result=_load_productivity(config,root,period,stores)
+    from predicciones import build
+    from cobertura_actual import local_now
+    result["prediction"]=build(result,local_now().date())
+    return result
