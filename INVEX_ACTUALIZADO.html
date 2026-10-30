@@ -293,14 +293,15 @@ function build(rows,context){
    const maximum=rates.length?Math.max(...rates):null;
    for(const [hour,h]of hours){
     const approved=h.standard===null?null:h.standard+h.guaranteed;
-    const approvalRate=approved===null||!h.income?null:approved/h.income;
+    const approvalNumerator=partner==='WM'?h.standard:approved;
+    const approvalRate=approvalNumerator===null||!h.income?null:approvalNumerator/h.income;
     const finalRate=h.finalized===null||!h.income?null:h.finalized/h.income;
     const evaluated=partner==='WM'?h.finalized!==null:approved!==null;
     const productive=partner==='WM'?finalRate!==null&&finalRate>0.28:approvalRate!==null&&maximum>0&&Math.abs(approvalRate-maximum)<1e-12;
     output.push([serial(s.date),s.name,s.id,s.region,s.cpro,s.executive,hour,h.income,h.standard,h.guaranteed,approved,h.finalized,approvalRate,finalRate,evaluated?(productive?'PRODUCTIVA':'NO PRODUCTIVA'):null]);
    }
   }
-  sheets.push({name:label,headers,rows:output,percentColumns:[12,13],dateColumns:[0]});
+  sheets.push({name:label,headers:headers.map((h,i)=>i===12&&partner==='WM'?'Aprobadas sin garantía %':h),rows:output,percentColumns:[12,13],dateColumns:[0]});
  }
  return [summary(sheets,context,serial),...sheets];
 }
@@ -316,12 +317,12 @@ function summary(sheets,context,serial){
  for(let chain=0;chain<2;chain++){
   const sheet=sheets[chain],offset=chain*8,prefix=chain===0?'WALMART':'SAMS',cols=chain===0?['A','B','C','D','E','F','G']:['I','J','K','L','M','N','O'];
   cells[4][offset]=prefix+(chain===0?' · Finalizadas / ingresos > 28%':' · Máximo de aprobación por hora');
-  ['Hora','Ingresos','Aprobadas totales','Aprobadas finalizadas','Aprobación %','Finalizadas %','Evaluación'].forEach((v,j)=>cells[5][offset+j]=v);
+  ['Hora','Ingresos',chain===0?'Aprobadas sin garantía':'Aprobadas totales','Aprobadas finalizadas',chain===0?'Aprobadas sin garantía %':'Aprobación %','Finalizadas %','Evaluación'].forEach((v,j)=>cells[5][offset+j]=v);
   const last=Math.max(2,sheet.rows.length+1),ref=col=>"'"+sheet.name+"'!$"+col+'$2:$'+col+'$'+last;
-  const values=hours.map(hour=>{const records=sheet.rows.filter(r=>r[6]===hour&&r[0]>=start&&r[0]<=end);return {income:records.reduce((a,r)=>a+r[7],0),approved:context.hasApprovals?records.reduce((a,r)=>a+r[10],0):null,finalized:context.hasFinalized?records.reduce((a,r)=>a+r[11],0):null};});
+  const values=hours.map(hour=>{const records=sheet.rows.filter(r=>r[6]===hour&&r[0]>=start&&r[0]<=end);return {income:records.reduce((a,r)=>a+r[7],0),approved:context.hasApprovals?records.reduce((a,r)=>a+r[chain===0?8:10],0):null,finalized:context.hasFinalized?records.reduce((a,r)=>a+r[11],0):null};});
   const maximum=Math.max(0,...values.map(v=>v.income&&v.approved!==null?v.approved/v.income:0));
   hours.forEach((hour,i)=>{const row=i+7,v=values[i];cells[i+6][offset]=hour;
-   ['H','K','L'].forEach((source,j)=>{const val=[v.income,v.approved,v.finalized][j];cells[i+6][offset+1+j]={formula:val===null?'""':'IF($B$3>$D$3,"",SUMIFS('+ref(source)+','+ref('A')+',">="&$B$3,'+ref('A')+',"<="&$D$3,'+ref('G')+','+cols[0]+row+'))',value:val};});
+   ['H',chain===0?'I':'K','L'].forEach((source,j)=>{const val=[v.income,v.approved,v.finalized][j];cells[i+6][offset+1+j]={formula:val===null?'""':'IF($B$3>$D$3,"",SUMIFS('+ref(source)+','+ref('A')+',">="&$B$3,'+ref('A')+',"<="&$D$3,'+ref('G')+','+cols[0]+row+'))',value:val};});
    [v.approved,v.finalized].forEach((n,j)=>cells[i+6][offset+4+j]={formula:n===null?'""':'IFERROR('+cols[j+2]+row+'/'+cols[1]+row+',"")',value:n!==null&&v.income?n/v.income:null});
    const productive=chain===0?v.income>0&&v.finalized!==null&&v.finalized/v.income>.28:v.income>0&&v.approved!==null&&maximum>0&&Math.abs(v.approved/v.income-maximum)<1e-12;
    const available=chain===0?context.hasFinalized:context.hasApprovals;
@@ -332,9 +333,11 @@ function summary(sheets,context,serial){
   cells[32][offset]='Hora de mayor productividad';const metric=chain===0?'finalized':'approved',rates=values.map(v=>v.income&&v[metric]!==null?v[metric]/v.income:0),best=Math.max(...rates),metricCol=chain===0?cols[5]:cols[4];
   cells[32][offset+1]={formula:'IF(MAX('+metricCol+'7:'+metricCol+'30)<=0,"Sin actividad",INDEX('+cols[0]+'7:'+cols[0]+'30,MATCH(MAX('+metricCol+'7:'+metricCol+'30),'+metricCol+'7:'+metricCol+'30,0)))',value:best>0?hours[rates.indexOf(best)]:'Sin actividad'};
   charts.push({title:prefix+' · Horas productivas',categories:hours,categoryRef:"'RESUMEN'!$"+cols[0]+'$7:$'+cols[0]+'$30',series:[{name:'Ingresos',ref:"'RESUMEN'!$"+cols[1]+'$7:$'+cols[1]+'$30',values:values.map(v=>v.income)},{name:chain===0?'Aprobadas finalizadas':'Aprobadas totales',ref:"'RESUMEN'!$"+cols[chain===0?3:2]+'$7:$'+cols[chain===0?3:2]+'$30',values:values.map(v=>v[metric]||0)}],fromCol:offset,fromRow:35,toCol:offset+7,toRow:53});
+  if(chain===0)charts[charts.length-1].series.splice(1,0,{name:'Aprobadas sin garantía',ref:"'RESUMEN'!$C$7:$C$30",values:values.map(v=>v.approved||0)});
   const rateCol=chain===0?cols[5]:cols[4];charts.push({title:prefix+(chain===0?' · Productividad finalizada %':' · Aprobación por hora %'),percent:true,categories:hours,categoryRef:"'RESUMEN'!$"+cols[0]+'$7:$'+cols[0]+'$30',series:[{name:chain===0?'Finalizadas / ingresos':'Aprobadas / ingresos',ref:"'RESUMEN'!$"+rateCol+'$7:$'+rateCol+'$30',values:values.map(v=>v.income&&v[metric]!==null?v[metric]/v.income:0)}],fromCol:offset,fromRow:55,toCol:offset+7,toRow:73});
+  if(chain===0){charts[charts.length-1].title='WALMART · Aprobadas y finalizadas %';charts[charts.length-1].series.unshift({name:'Aprobadas sin garantía / ingresos',ref:"'RESUMEN'!$E$7:$E$30",values:values.map(v=>v.income&&v.approved!==null?v.approved/v.income:0)});}
  }
- cells[33][0]='Aprobadas totales = sin garantía + con garantía. Walmart se evalúa por finalizadas; SAMS por el máximo de aprobación, con todas las horas empatadas. Fuente: '+context.sourceName;
+ cells[33][0]='Walmart: aprobadas sin garantía / ingresos y finalizadas / ingresos. Evaluación por finalizadas > 28%. SAMS: máximo de aprobación incluyendo garantía. Fuente: '+context.sourceName;
  return {name:'RESUMEN',grid:cells,headers:Array(15).fill(''),rows:[],headerRows:[0,4,5,30],dateCells:['B3','D3'],percentCells:Array.from({length:25},(_,i)=>['E','F','M','N'].map(c=>c+(i+7))).flat(),mergeRanges:['A1:O1','A2:O2','A4:O4','A5:G5','I5:O5','A34:O34'],freezeRows:0,zoom:85,charts,monthMin:serial(first),monthMax:serial(monthEnd)};
 }
 window.INVEX_PRODUCTIVITY_REPORT={build};
