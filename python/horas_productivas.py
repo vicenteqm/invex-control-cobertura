@@ -47,7 +47,7 @@ def read_productivity(path,period,base_stores):
                 values=[volume(row[i]) for i,_ in hourly]
                 if sum(values)!=volume(row[pos_total]):raise ValueError('Total por tienda no coincide con las horas en '+sheet.title)
                 info=metadata.get(key,{})
-                store=stores.setdefault(key,{'id':key,'name':str(row[pos_name] or key),'region':info.get('region','Sin región en base'),'cpro':info.get('cpro','Sin asignar'),'status':info.get('status','Sin coincidencia en base'),'days':{}})
+                store=stores.setdefault(key,{'id':key,'name':str(row[pos_name] or key),'region':info.get('region','Sin región en base'),'executive':info.get('executive','Sin asignar'),'cpro':info.get('cpro','Sin asignar'),'status':info.get('status','Sin coincidencia en base'),'days':{}})
                 store['days'][str(day)]=values
                 totals=[a+b for a,b in zip(totals,values)]
             if not seen:raise ValueError('Hoja diaria sin tiendas válidas: '+sheet.title)
@@ -116,7 +116,7 @@ def read_detailed_workbook(book,path,period,base_stores):
         raw=str(r['DETERMINANTE'] or '').strip()
         if not re.fullmatch(r'\d+(?:\.0+)?',raw):raise ValueError('DETALLE: determinante inválido')
         key=partner+' '+str(int(float(raw)));info=metadata.get(key,{})
-        s=stores.setdefault(key,{'id':key,'chain':'Walmart' if partner=='WM' else 'SAMS','name':str(r['SEDE'] or key),'region':info.get('region','Sin región en base'),'cpro':info.get('cpro','Sin asignar'),'status':info.get('status','Sin coincidencia en base'),'days':{},'approvedDays':{},'guaranteedDays':{},'finalizedDays':{},'metricsDays':{}})
+        s=stores.setdefault(key,{'id':key,'chain':'Walmart' if partner=='WM' else 'SAMS','name':str(r['SEDE'] or key),'region':info.get('region','Sin región en base'),'executive':info.get('executive','Sin asignar'),'cpro':info.get('cpro','Sin asignar'),'status':info.get('status','Sin coincidencia en base'),'days':{},'approvedDays':{},'guaranteedDays':{},'finalizedDays':{},'metricsDays':{}})
         d=str(stamp.day);h=stamp.hour;dates.append(stamp)
         for field in ('days','approvedDays','guaranteedDays','finalizedDays'):s[field].setdefault(d,[0]*24)
         s['days'][d][h]+=1
@@ -199,7 +199,7 @@ def read_records_productivity(path,period,base_stores):
             match=re.match(r'\s*(\d+)\b',row['Segundo lugar de venta'])
             if not match:raise ValueError('Records: tienda Walmart sin determinante')
             key='WM '+str(int(match[1]));info=metadata.get(key,{})
-            s=stores.setdefault(key,{'id':key,'name':info.get('name') or row['Segundo lugar de venta'],'region':info.get('region','Sin región en base'),'cpro':info.get('cpro','Sin asignar'),'status':info.get('status','Sin coincidencia en base'),'days':{},'approvedDays':{},'guaranteedDays':{}})
+            s=stores.setdefault(key,{'id':key,'name':info.get('name') or row['Segundo lugar de venta'],'region':info.get('region','Sin región en base'),'executive':info.get('executive','Sin asignar'),'cpro':info.get('cpro','Sin asignar'),'status':info.get('status','Sin coincidencia en base'),'days':{},'approvedDays':{},'guaranteedDays':{}})
             day=str(created.day);dates.append(created)
             for field in ('days','approvedDays','guaranteedDays'):s[field].setdefault(day,[0]*24)
             s['days'][day][created.hour]+=1

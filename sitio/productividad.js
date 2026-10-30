@@ -19,15 +19,18 @@ const from=control('Desde',make('input'));from.type='date';from.min=dayDate(1);f
 const to=control('Hasta',make('input'));to.type='date';to.min=from.min;to.max=from.max;to.value=to.max;
 // CPRO se obtiene de la base de tiendas y limita regiones, cadenas y tiendas.
 const cpro=control('CPRO',make('select'));
+const cedula=control('CÉDULA',make('select'));
+const executiveName=s=>s.executive||'Sin asignar';
 const region=control('Región',make('select'));
 const chain=control('Cadena',make('select'));
 const store=control('Tienda de productividad',make('select'));
 const sorted=(values)=>[...new Set(values)].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
 const cproName=s=>s.cpro||'Sin asignar';
-const matching=(omit)=>source.stores.filter(s=>(omit==='cpro'||!cpro.value||cproName(s)===cpro.value)&&(omit==='region'||!region.value||s.region===region.value)&&(omit==='chain'||!chain.value||(s.chain||'Walmart')===chain.value)&&(omit==='store'||!store.value||s.id===store.value));
+const matching=(omit)=>source.stores.filter(s=>(omit==='cpro'||!cpro.value||cproName(s)===cpro.value)&&(omit==='cedula'||!cedula.value||executiveName(s)===cedula.value)&&(omit==='region'||!region.value||s.region===region.value)&&(omit==='chain'||!chain.value||(s.chain||'Walmart')===chain.value)&&(omit==='store'||!store.value||s.id===store.value));
 function options(select,items,allLabel,render=x=>x){const previous=select.value;select.replaceChildren(new Option(allLabel,''));for(const item of items)select.append(new Option(render(item),item));select.value=[...select.options].some(o=>o.value===previous)?previous:'';}
 function updateFilters(){
  options(cpro,sorted(source.stores.map(cproName)),'Todas las CPRO');
+ options(cedula,sorted(matching('cedula').map(executiveName)),'Todas las cédulas');
  options(region,sorted(matching('region').map(s=>s.region)),'Todas las regiones');
  options(chain,sorted(matching('chain').map(s=>s.chain||'Walmart')),'Todas las cadenas');
  options(store,sorted(matching('store').map(s=>s.id)),'Todas las tiendas de la fuente',id=>{const s=source.stores.find(s=>s.id===id);return s?s.name+' · '+id:id;});
@@ -38,7 +41,7 @@ const approvals=control('Aprobadas',make('select'));approvals.append(new Option(
 if(source.hasFinalized)approvals.append(new Option('Solo aprobadas finalizadas','finalized'));
 const download=make('button','Descargar Excel');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
 let excelRows=[];
-const excelHeaders=['Fecha','CPRO','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
+const excelHeaders=['Fecha','CPRO','CÉDULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
 download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.xlsx(excelHeaders,excelRows,'INVEX_Horas_productivas_'+from.value+'_al_'+to.value);});
 const error=make('p',undefined,'productivity-error');error.setAttribute('role','status');section.append(error);
 const kpis=make('div',undefined,'productivity-kpis');section.append(kpis);
@@ -72,10 +75,10 @@ function draw(){
    const guaranteed=source.hasApprovals?(s.guaranteedDays?.[day]?.[i]||0):null;
    const finalized=source.hasFinalized?(s.finalizedDays?.[day]?.[i]||0):null;
    const approved=source.hasApprovals?(approvals.value==='finalized'?finalized:standard+(approvals.value==='guaranteed'?guaranteed:0)):null;
-   excelRows.push([dayDate(d),cproName(s),s.region,s.chain||'Walmart',s.id,s.name,source.hours[i],income,standard,guaranteed,finalized,approved,source.hasApprovals?approvalLabel:'Sin datos de aprobación']);
+   excelRows.push([dayDate(d),cproName(s),executiveName(s),s.region,s.chain||'Walmart',s.id,s.name,source.hours[i],income,standard,guaranteed,finalized,approved,source.hasApprovals?approvalLabel:'Sin datos de aprobación']);
   });
  }
- excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[4].localeCompare(b[4],'es',{numeric:true})||a[6].localeCompare(b[6]));
+ excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[5].localeCompare(b[5],'es',{numeric:true})||a[7].localeCompare(b[7]));
  download.disabled=!excelRows.length||!window.INVEX_EXPORT?.xlsx;
  download.title=excelRows.length?'Descarga el detalle filtrado de todas las franjas horarias disponibles; el mapa muestra únicamente de 08:00 a 22:00.':'Sin datos para exportar con estos filtros';
 
@@ -120,5 +123,5 @@ function draw(){
  note.textContent=source.sourceType==='records'?'Se cuenta una fila por ingreso de módulo Walmart. '+source.approvalBasis+' '+(approvals.value==='guaranteed'?'La línea incluye Aprobada y Aprobada con Garantía.':'La línea incluye únicamente el resultado Aprobada.')+' Total de aprobadas en la consulta: '+number(hourApproved.reduce((a,b)=>a+b,0))+'. Las fechas posteriores al rango exportado se muestran sin datos.':'Universo: Walmart incluidas en el Excel de productividad. Se suman exclusivamente las hojas por fecha, sin duplicar filas TOTAL.';
  if(source.sourceType==='workbook-detail')note.textContent='Un ingreso por folio de DETALLE. La línea muestra '+(approvals.value==='finalized'?'aprobadas finalizadas':approvals.value==='guaranteed'?'Aprobada y Aprobada con Garantía':'solo Aprobada')+': '+number(hourApproved.reduce((a,b)=>a+b,0))+'. Las hojas de resumen validan los totales y no se suman de nuevo. Los estados banco, aprobación y proceso describen el mismo folio y no deben sumarse entre sí. '+source.warnings.join(' ');
 }
-for(const input of [cpro,region,chain,store])input.addEventListener('change',()=>{if(input===cpro){region.value='';chain.value='';store.value='';}else if(input===region){chain.value='';store.value='';}else if(input===chain){store.value='';}updateFilters();draw();});for(const input of [from,to,approvals])input.addEventListener('change',draw);reset.addEventListener('click',()=>{from.value=from.min;to.value=to.max;cpro.value='';region.value='';chain.value='';store.value='';approvals.value='standard';updateFilters();draw();});draw();
+for(const input of [cpro,cedula,region,chain,store])input.addEventListener('change',()=>{if(input===cpro||input===cedula){region.value='';chain.value='';store.value='';}else if(input===region){chain.value='';store.value='';}else if(input===chain){store.value='';}updateFilters();draw();});for(const input of [from,to,approvals])input.addEventListener('change',draw);reset.addEventListener('click',()=>{from.value=from.min;to.value=to.max;cpro.value='';cedula.value='';region.value='';chain.value='';store.value='';approvals.value='standard';updateFilters();draw();});draw();
 })();

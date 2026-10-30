@@ -109,7 +109,7 @@ def generate(base, attendance, period):
                     raise ValueError('La plantilla autorizada no coincide con promotores + sublíderes en '+key)
             cpro_column = next((name for name in ('EJECUTIVA CPRO', 'EJECUTIVO CPRO', 'CPRO', 'EJECUTIVA RH') if name in h), None)
             cpro_value = str(get(cpro_column) or '').strip() if cpro_column else ''
-            stores[key] = dict(cpro=cpro_value or 'Sin asignar', id=key, name=str(get('TIENDA') or ''), region=str(get('REGION') or ''), city=str(get('CIUDAD') or ''), state=str(get('ESTADO') or ''), status=norm(get('ESTATUS')), requiredProm=quantity(get('PROMOTORES REQUERIDOS')) if operating else 0, requiredSub=quantity(get('SUBLIDER')) if operating else 0, activeProm=0, activeSub=0)
+            stores[key] = dict(executive=str(get('EJECUTIVA RH') or '').strip() if 'EJECUTIVA RH' in h else 'Sin asignar', cpro=cpro_value or 'Sin asignar', id=key, name=str(get('TIENDA') or ''), region=str(get('REGION') or ''), city=str(get('CIUDAD') or ''), state=str(get('ESTADO') or ''), status=norm(get('ESTATUS')), requiredProm=quantity(get('PROMOTORES REQUERIDOS')) if operating else 0, requiredSub=quantity(get('SUBLIDER')) if operating else 0, activeProm=0, activeSub=0)
     finally:
         book.close()
     book = openpyxl.load_workbook(attendance, read_only=True, data_only=True)
