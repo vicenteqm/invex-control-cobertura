@@ -10,6 +10,7 @@ const nav=document.querySelector('nav'),link=nav.querySelector('a[href="#product
 nav.addEventListener('click',event=>{const a=event.target.closest('a');if(a)for(const l of nav.querySelectorAll('a'))l.classList.toggle('selected',a===l);});
 if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(x=>x.isIntersecting))for(const l of nav.querySelectorAll('a'))l.classList.toggle('selected',l===link);},{rootMargin:'-10% 0px -70% 0px'});observer.observe(section);}
 if(source.status!=='available'){const box=make('article',undefined,'panel');box.append(make('h3',source.status==='error'?'Revisar archivo de productividad':'Sin datos de productividad para este mes'),make('p',source.message||'Ejecuta la actualización con el Excel de horas productivas.'));section.append(box);return;}
+const operatingStores=source.stores.filter(s=>String(s.status||'').trim().toUpperCase()==='OPERANDO');
 const number=n=>new Intl.NumberFormat('es-MX',{maximumFractionDigits:1}).format(n);
 const dayDate=day=>source.period+'-'+String(day).padStart(2,'0');
 const intro=make('div',undefined,'productivity-intro');intro.append(make('p','Volumen de ingresos registrados en cada franja horaria. Cada ingreso corresponde a un registro del Excel; no representa un importe monetario ni horas trabajadas.'),make('small','Fuente: '+source.sourceName+' · Última hoja disponible: '+dayDate(source.lastDay)+' · Archivo modificado: '+new Date(source.sourceModifiedAt).toLocaleString('es-MX',{timeZone:'America/Mexico_City'})));section.append(intro);
@@ -26,20 +27,20 @@ const chain=control('Cadena',make('select'));
 const store=control('Tienda de productividad',make('select'));
 const sorted=(values)=>[...new Set(values)].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}));
 const cproName=s=>s.cpro||'Sin asignar';
-const matching=(omit)=>source.stores.filter(s=>(omit==='cpro'||!cpro.value||cproName(s)===cpro.value)&&(omit==='cedula'||!cedula.value||executiveName(s)===cedula.value)&&(omit==='region'||!region.value||s.region===region.value)&&(omit==='chain'||!chain.value||(s.chain||'Walmart')===chain.value)&&(omit==='store'||!store.value||s.id===store.value));
+const matching=(omit)=>operatingStores.filter(s=>(omit==='cpro'||!cpro.value||cproName(s)===cpro.value)&&(omit==='cedula'||!cedula.value||executiveName(s)===cedula.value)&&(omit==='region'||!region.value||s.region===region.value)&&(omit==='chain'||!chain.value||(s.chain||'Walmart')===chain.value)&&(omit==='store'||!store.value||s.id===store.value));
 function options(select,items,allLabel,render=x=>x){const previous=select.value;select.replaceChildren(new Option(allLabel,''));for(const item of items)select.append(new Option(render(item),item));select.value=[...select.options].some(o=>o.value===previous)?previous:'';}
 function updateFilters(changed){
  // The newly chosen owner takes priority over an incompatible previous owner.
- if(changed===cedula&&cpro.value&&!source.stores.some(s=>executiveName(s)===cedula.value&&cproName(s)===cpro.value))cpro.value='';
- if(changed===cpro&&cedula.value&&!source.stores.some(s=>cproName(s)===cpro.value&&executiveName(s)===cedula.value))cedula.value='';
- options(cpro,sorted(source.stores.filter(s=>!cedula.value||executiveName(s)===cedula.value).map(cproName)),'Todas las CPRO');
- options(cedula,sorted(source.stores.filter(s=>!cpro.value||cproName(s)===cpro.value).map(executiveName)),'Todas las cédulas');
- const owners=source.stores.filter(s=>(!cpro.value||cproName(s)===cpro.value)&&(!cedula.value||executiveName(s)===cedula.value));
+ if(changed===cedula&&cpro.value&&!operatingStores.some(s=>executiveName(s)===cedula.value&&cproName(s)===cpro.value))cpro.value='';
+ if(changed===cpro&&cedula.value&&!operatingStores.some(s=>cproName(s)===cpro.value&&executiveName(s)===cedula.value))cedula.value='';
+ options(cpro,sorted(operatingStores.filter(s=>!cedula.value||executiveName(s)===cedula.value).map(cproName)),'Todas las CPRO');
+ options(cedula,sorted(operatingStores.filter(s=>!cpro.value||cproName(s)===cpro.value).map(executiveName)),'Todas las cédulas');
+ const owners=operatingStores.filter(s=>(!cpro.value||cproName(s)===cpro.value)&&(!cedula.value||executiveName(s)===cedula.value));
  options(region,sorted(owners.map(s=>s.region)),'Todas las regiones');
  const regions=owners.filter(s=>!region.value||s.region===region.value);
  options(chain,sorted(regions.map(s=>s.chain||'Walmart')),'Todas las cadenas');
  const chains=regions.filter(s=>!chain.value||(s.chain||'Walmart')===chain.value);
- options(store,sorted(chains.map(s=>s.id)),'Todas las tiendas de la fuente',id=>{const s=source.stores.find(s=>s.id===id);return s?s.name+' · '+id:id;});
+ options(store,sorted(chains.map(s=>s.id)),'Todas las tiendas operando',id=>{const s=operatingStores.find(s=>s.id===id);return s?s.name+' · '+id:id;});
 }
 updateFilters();
 const reset=make('button','Limpiar filtros');reset.type='button';filters.append(reset);section.append(filters);
