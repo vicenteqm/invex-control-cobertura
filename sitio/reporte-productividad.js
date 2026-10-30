@@ -60,7 +60,7 @@ function summary(sheets,context,serial){
   const rateCol=chain===0?cols[5]:cols[4];charts.push({title:prefix+(chain===0?' · Productividad finalizada %':' · Aprobación por hora %'),percent:true,categories:hours,categoryRef:"'RESUMEN'!$"+cols[0]+'$7:$'+cols[0]+'$30',series:[{name:chain===0?'Finalizadas / ingresos':'Aprobadas / ingresos',ref:"'RESUMEN'!$"+rateCol+'$7:$'+rateCol+'$30',values:values.map(v=>v.income&&v[metric]!==null?v[metric]/v.income:0)}],fromCol:offset,fromRow:55,toCol:offset+7,toRow:73});
  }
  cells[33][0]='Aprobadas totales = sin garantía + con garantía. Walmart se evalúa por finalizadas; SAMS por el máximo de aprobación, con todas las horas empatadas. Fuente: '+context.sourceName;
- return {name:'RESUMEN',grid:cells,headers:Array(15).fill(''),rows:[],headerRows:[0,4,5,30],dateCells:['B3','D3'],percentCells:Array.from({length:25},(_,i)=>['E','F','M','N'].map(c=>c+(i+7))).flat(),mergeRanges:['A1:O1','A2:O2','A4:O4','A5:G5','I5:O5','A34:O34'],freezeRows:6,charts,monthMin:serial(first),monthMax:serial(monthEnd)};
+ return {name:'RESUMEN',grid:cells,headers:Array(15).fill(''),rows:[],headerRows:[0,4,5,30],dateCells:['B3','D3'],percentCells:Array.from({length:25},(_,i)=>['E','F','M','N'].map(c=>c+(i+7))).flat(),mergeRanges:['A1:O1','A2:O2','A4:O4','A5:G5','I5:O5','A34:O34'],freezeRows:0,zoom:85,charts,monthMin:serial(first),monthMax:serial(monthEnd)};
 }
 window.INVEX_PRODUCTIVITY_REPORT={build};
 })();
