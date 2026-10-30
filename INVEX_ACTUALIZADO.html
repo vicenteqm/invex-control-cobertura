@@ -246,8 +246,8 @@ function control(title,node){node.setAttribute('aria-label',title);const label=m
 const from=control('Desde',make('input'));from.type='date';from.min=dayDate(1);from.max=dayDate(source.daysInMonth);from.value=dayDate(1);
 const to=control('Hasta',make('input'));to.type='date';to.min=from.min;to.max=from.max;to.value=to.max;
 // CPRO se obtiene de la base de tiendas y limita regiones, cadenas y tiendas.
-const cpro=control('CPRO',make('select'));
 const cedula=control('CÉDULA',make('select'));
+const cpro=control('CPRO',make('select'));
 const executiveName=s=>s.executive||'Sin asignar';
 const region=control('Región',make('select'));
 const chain=control('Cadena',make('select'));
