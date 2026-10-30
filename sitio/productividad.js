@@ -49,7 +49,7 @@ if(source.hasFinalized)approvals.append(new Option('Solo aprobadas finalizadas',
 const download=make('button','Descargar reporte de productividad');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
 let excelRows=[];
 const excelHeaders=['Fecha','CPRO','CÉDULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
-download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.workbook(window.INVEX_PRODUCTIVITY_REPORT.build(excelRows,{from:from.value,to:to.value,hasApprovals:source.hasApprovals,hasFinalized:source.hasFinalized,sourceName:source.sourceName}),'INVEX_Reporte_productividad_'+from.value+'_al_'+to.value);});
+download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.workbook(window.INVEX_PRODUCTIVITY_REPORT.build(excelRows,{from:from.value,to:to.value,hasApprovals:source.hasApprovals,hasFinalized:source.hasFinalized,sourceName:source.sourceName,hours:source.hours}),'INVEX_Reporte_productividad_'+from.value+'_al_'+to.value);});
 const error=make('p',undefined,'productivity-error');error.setAttribute('role','status');section.append(error);
 const kpis=make('div',undefined,'productivity-kpis');section.append(kpis);
 const charts=make('div',undefined,'productivity-charts');section.append(charts);
@@ -76,7 +76,7 @@ function draw(){
  error.textContent='';const selected=matching();
  const approvalLabel=approvals.selectedOptions[0]?.textContent||'';
  for(const s of selected)for(const [day,values] of Object.entries(s.days)){
-  const d=Number(day);if(d<start||d>end||!source.capturedDays.includes(d))continue;
+  const d=Number(day);if(!source.capturedDays.includes(d))continue;
   values.forEach((income,i)=>{
    const standard=source.hasApprovals?(s.approvedDays?.[day]?.[i]||0):null;
    const guaranteed=source.hasApprovals?(s.guaranteedDays?.[day]?.[i]||0):null;
