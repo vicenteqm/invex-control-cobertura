@@ -62,6 +62,8 @@ const heat=panel('Mapa de actividad por día y hora','Franjas de 09:00 a 19:59. 
 const productivityComparison=panel('Productividad por hora','Mismo cálculo que RESUMEN del Excel. Walmart: aprobadas sin garantía y finalizadas sobre ingresos; evaluación por finalizadas > 28%. SAMS: aprobación incluyendo garantía y máximo por hora.',true);
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
+const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Imágenes por CÉDULA'),make('p','Descarga un cuadro por Ejecutiva RH. Respeta las fechas, medida, región, CPRO, cadena y tiendas seleccionadas; cada imagen separa Walmart y SAMS.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
+
 function combo(target,items){
  const showLine=approvals.value!=='income';target.replaceChildren();const legend=make('p',undefined,'productivity-legend');legend.append(make('span','Barras: ingresos','legend-income'),make('span',showLine?'Línea: '+metricName():'Solo ingresos','legend-approved'));target.append(legend);
  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 1100 300');svg.setAttribute('role','img');svg.setAttribute('aria-label','Ingresos en barras'+(showLine?' y '+metricName()+' en línea, misma escala':''));svg.classList.add('productivity-combo');
@@ -72,7 +74,7 @@ function combo(target,items){
  items.forEach((item,i)=>{const x=55+step*(i+.5);const title=item.label+': '+(item.value===null?'Sin datos':number(item.value)+' ingresos'+(showLine?' · '+number(item.approved)+' '+metricName():''));const bar=el('rect',{x:x-step*.3,y:item.value===null?245:y(item.value),width:step*.6,height:item.value===null?0:245-y(item.value),class:'combo-income'});const tip=document.createElementNS(svg.namespaceURI,'title');tip.textContent=title;bar.append(tip);el('text',{x,y:264,'text-anchor':'middle',class:'combo-axis'},item.short||item.label);if(item.value===null){flush();el('text',{x,y:237,'text-anchor':'middle',class:'combo-axis'},'—');}else if(showLine){points.push(x+','+y(item.approved));const dot=el('circle',{cx:x,cy:y(item.approved),r:3.5,class:'combo-dot'});const t=document.createElementNS(svg.namespaceURI,'title');t.textContent=title;dot.append(t);}});flush();target.append(svg);
 }
 function draw(){
- download.disabled=true;excelRows=[];
+ download.disabled=true;excelRows=[];imageCards.replaceChildren();
  const start=Number(from.value.slice(-2)),end=Number(to.value.slice(-2));
  if(!from.value.startsWith(source.period+'-')||!to.value.startsWith(source.period+'-')||!Number.isInteger(start)||!Number.isInteger(end)||start<1||end>source.daysInMonth||start>end){error.textContent='Selecciona un rango válido dentro del mes, con inicio anterior o igual al final.';return;}
  error.textContent='';const selected=matching();
@@ -144,6 +146,7 @@ function draw(){
    for(let r=6;r<=17;r++){const tr=make('tr');for(let c=0;c<7;c++){const v=cell(summary.grid[r][index*8+c]);const td=make('td',v===null||v===undefined?'—':c===4||c===5?number(v*100)+'%':typeof v==='number'?number(v):v);tr.append(td);}body.append(tr);}t.append(body);wrap.append(t);productivityComparison.append(wrap);
   }
  }else productivityComparison.append(make('p','Sin datos para comparar con estos filtros.','note'));
+ window.INVEX_PRODUCTIVITY_IMAGES?.render(imageCards,{stores:selected,source,from:from.value,to:to.value,metric:approvals.value});
  const standardTotal=selected.reduce((acc,s)=>acc+Object.entries(s.approvedDays||{}).reduce((n,[d,values])=>n+(dayHours[d]?values.reduce((sum,v,i)=>sum+(heatHours.some(h=>h.index===i)?v:0),0):0),0),0);
  note.textContent+=' Horario de cálculo del HTML y Excel: 09:00 a 19:59. Ingresos: '+number(total)+'. Aprobadas sin garantía: '+(source.hasApprovals?number(standardTotal):'Sin datos')+'. Aprobadas finalizadas: '+(source.hasFinalized?number(finalizedTotal):'Sin datos')+'. Los porcentajes se obtienen dividiendo los totales, no sumando porcentajes horarios. El Excel conserva todos los días del mes; su RESUMEN inicia con las fechas seleccionadas aquí.';
 

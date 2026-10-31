@@ -19,3 +19,5 @@
 
 /* CÉDULA: posición superior del filtro */
 .productivity-filters label:has(select[aria-label="CÉDULA"]){grid-column:1/-1;max-width:400px}
+
+.productivity-image-panel{margin-top:24px}.productivity-image-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(270px,100%),1fr));gap:14px;margin-top:16px}.productivity-image-card{min-width:0;border:1px solid #8884;border-radius:7px;padding:18px}.productivity-image-card strong{font-size:12px;line-height:1.6}.productivity-image-card p{font-size:11px;line-height:1.7}.productivity-image-card button{margin-top:8px}.productivity-image-card button:disabled{opacity:.45;cursor:not-allowed}
