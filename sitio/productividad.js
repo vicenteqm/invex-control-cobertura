@@ -59,7 +59,7 @@ const daily=panel('Ingresos por día','Mes completo. Las fechas fuera del rango 
 const hourly=panel('Distribución por hora','Ingresos acumulados dentro de las fechas y tiendas seleccionadas.');
 const ranking=panel('Tiendas con mayor volumen','Las diez tiendas con más ingresos en la consulta.');
 const heat=panel('Mapa de actividad por día y hora','Franjas de 09:00 a 19:59. Mayor intensidad indica más ingresos. — significa Sin datos; 0 es un valor reportado.',true);
-const productivityComparison=panel('Productividad por hora','Mismo cálculo que RESUMEN del Excel. Walmart: aprobadas sin garantía y finalizadas sobre ingresos; evaluación por finalizadas > 28%. SAMS: aprobación incluyendo garantía y máximo por hora.',true);
+const productivityComparison=panel('Productividad por hora','Mismo cálculo que RESUMEN del Excel. Walmart: aprobadas sin garantía y finalizadas sobre ingresos; evaluación por finalizadas > 28%. SAMS: aprobación sin garantía y máximo por hora.',true);
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
 const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉLULAS'),make('p','Compara las CÉLULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
@@ -94,7 +94,7 @@ function draw(){
  }
  excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[5].localeCompare(b[5],'es',{numeric:true})||a[7].localeCompare(b[7]));
  download.disabled=!excelRows.length||!window.INVEX_EXPORT?.workbook||!window.INVEX_PRODUCTIVITY_REPORT?.build;
- download.title=excelRows.length?'Descarga resúmenes de Walmart y SAMS y su detalle horario, respetando fechas y tiendas. Las aprobadas totales incluyen garantía; el selector de la gráfica no cambia esta definición.':'Sin datos para exportar con estos filtros';
+ download.title=excelRows.length?'Descarga resúmenes de Walmart y SAMS y su detalle horario, respetando fechas y tiendas. SAMS se evalúa únicamente con aprobadas sin garantía; las garantizadas permanecen separadas.':'Sin datos para exportar con estos filtros';
 
  const dayHours={},approvedHours={},hourApproved=source.hours.map(()=>0),hourTotals=source.hours.map(()=>0),storeTotals=[];let total=0,afternoon=0,observed=0;
  for(let d=1;d<=source.daysInMonth;d++)if(source.capturedDays.includes(d)&&d>=start&&d<=end&&selected.some(s=>s.days[d]))dayHours[d]=source.hours.map(()=>0);
@@ -144,7 +144,7 @@ function draw(){
   for(const [index,label]of [[0,'WALMART'],[1,'SAMS']]){
    if(!report[index+1].rows.length)continue;
    productivityComparison.append(make('h4',label));const wrap=make('div',undefined,'table-wrap'),t=make('table'),head=make('thead'),hr=make('tr');
-   for(const h of ['Hora','Ingresos',index===0?'Aprobadas sin garantía':'Aprobadas incluyendo garantía','Finalizadas',index===0?'Aprobadas sin garantía %':'Aprobación %','Finalizadas %','Evaluación'])hr.append(make('th',h));head.append(hr);t.append(head);const body=make('tbody');
+   for(const h of ['Hora','Ingresos','Aprobadas sin garantía','Finalizadas',index===0?'Aprobadas sin garantía %':'Aprobación %','Finalizadas %','Evaluación'])hr.append(make('th',h));head.append(hr);t.append(head);const body=make('tbody');
    for(let r=6;r<=17;r++){const tr=make('tr');for(let c=0;c<7;c++){const v=cell(summary.grid[r][index*8+c]);const td=make('td',v===null||v===undefined?'—':c===4||c===5?number(v*100)+'%':typeof v==='number'?number(v):v);tr.append(td);}body.append(tr);}t.append(body);wrap.append(t);productivityComparison.append(wrap);
   }
  }else productivityComparison.append(make('p','Sin datos para comparar con estos filtros.','note'));
