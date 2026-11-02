@@ -98,7 +98,7 @@ function draw(){
    const guaranteed=source.hasApprovals?(s.guaranteedDays?.[day]?.[i]||0):null;
    const finalized=source.hasFinalized?(s.finalizedDays?.[day]?.[i]||0):null;
    const approved=approvals.value==='income'?income:approvals.value==='finalized'?finalized:approvals.value==='guaranteed'?guaranteed:standard;
-   excelRows.push([dayDate(d),cproName(s),executiveName(s),s.region,s.chain||'Walmart',s.id,s.name,source.hours[i],income,standard,guaranteed,finalized,approved,source.hasApprovals?approvalLabel:'Sin datos de aprobación']);
+   excelRows.push([dayDate(d),cproName(s),executiveName(s),s.region,s.chain||'Walmart',s.id,s.name,source.hours[i],income,standard,guaranteed,finalized,approved,source.hasApprovals?approvalLabel:'Sin datos de aprobación',s.teamLeader||'Sin asignar']);
   });
  }
  excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[5].localeCompare(b[5],'es',{numeric:true})||a[7].localeCompare(b[7]));
