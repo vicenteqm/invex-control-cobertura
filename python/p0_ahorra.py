@@ -1,0 +1,65 @@
+"""Importa únicamente agregados diarios por tienda de P0 y Ahorra+."""
+from pathlib import Path
+from datetime import date,datetime,timezone
+import re,unicodedata,logging
+import openpyxl
+
+def norm(value):
+    return ''.join(c for c in unicodedata.normalize('NFKD',str(value or '').upper().strip()) if not unicodedata.combining(c))
+
+def number(value):
+    if value is None:return None
+    if isinstance(value,bool) or not isinstance(value,(int,float)) or value<0 or int(value)!=value:raise ValueError('P0/Ahorra+: conteo inválido en hoja P0')
+    return int(value)
+
+def read_programs(path,base_stores):
+    path=Path(path);book=openpyxl.load_workbook(path,read_only=True,data_only=True)
+    try:
+        if 'P0' not in book or 'Hoja1' not in book:raise ValueError('P0/Ahorra+: faltan hojas P0 o Hoja1')
+        it=book['Hoja1'].iter_rows(values_only=True);headers=next(it);position=headers.index('Fecha Creación');available=set()
+        for row in it:
+            stamp=row[position]
+            if not stamp:continue
+            try:stamp=stamp.date() if isinstance(stamp,datetime) else stamp if isinstance(stamp,date) else date.fromisoformat(str(stamp)[:10])
+            except ValueError:continue
+            available.add(stamp.isoformat())
+        rows=list(book['P0'].iter_rows(values_only=True));dates=[]
+        for i,stamp in enumerate(rows[1]):
+            if not isinstance(stamp,(datetime,date)):continue
+            day=stamp.date().isoformat() if isinstance(stamp,datetime) else stamp.isoformat()
+            if day in available:
+                if i<1 or norm(rows[2][i-1])!='ING' or norm(rows[2][i])!='APS' or norm(rows[2][i+2])!='P0':raise ValueError('P0/Ahorra+: bloque diario no reconocido')
+                dates.append((day,i))
+        if not dates:raise ValueError('P0/Ahorra+: sin fechas reales identificadas')
+        start=next((i for i,r in enumerate(rows) if len(r)>4 and norm(r[1])=='REGION' and norm(r[2])=='DET' and norm(r[3])=='TIENDA'),None)
+        if start is None:raise ValueError('P0/Ahorra+: falta tabla por tienda')
+        lookup={}
+        for store in base_stores:lookup.setdefault(store['id'].split(' ')[-1],[]).append(store)
+        result={};unmatched=[];ambiguous=[];counts={day:dict(p0=0,ahorra=0) for day,_ in dates}
+        for row in rows[start+1:]:
+            raw=row[2]
+            if not isinstance(raw,(int,float)) and not re.fullmatch(r'\d+(?:\.0)?',str(raw or '')):continue
+            det=str(int(float(raw)));candidates=lookup.get(det,[])
+            if len(candidates)>1:candidates=[s for s in candidates if norm(s.get('name'))==norm(row[3])]
+            if len(candidates)!=1:
+                (ambiguous if candidates else unmatched).append(det);continue
+            key=candidates[0]['id']
+            if key in result:raise ValueError('P0/Ahorra+: tienda duplicada '+key)
+            days={}
+            for day,i in dates:
+                p0=number(row[i+2]);ahorra=number(row[i+4]);aps=number(row[i]);income=number(row[i-1])
+                if p0 is None or ahorra is None:continue
+                days[day]=dict(p0=p0,ahorra=ahorra,approved=aps,income=income)
+                counts[day]['p0']+=p0;counts[day]['ahorra']+=ahorra
+            result[key]=days
+        return dict(status='available',sourceName=path.name,sourceModifiedAt=datetime.fromtimestamp(path.stat().st_mtime,timezone.utc).isoformat(),dates=sorted(day for day,_ in dates),stores=result,unmatchedStores=len(unmatched),ambiguousStores=len(ambiguous),basis='Día completo. Conteos de la tabla por tienda de P0; Ahorra+ corresponde a CUPONERA. Se omiten acumulados semanales y filas de totales.')
+    finally:book.close()
+
+def load_programs(config,root,base_stores):
+    linked=config.get('p0_ahorra_source');folder=Path(root)/'datos'/'fuentes'/'p0_ahorra'
+    paths=[Path(linked)] if linked else sorted(folder.glob('*.xlsx'),key=lambda p:p.stat().st_mtime,reverse=True)
+    if not paths:return dict(status='unavailable',message='Sin archivo P0/Ahorra+ configurado')
+    try:return read_programs(paths[0],base_stores)
+    except Exception as error:
+        logging.warning('No se incorporaron P0/Ahorra+: %s',error)
+        return dict(status='error',message='No se pudo validar el archivo P0/Ahorra+. No se muestran conteos antiguos como actuales.')

@@ -226,4 +226,6 @@ def load_productivity(config,root,period,stores):
     from predicciones import build
     from cobertura_actual import local_now
     result["prediction"]=build(result,local_now().date())
+    from p0_ahorra import load_programs
+    result["programs"]=load_programs(config,root,stores)
     return result
