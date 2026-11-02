@@ -19,7 +19,7 @@ function control(title,node){node.setAttribute('aria-label',title);const label=m
 const from=control('Desde',make('input'));from.type='date';from.min=dayDate(1);from.max=dayDate(source.daysInMonth);from.value=dayDate(1);
 const to=control('Hasta',make('input'));to.type='date';to.min=from.min;to.max=from.max;to.value=to.max;
 // CPRO se obtiene de la base de tiendas y limita regiones, cadenas y tiendas.
-const cedula=control('CÉDULA',make('select'));
+const cedula=control('CÉLULA',make('select'));
 const cpro=control('CPRO',make('select'));
 const executiveName=s=>s.executive||'Sin asignar';
 const region=control('Región',make('select'));
@@ -34,7 +34,7 @@ function updateFilters(changed){
  if(changed===cedula&&cpro.value&&!operatingStores.some(s=>executiveName(s)===cedula.value&&cproName(s)===cpro.value))cpro.value='';
  if(changed===cpro&&cedula.value&&!operatingStores.some(s=>cproName(s)===cpro.value&&executiveName(s)===cedula.value))cedula.value='';
  options(cpro,sorted(operatingStores.filter(s=>!cedula.value||executiveName(s)===cedula.value).map(cproName)),'Todas las CPRO');
- options(cedula,sorted(operatingStores.filter(s=>!cpro.value||cproName(s)===cpro.value).map(executiveName)),'Todas las cédulas');
+ options(cedula,sorted(operatingStores.filter(s=>!cpro.value||cproName(s)===cpro.value).map(executiveName)),'Todas las células');
  const owners=operatingStores.filter(s=>(!cpro.value||cproName(s)===cpro.value)&&(!cedula.value||executiveName(s)===cedula.value));
  options(region,sorted(owners.map(s=>s.region)),'Todas las regiones');
  const regions=owners.filter(s=>!region.value||s.region===region.value);
@@ -49,7 +49,7 @@ for(const [value,label,available]of [['income','Ingresos',true],['standard','Apr
 const metricName=()=>({income:'ingresos',standard:'aprobadas sin garantía',guaranteed:'garantizadas',finalized:'finalizadas'})[approvals.value];
 const download=make('button','Descargar reporte de productividad');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
 let excelRows=[];
-const excelHeaders=['Fecha','CPRO','CÉDULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
+const excelHeaders=['Fecha','CPRO','CÉLULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
 download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.workbook(window.INVEX_PRODUCTIVITY_REPORT.build(excelRows,{from:from.value,to:to.value,hasApprovals:source.hasApprovals,hasFinalized:source.hasFinalized,sourceName:source.sourceName,hours:source.hours}),'INVEX_Reporte_productividad_'+from.value+'_al_'+to.value);});
 const error=make('p',undefined,'productivity-error');error.setAttribute('role','status');section.append(error);
 const kpis=make('div',undefined,'productivity-kpis');section.append(kpis);
@@ -62,7 +62,7 @@ const heat=panel('Mapa de actividad por día y hora','Franjas de 09:00 a 19:59. 
 const productivityComparison=panel('Productividad por hora','Mismo cálculo que RESUMEN del Excel. Walmart: aprobadas sin garantía y finalizadas sobre ingresos; evaluación por finalizadas > 28%. SAMS: aprobación incluyendo garantía y máximo por hora.',true);
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
-const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉDULAS'),make('p','Compara las CÉDULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
+const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉLULAS'),make('p','Compara las CÉLULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
 let imageProgramsOverride=null;
 const uploadHost=make('div');imagePanel.insertBefore(uploadHost,imageCards);window.INVEX_CUPONERA_UPLOAD?.mount(uploadHost,{source,onUpdated:programs=>{imageProgramsOverride=programs;draw();}});
 

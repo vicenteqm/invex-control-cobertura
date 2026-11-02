@@ -10,7 +10,7 @@ const cut=el('p','Historial hasta '+prediction.cutoff+' · Calculado el '+predic
 if(prediction.staleDays>0)section.append(el('p','Fuente con '+prediction.staleDays+' día(s) de atraso. Las fechas proyectadas parten del corte de la fuente, no de la hora de publicación. Actualiza Horas productivas para avanzar el pronóstico.','prediction-warning'));
 const all=prediction.stores,filters=el('div',undefined,'prediction-filters');section.append(filters);
 function control(label){const select=el('select');select.setAttribute('aria-label',label+' predictivo');const field=el('label');field.append(el('span',label),select);filters.append(field);return select;}
-const cedula=control('CÉDULA'),cpro=control('CPRO'),region=control('Región'),chain=control('Cadena'),store=control('Tienda');const controls=[cedula,cpro,region,chain,store],keys=['executive','cpro','region','chain','id'];
+const cedula=control('CÉLULA'),cpro=control('CPRO'),region=control('Región'),chain=control('Cadena'),store=control('Tienda');const controls=[cedula,cpro,region,chain,store],keys=['executive','cpro','region','chain','id'];
 const value=(s,key)=>s[key]||'Sin asignar';
 function options(select,rows,key){const current=select.value;select.replaceChildren(new Option('Todas',''));for(const item of [...new Set(rows.map(s=>value(s,key)))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true}))){const s=rows.find(s=>value(s,key)===item);select.append(new Option(key==='id'?item+' · '+s.name:item,item));}select.value=[...select.options].some(o=>o.value===current)?current:'';}
 function update(){let rows=all;controls.forEach((select,i)=>{options(select,rows,keys[i]);if(select.value)rows=rows.filter(s=>value(s,keys[i])===select.value);});return rows;}

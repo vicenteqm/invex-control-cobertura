@@ -8,7 +8,7 @@ function build(rows,context){
   h.income+=row[8]||0;if(h.standard!==null)h.standard+=row[9]||0;if(h.guaranteed!==null)h.guaranteed+=row[10]||0;if(h.finalized!==null)h.finalized+=row[11]||0;
  }
  const serial=date=>Date.parse(date+'T00:00:00Z')/86400000+25569;
- const headers=['Fecha','Tienda','Determinante','Región','CPRO','CÉDULA','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas totales','Aprobadas finalizadas','Aprobación %','Productividad finalizada %','Evaluación'];
+ const headers=['Fecha','Tienda','Determinante','Región','CPRO','CÉLULA','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas totales','Aprobadas finalizadas','Aprobación %','Productividad finalizada %','Evaluación'];
  const sheets=[];
  for(const [partner,label]of [['WM','WALMART'],['SAMS','SAMS']]){
   const output=[];
