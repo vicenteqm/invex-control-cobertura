@@ -5,3 +5,10 @@ let rows=compare(c)[0].rows;assert.equal(rows[0].name,'REGION B');assert.equal(r
 c.metric='income';rows=compare(c)[0].rows;assert.equal(rows[0].name,'REGION C');assert.equal(rows[0].income,101);
 c.metric='finalized';c.stores=[store('A','WM 1',10,5),store('B','WM 2',20,10)];rows=compare(c)[0].rows;assert.equal(rows[0].rank,1);assert.equal(rows[1].rank,1);
 console.log('Ranking ponderado, separación de socios, volumen y empates verificados.');
+const totals=context.window.INVEX_PRODUCTIVITY_IMAGES.programTotals;
+const programs={status:'available',stores:{'WM 1':{'2026-10-01':{p0:2,ahorra:4,approved:5,app:3}},'WM 2':{'2026-10-01':{p0:4,ahorra:8,approved:15,app:7}}}};
+const p=totals(c.stores,{...c,source:{...source,period:'2026-10',programs}});
+assert.equal(p.app,10);assert.equal(p.appRate,.5);assert.equal(p.p0Rate,.3);assert.equal(p.ahorraRate,.6);
+programs.stores['WM 1']['2026-10-01'].app=null;
+assert.equal(totals(c.stores,{...c,source:{...source,period:'2026-10',programs}}).appRate,null);
+console.log('Alcances ponderados y activación desconocida verificados.');

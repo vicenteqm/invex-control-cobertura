@@ -16,13 +16,13 @@ def read_programs(path,base_stores):
     path=Path(path);book=openpyxl.load_workbook(path,read_only=True,data_only=True)
     try:
         if 'P0' not in book or 'Hoja1' not in book:raise ValueError('P0/Ahorra+: faltan hojas P0 o Hoja1')
-        it=book['Hoja1'].iter_rows(values_only=True);headers=next(it);position=headers.index('Fecha Creación');available=set()
+        it=book['Hoja1'].iter_rows(values_only=True);headers=next(it);position=headers.index('Fecha Creación');available=set();details=[]
         for row in it:
             stamp=row[position]
             if not stamp:continue
             try:stamp=stamp.date() if isinstance(stamp,datetime) else stamp if isinstance(stamp,date) else date.fromisoformat(str(stamp)[:10])
             except ValueError:continue
-            available.add(stamp.isoformat())
+            available.add(stamp.isoformat());details.append((stamp.isoformat(),row))
         rows=list(book['P0'].iter_rows(values_only=True));dates=[]
         for i,stamp in enumerate(rows[1]):
             if not isinstance(stamp,(datetime,date)):continue
@@ -52,7 +52,20 @@ def read_programs(path,base_stores):
                 days[day]=dict(p0=p0,ahorra=ahorra,approved=aps,income=income)
                 counts[day]['p0']+=p0;counts[day]['ahorra']+=ahorra
             result[key]=days
-        return dict(status='available',sourceName=path.name,sourceModifiedAt=datetime.fromtimestamp(path.stat().st_mtime,timezone.utc).isoformat(),dates=sorted(day for day,_ in dates),stores=result,unmatchedStores=len(unmatched),ambiguousStores=len(ambiguous),basis='Día completo. Conteos de la tabla por tienda de P0; Ahorra+ corresponde a CUPONERA. Se omiten acumulados semanales y filas de totales.')
+        columns={norm(h):i for i,h in enumerate(headers)}
+        if all(h in columns for h in ['OPCION DE ACTIVACION','DET','FOLIO FICO']):
+            for days in result.values():
+                for record in days.values():record['app']=0
+            seen=set()
+            for day,row in details:
+                raw=row[columns['DET']]
+                if not re.fullmatch(r'\d+(?:\.0+)?',str(raw or '')):continue
+                candidates=[s for s in lookup.get(str(int(float(raw))),[]) if day in result.get(s['id'],{})]
+                if len(candidates)!=1:continue
+                key=candidates[0]['id'];folio=str(row[columns['FOLIO FICO']] or '').strip();token=(key,day,folio)
+                success=re.sub(r'\s+',' ',norm(row[columns['OPCION DE ACTIVACION']]).replace('–','-').replace('—','-'))=='SI SE REALIZO - FINALIZAR TRAMITE'
+                if folio and success and token not in seen:result[key][day]['app']+=1;seen.add(token)
+        return dict(status='available',sourceName=path.name,sourceModifiedAt=datetime.fromtimestamp(path.stat().st_mtime,timezone.utc).isoformat(),dates=sorted(day for day,_ in dates),stores=result,unmatchedStores=len(unmatched),ambiguousStores=len(ambiguous),basis='Día completo. P0 y Ahorra+ de tabla por tienda. APP: Sí se realizó - Finalizar Trámite, folios únicos. Alcances sobre APS de la cuponera; sin acumulados semanales.')
     finally:book.close()
 
 def load_programs(config,root,base_stores):
