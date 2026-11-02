@@ -33,6 +33,8 @@
 .productivity-image-cards{display:block}.productivity-competition{margin-top:24px;min-width:0}.productivity-competition h4{margin-bottom:12px}.competition-leader td{background:#dbead7;color:#182417;font-weight:bold}.productivity-competition td:nth-child(2){white-space:normal;min-width:190px}
 
 .productivity-competition{padding:20px;border:1px solid #6e527a;border-radius:14px;background:linear-gradient(135deg,#24182d,#15101c)}.productivity-competition h4{color:#ffca55;font-size:18px;letter-spacing:2px}.productivity-competition:nth-of-type(2) h4{color:#71cfdf}.competition-spotlight{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;background:#fff2c9;color:#23202a;padding:20px;border-radius:10px;margin-bottom:18px}.productivity-competition:nth-of-type(2) .competition-spotlight{background:#e4f5f8}.competition-spotlight span{grid-column:1/-1;font-size:10px;letter-spacing:2px}.competition-spotlight strong{font-size:15px;line-height:1.6}.competition-spotlight b{font-size:30px;align-self:center}.productivity-competition .competition-leader td{background:#e9debc;color:#252029}@media(max-width:550px){.competition-spotlight{grid-template-columns:1fr}.competition-spotlight b{font-size:26px}}
+
+.cuponera-upload{margin:20px 0;padding:20px;border:1px solid #9275a3;border-radius:12px;background:#f6f3f9;color:#222}.halloween .cuponera-upload{background:#261b31;color:#f7effb}.cuponera-upload h4{margin:0 0 12px}.cuponera-upload p{font-size:12px;line-height:1.7}.cuponera-upload label{display:block;font-size:12px;margin:15px 0 8px}.cuponera-upload input[type=file]{display:block;max-width:100%;margin:12px 0}.cuponera-upload button{margin-top:12px}.cuponera-upload button:disabled{opacity:.5;cursor:not-allowed}.cuponera-local-link{display:inline-block;padding:10px 14px;border:1px solid #b98c66;border-radius:6px;color:inherit;text-decoration:none;margin-top:8px}
 </style><style>.coverage-store-maps{margin-top:32px;min-width:0}.coverage-map-legend{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.coverage-map-legend span{font-size:11px;padding:8px 12px;border-radius:5px;color:#262337;border:1px solid #0002}.coverage-map-panel{margin-top:12px;min-width:0;padding:16px}.coverage-map-panel .panel-title{align-items:center;margin-bottom:12px}.coverage-map-panel h3{letter-spacing:2px;font-size:15px}.coverage-map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(105px,100%),1fr));gap:8px}.coverage-map-tile{min-height:108px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:9px 6px;border:1px solid #32233e2e;border-radius:5px;box-shadow:3px 3px 0 #32233e18;gap:5px;color:#262337;overflow-wrap:anywhere;transition:transform .18s,box-shadow .18s}.coverage-map-tile:hover{transform:translateY(-3px);box-shadow:4px 6px 0 #32233e25}.coverage-map-tile .coverage-map-id{font-size:10px;font-weight:800;letter-spacing:1px}.coverage-map-tile .coverage-map-name{font-size:10px;line-height:1.2;max-width:100%}.coverage-map-tile .coverage-map-percent{font-size:20px;line-height:1.1;letter-spacing:-1px}.coverage-map-tile small{font-size:9px;line-height:1.3}.coverage-store-maps .full{background:#c9e7c2}.coverage-store-maps .partial{background:#f6e4ac}.coverage-store-maps .low{background:#efc0bd}.coverage-store-maps .unknown{background:#e2dce9}.coverage-map-grid>.note{grid-column:1/-1}@media(max-width:520px){.coverage-map-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.coverage-map-tile{padding:7px 4px;gap:4px}.coverage-map-tile .coverage-map-name{font-size:9px}.coverage-map-tile .coverage-map-percent{font-size:18px}.coverage-map-legend span{font-size:10px}}@media(prefers-reduced-motion:reduce){.coverage-map-tile{transition:none}.coverage-map-tile:hover{transform:none}}
 
 @media(max-width:350px){.coverage-map-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -444,6 +446,41 @@ window.INVEX_PRODUCTIVITY_IMAGES={aggregate,compare,programTotals,render};
 })();
 </script>
 <script>'use strict';
+(()=>{
+const make=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
+function mount(target,options){
+ const box=make('div');box.className='cuponera-upload';box.append(make('h4','Actualizar cuponera para todos'));
+ const source=make('p');source.className='note';box.append(source);
+ const refresh=programs=>{source.textContent=programs?.status==='available'?'Cuponera actual: '+programs.sourceName+' · Fechas: '+programs.dates[0]+' al '+programs.dates.at(-1):'No hay una cuponera válida publicada.';};refresh(options.source.programs);
+ const local=window.INVEX_LOCAL_UPLOAD;
+ if(!local?.token){
+  box.append(make('p','Abre CARGAR_CUPONERA.bat en la carpeta del proyecto. Se abrirá este mismo tablero con el selector de archivo y la publicación habilitados. Mantén la ventana del cargador abierta.'));
+  const link=make('a','Abrir cargador local');link.href='http://127.0.0.1:8771/#productividad';link.className='cuponera-local-link';box.append(link);target.append(box);return;
+ }
+ const label=make('label','Selecciona la cuponera actualizada (.xlsx)');label.htmlFor='cuponera-file';const input=make('input');input.type='file';input.accept='.xlsx';input.id='cuponera-file';input.setAttribute('aria-label','Seleccionar cuponera para publicar');
+ const button=make('button','Cargar y publicar en GitHub');button.type='button';button.disabled=true;button.id='publish-cuponera';
+ const status=make('p','La carga actualiza P0 y Ahorra+ para todos. No descarga ni modifica Pandape o MAAT.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+ box.append(label,input,button,status);target.append(box);
+ input.addEventListener('change',()=>{button.disabled=!input.files.length;status.textContent=input.files.length?'Seleccionado: '+input.files[0].name:'Selecciona una cuponera .xlsx';});
+ button.addEventListener('click',async()=>{
+  const file=input.files[0];if(!file)return;if(!file.name.toLowerCase().endsWith('.xlsx')||file.size>50*1024*1024){status.textContent='Selecciona un archivo .xlsx de hasta 50 MB.';return;}
+  input.disabled=true;button.disabled=true;status.textContent='Enviando archivo al cargador local…';
+  try{
+   const response=await fetch('/api/cuponera',{method:'POST',headers:{'X-INVEX-Token':local.token,'X-File-Name':encodeURIComponent(file.name),'Content-Type':'application/octet-stream'},body:file});const reply=await response.json();if(!response.ok)throw new Error(reply.message||'No se pudo iniciar la carga');
+   for(;;){await new Promise(resolve=>setTimeout(resolve,1000));const current=await fetch('/api/cuponera/estado',{headers:{'X-INVEX-Token':local.token},cache:'no-store'});if(!current.ok)throw new Error('No se pudo consultar el cargador local. Mantén su ventana abierta.');const job=await current.json();status.textContent=job.message;
+    if(job.status==='error')throw new Error(job.message);
+    if(job.status==='complete'){
+     refresh(job.programs);options.source.programs=job.programs;options.onUpdated(job.programs);status.textContent=job.message+' Datos de '+job.programs.dates[0]+' al '+job.programs.dates.at(-1)+'.';break;
+    }
+   }
+  }catch(error){status.textContent=error.message||'No se completó la carga. Revisa el cargador local.';}
+  finally{input.disabled=false;button.disabled=!input.files.length;}
+ });
+}
+window.INVEX_CUPONERA_UPLOAD={mount};
+})();
+</script>
+<script>'use strict';
 (() => {
 const source=window.INVEX_DATA?.productiveHours;
 if(!source)return;
@@ -508,6 +545,7 @@ const productivityComparison=panel('Productividad por hora','Mismo cálculo que 
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
 const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉDULAS'),make('p','Compara las CÉDULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
+const uploadHost=make('div');imagePanel.insertBefore(uploadHost,imageCards);window.INVEX_CUPONERA_UPLOAD?.mount(uploadHost,{source,onUpdated:()=>draw()});
 
 function combo(target,items){
  const showLine=approvals.value!=='income';target.replaceChildren();const legend=make('p',undefined,'productivity-legend');legend.append(make('span','Barras: ingresos','legend-income'),make('span',showLine?'Línea: '+metricName():'Solo ingresos','legend-approved'));target.append(legend);

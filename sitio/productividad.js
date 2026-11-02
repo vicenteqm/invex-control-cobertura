@@ -63,6 +63,7 @@ const productivityComparison=panel('Productividad por hora','Mismo cálculo que 
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
 const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉDULAS'),make('p','Compara las CÉDULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
+const uploadHost=make('div');imagePanel.insertBefore(uploadHost,imageCards);window.INVEX_CUPONERA_UPLOAD?.mount(uploadHost,{source,onUpdated:()=>draw()});
 
 function combo(target,items){
  const showLine=approvals.value!=='income';target.replaceChildren();const legend=make('p',undefined,'productivity-legend');legend.append(make('span','Barras: ingresos','legend-income'),make('span',showLine?'Línea: '+metricName():'Solo ingresos','legend-approved'));target.append(legend);
