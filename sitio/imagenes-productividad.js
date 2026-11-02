@@ -44,40 +44,41 @@ async function downloadComparison(groups,context){
  try{await logoInvex.decode();}catch{alert('No fue posible cargar el logo de INVEX. Vuelve a cargar la página.');return;}
  const metricLabel=context.metric==='standard'?'Aprobadas':labels[context.metric];
  const canvas=document.createElement('canvas'),count=Math.max(1,...groups.map(g=>g.rows.length));canvas.width=1800;canvas.height=708+count*112;const ctx=canvas.getContext('2d');
- const text=(v,x,y,size=20,color='#20202a',weight='normal',align='left')=>{ctx.font=weight+' '+size+'px Calibri, Arial';ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(String(v),x,y);};
+ const text=(v,x,y,size=20,color='#111111',weight='normal',align='left')=>{ctx.font=weight+' '+size+'px Calibri, Arial';ctx.fillStyle=color;ctx.textAlign=align;ctx.fillText(String(v),x,y);};
  const box=(x,y,w,h,color,r=14)=>{ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill();};
- function wrapped(v,x,y,width,size=19,maxLines=4,color='#20202a'){const lines=[];let line='';ctx.font='bold '+size+'px Calibri, Arial';for(const word of v.split(' ')){if(line&&ctx.measureText(line+' '+word).width>width){lines.push(line);line=word;}else line+=(line?' ':'')+word;}if(line)lines.push(line);lines.slice(0,maxLines).forEach((l,i)=>text(l,x,y+i*(size+4),size,color,'bold'));}
- const bg=ctx.createLinearGradient(0,0,1800,canvas.height);bg.addColorStop(0,'#171323');bg.addColorStop(1,'#0c0b13');ctx.fillStyle=bg;ctx.fillRect(0,0,1800,canvas.height);
- for(let i=0;i<24;i++){ctx.fillStyle=i%2?'#ffffff06':'#ffb66a0c';ctx.fillRect(1420+(i%8)*40,20+Math.floor(i/8)*35,14,14);}
- const glow=ctx.createRadialGradient(160,110,0,160,110,600);glow.addColorStop(0,'#d279312f');glow.addColorStop(1,'#d2793100');ctx.fillStyle=glow;ctx.fillRect(0,0,900,500);
- const blueGlow=ctx.createRadialGradient(1680,100,0,1680,100,550);blueGlow.addColorStop(0,'#53bfd52b');blueGlow.addColorStop(1,'#53bfd500');ctx.fillStyle=blueGlow;ctx.fillRect(900,0,900,500);
+ function wrapped(v,x,y,width,size=19,maxLines=4,color='#111111'){const lines=[];let line='';ctx.font='bold '+size+'px Calibri, Arial';for(const word of v.split(' ')){if(line&&ctx.measureText(line+' '+word).width>width){lines.push(line);line=word;}else line+=(line?' ':'')+word;}if(line)lines.push(line);lines.slice(0,maxLines).forEach((l,i)=>text(l,x,y+i*(size+4),size,color,'bold'));}
+ const bg=ctx.createLinearGradient(0,0,1800,canvas.height);bg.addColorStop(0,'#111111');bg.addColorStop(1,'#050505');ctx.fillStyle=bg;ctx.fillRect(0,0,1800,canvas.height);
+ for(let i=0;i<24;i++){ctx.fillStyle=i%2?'#ffffff06':'#ff3b941a';ctx.fillRect(1420+(i%8)*40,20+Math.floor(i/8)*35,14,14);}
+ const glow=ctx.createRadialGradient(160,110,0,160,110,600);glow.addColorStop(0,'#ff2c8d42');glow.addColorStop(1,'#ff2c8d00');ctx.fillStyle=glow;ctx.fillRect(0,0,900,500);
+ const blueGlow=ctx.createRadialGradient(1680,100,0,1680,100,550);blueGlow.addColorStop(0,'#ff77b63b');blueGlow.addColorStop(1,'#ff77b600');ctx.fillStyle=blueGlow;ctx.fillRect(900,0,900,500);
  ctx.drawImage(logoInvex,782.5,22,235,70);
- ctx.strokeStyle='#94749c66';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(430,66);ctx.lineTo(720,66);ctx.moveTo(1080,66);ctx.lineTo(1370,66);ctx.stroke();
+ ctx.strokeStyle='#ff5aa27a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(430,66);ctx.lineTo(720,66);ctx.moveTo(1080,66);ctx.lineTo(1370,66);ctx.stroke();
  text('COMPETENCIA ENTRE CÉDULAS',900,142,39,'#fff','bold','center');
- text('RANKING DE PRODUCTIVIDAD',900,176,18,'#d7c5e3','bold','center');
- box(467,195,535,44,'#30263e',8);text(context.from+' al '+context.to+'   |   09:00–19:59',734.5,225,22,'#f5eefb','normal','center');
- box(1018,195,315,44,'#493249',8);text(metricLabel.toUpperCase(),1175.5,225,21,'#ffce94','bold','center');
+ text('RANKING DE PRODUCTIVIDAD',900,176,18,'#ff9bc9','bold','center');
+ box(467,195,535,44,'#21151c',8);text(context.from+' al '+context.to+'   |   09:00–19:59',734.5,225,22,'#ffffff','normal','center');
+ box(1018,195,315,44,'#ff4a9c',8);text(metricLabel.toUpperCase(),1175.5,225,21,'#0d0d0d','bold','center');
+ ctx.fillStyle='#ff4299';ctx.fillRect(40,137,295,4);ctx.fillRect(1465,137,295,4);
  const widths=[54,325,85,115,115,145];
  ctx.save();ctx.translate(0,60);
- groups.forEach((g,n)=>{const x=38+n*885,w=839,accent=n?'#71cfdf':'#ffca55',soft=n?'#e4f5f8':'#fff2c9';
-  box(x,210,w,canvas.height-368,'#f8f7fa',20);box(x,210,w,55,accent,14);ctx.fillStyle=accent;ctx.fillRect(x,242,w,23);text(g.partner==='WM'?'WALMART':'SAMS',x+22,247,28,'#17212b','bold');text(g.rows.length+' CÉDULAS',x+w-22,245,18,'#17212b','bold','right');
+ groups.forEach((g,n)=>{const x=38+n*885,w=839,accent=n?'#ff8fbd':'#ff4299',soft=n?'#ffe5f0':'#ffe5f0';
+  box(x,210,w,canvas.height-368,'#ffffff',20);box(x,210,w,55,accent,14);ctx.fillStyle=accent;ctx.fillRect(x,242,w,23);text(g.partner==='WM'?'WALMART':'SAMS',x+22,247,28,'#111111','bold');text(g.rows.length+' CÉDULAS',x+w-22,245,18,'#111111','bold','right');
   const lead=g.rows[0];box(x+18,283,w-36,135,soft,12);ctx.strokeStyle=accent;ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x+18,283,w-36,135,12);ctx.stroke();
-  text(lead?'PRIMER LUGAR':'SIN REGISTROS',x+35,312,16,'#665e50','bold');
-  if(lead){wrapped(lead.name,x+35,345,505,21,3);text(context.metric==='income'?fmt(lead.income):fmt(100*lead.rate)+'%',x+w-35,359,48,'#17212b','bold','right');text(lead.stores+' tiendas · '+fmt(lead.numerator)+' '+metricLabel.toLowerCase(),x+w-35,394,18,'#665e50','normal','right');}
-  if(lead)text('P0: '+programText(lead.programs,'p0')+'   ·   AHORRA+: '+programText(lead.programs,'ahorra'),x+35,394,18,'#665e50','bold');
-  let left=x;['POS.','CÉDULA / REGIONES','TIENDAS','INGRESOS',metricLabel.toUpperCase(),context.metric==='income'?'VOLUMEN':'PRODUCTIVIDAD'].forEach((h,j)=>{text(h,left+widths[j]/2,451,j===4||j===5?14:15,'#797181','bold','center');left+=widths[j];});
+  text(lead?'PRIMER LUGAR':'SIN REGISTROS',x+35,312,16,'#644451','bold');
+  if(lead){wrapped(lead.name,x+35,345,505,21,3);text(context.metric==='income'?fmt(lead.income):fmt(100*lead.rate)+'%',x+w-35,359,54,'#111111','bold','right');text(lead.stores+' tiendas · '+fmt(lead.numerator)+' '+metricLabel.toLowerCase(),x+w-35,394,18,'#644451','normal','right');}
+  if(lead)text('P0: '+programText(lead.programs,'p0')+'   ·   AHORRA+: '+programText(lead.programs,'ahorra'),x+35,394,18,'#644451','bold');
+  let left=x;['POS.','CÉDULA / REGIONES','TIENDAS','INGRESOS',metricLabel.toUpperCase(),context.metric==='income'?'VOLUMEN':'PRODUCTIVIDAD'].forEach((h,j)=>{text(h,left+widths[j]/2,451,j===4||j===5?14:15,'#74616b','bold','center');left+=widths[j];});
   const top=lead?.score||1;
-  g.rows.forEach((r,i)=>{const y=470+i*112;box(x+12,y,w-24,103,r.rank===1?soft:i%2?'#eeedf2':'#fff',9);box(x+23,y+22,33,33,r.rank===1?accent:r.rank===2?'#c8ced9':r.rank===3?'#ddbaa0':'#e3e1e8',7);text(r.rank,x+39,y+46,20,'#20202a','bold','center');wrapped(r.name,x+68,y+28,306,18,3);
-   let dx=x+widths[0]+widths[1];for(const [j,v]of [fmt(r.stores),fmt(r.income),fmt(r.numerator),context.metric==='income'?fmt(r.income):fmt(100*r.rate)+'%'].entries()){text(v,dx+widths[j+2]/2,y+44,j===3?25:22,'#20202a',j===3?'bold':'normal','center');dx+=widths[j+2];}
-   text('P0: '+programText(r.programs,'p0')+'     AHORRA+: '+programText(r.programs,'ahorra'),x+68,y+94,16,'#675e72','bold');
-   box(x+68,y+100,w-95,3,'#dfdce5',1);if(r.score>0)box(x+68,y+100,(w-95)*r.score/top,3,r.rank<=3?accent:'#b5aebf',1);
+  g.rows.forEach((r,i)=>{const y=470+i*112;box(x+12,y,w-24,103,r.rank===1?soft:i%2?'#fff5f9':'#fff',9);if(r.rank===1)box(x+12,y+10,5,83,accent,2);box(x+18,y+18,43,43,r.rank===1?accent:r.rank===2?'#ffbbd7':r.rank===3?'#ffdae9':'#f1e7ec',7);text(r.rank,x+39.5,y+47,23,'#111111','bold','center');wrapped(r.name,x+68,y+28,306,18,3);
+   let dx=x+widths[0]+widths[1];for(const [j,v]of [fmt(r.stores),fmt(r.income),fmt(r.numerator),context.metric==='income'?fmt(r.income):fmt(100*r.rate)+'%'].entries()){text(v,dx+widths[j+2]/2,y+44,j===3?28:22,'#111111',j===3?'bold':'normal','center');dx+=widths[j+2];}
+   text('P0: '+programText(r.programs,'p0')+'     AHORRA+: '+programText(r.programs,'ahorra'),x+68,y+94,16,'#825b6f','bold');
+   box(x+68,y+100,w-95,3,'#f2e2ea',1);if(r.score>0)box(x+68,y+100,(w-95)*r.score/top,3,r.rank<=3?accent:'#e1c4d2',1);
   });
  });
  ctx.restore();
- text('Tiendas operando · '+(context.metric==='income'?'Mayor volumen de ingresos':'Porcentaje = '+metricLabel.toLowerCase()+' / ingresos')+' · Empates comparten posición',38,canvas.height-72,19,'#d0c4dc');
+ text('Tiendas operando · '+(context.metric==='income'?'Mayor volumen de ingresos':'Porcentaje = '+metricLabel.toLowerCase()+' / ingresos')+' · Empates comparten posición',38,canvas.height-72,19,'#f5d7e6');
  const programDates=[...new Set(groups.flatMap(g=>g.rows.flatMap(r=>r.programs.dates)))].sort();
- text('P0 y Ahorra+: día completo · '+(programDates.length?'Datos del '+programDates[0]+' al '+programDates.at(-1):'Sin datos en el rango seleccionado')+' · * Cobertura parcial del periodo o de las tiendas',38,canvas.height-44,17,'#d0c4dc');
- text('Fuente: '+context.source.sourceName+' · Corte: '+(context.source.lastRecordAt||'Sin fecha').replace('T',' ')+((context.programsOverride||context.source.programs)?.sourceName?' · P0/Ahorra+: '+(context.programsOverride||context.source.programs).sourceName:''),38,canvas.height-17,17,'#a598b2');
+ text('P0 y Ahorra+: día completo · '+(programDates.length?'Datos del '+programDates[0]+' al '+programDates.at(-1):'Sin datos en el rango seleccionado')+' · * Cobertura parcial del periodo o de las tiendas',38,canvas.height-44,17,'#f5d7e6');
+ text('Fuente: '+context.source.sourceName+' · Corte: '+(context.source.lastRecordAt||'Sin fecha').replace('T',' ')+((context.programsOverride||context.source.programs)?.sourceName?' · P0/Ahorra+: '+(context.programsOverride||context.source.programs).sourceName:''),38,canvas.height-17,17,'#d7a9be');
  canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='INVEX_Comparativa_CEDULAS_'+context.metric+'_'+context.from+'_'+context.to+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');
 }
 function render(target,context){
