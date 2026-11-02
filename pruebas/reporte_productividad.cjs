@@ -26,3 +26,8 @@ assert.ok(sheets[4].rows.some(r=>r[1]==='WM 2 · TIENDA'&&r[4]===.29));
 assert.ok(!sheets[4].rows.some(r=>r[1]==='WM 1 · TIENDA'));
 assert.ok(sheets[6].rows.every(r=>r[1]==='Sin asignar'));
 console.log('Desgloses independientes por tienda, CÉLULA, Team Leader y región verificados.');
+
+const small=build([row('WM 890','18:00',1,1,0,1)],{from:'2026-10-01',to:'2026-10-31',hasApprovals:true,hasFinalized:true,sourceName:'PRUEBA'})[4];
+assert.equal(small.rows[0][4],1);assert.equal(small.rows[0][5],1);assert.equal(small.rows[0][7],1);assert.equal(small.rows[0][8],'POCOS REGISTROS (<10 ingresos)');
+assert.equal(sheets[1].rows[0][4],200);assert.equal(sheets[1].rows[0][6],57);assert.equal(sheets[1].rows[0][7],'10 O MÁS INGRESOS');
+console.log('Porcentaje con numerador, denominador y señal de pocos registros verificados.');

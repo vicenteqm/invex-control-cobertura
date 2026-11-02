@@ -326,16 +326,16 @@ function weekdaySchedule(rows,context,dimension){
  const groupName=r=>dimension==='tienda'?r[5]+' · '+r[6]:dimension==='celula'?[...(regions.get(r[2])||[])].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})).join(' / '):dimension==='team'?(r[14]||'Sin asignar'):dimension==='region'?(r[3]||'Sin región'):'';
  const buckets=new Map(),days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
  for(const row of rows){const date=String(row[0]),hour=Number(String(row[7]).slice(0,2)),partner=String(row[5]).startsWith('SAMS ')?'SAMS':String(row[5]).startsWith('WM ')?'WALMART':null;if(!partner||date<context.from||date>context.to||hour<9||hour>19)continue;
-  const weekday=new Date(date+'T12:00:00Z').getUTCDay(),group=groupName(row),key=JSON.stringify([partner,group,weekday,hour]);let b=buckets.get(key);if(!b){b={partner,group,weekday,hour,income:0,numerator:0};buckets.set(key,b);}b.income+=row[8]||0;b.numerator+=(partner==='WALMART'?row[11]:row[9])||0;
+  const weekday=new Date(date+'T12:00:00Z').getUTCDay(),group=groupName(row),key=JSON.stringify([partner,group,weekday,hour]);let b=buckets.get(key);if(!b){b={partner,group,weekday,hour,income:0,numerator:0,approved:0,finalized:0};buckets.set(key,b);}b.income+=row[8]||0;b.approved+=row[9]||0;b.finalized+=row[11]||0;b.numerator+=(partner==='WALMART'?row[11]:row[9])||0;
  }
  const output=[];
  for(const partner of ['WALMART','SAMS'])for(const group of [...new Set([...buckets.values()].filter(b=>b.partner===partner).map(b=>b.group))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})))for(const weekday of [1,2,3,4,5,6,0]){
   const values=[...buckets.values()].filter(b=>b.partner===partner&&b.group===group&&b.weekday===weekday&&b.income>0&&(partner==='WALMART'?context.hasFinalized:context.hasApprovals));
   const max=Math.max(0,...values.map(b=>b.numerator/b.income));
   const productive=values.filter(b=>partner==='WALMART'?b.numerator/b.income>.28:max>0&&Math.abs(b.numerator/b.income-max)<1e-12).sort((a,b)=>b.numerator/b.income-a.numerator/a.income||a.hour-b.hour);
-  for(const b of productive)output.push([partner,...(dimension?[group]:[]),days[weekday],String(b.hour).padStart(2,'0')+':00 - '+String(b.hour).padStart(2,'0')+':59',b.numerator/b.income]);
+  for(const b of productive)output.push([partner,...(dimension?[group]:[]),days[weekday],String(b.hour).padStart(2,'0')+':00 - '+String(b.hour).padStart(2,'0')+':59',b.numerator/b.income,b.income,context.hasApprovals?b.approved:null,context.hasFinalized?b.finalized:null,b.income<10?'POCOS REGISTROS (<10 ingresos)':'10 O MÁS INGRESOS']);
  }
- return {name:dimension?'HORARIOS '+dimensions[dimension][0]:'HORARIOS POR DÍA',headers:['Socio',...(dimension?[dimensions[dimension][1]]:[]),'Día de la semana','Horario productivo','Productividad %'],rows:output,percentColumns:[dimension?4:3]};
+ return {name:dimension?'HORARIOS '+dimensions[dimension][0]:'HORARIOS POR DÍA',headers:['Socio',...(dimension?[dimensions[dimension][1]]:[]),'Día de la semana','Horario productivo','Productividad %','Ingresos','Aprobadas','Aprobadas finalizadas','Volumen de muestra'],rows:output,percentColumns:[dimension?4:3]};
 }
 function summary(sheets,context,serial){
  const start=serial(context.from),end=serial(context.to),first=context.from.slice(0,7)+'-01',monthEnd=new Date(Date.UTC(Number(first.slice(0,4)),Number(first.slice(5,7)),0)).toISOString().slice(0,10);
