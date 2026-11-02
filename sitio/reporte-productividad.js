@@ -29,7 +29,21 @@ function build(rows,context){
   const sheetHeaders=headers.map((h,i)=>i===12?'Aprobadas %':h);if(partner==='SAMS'){sheetHeaders.splice(10,1);sheetHeaders[8]='Aprobadas';sheetHeaders[9]='Garantizadas';}
   sheets.push({name:label,headers:sheetHeaders,rows:output,percentColumns:partner==='WM'?[12,13]:[11,12],dateColumns:[0]});
  }
- return [summary(sheets,context,serial),...sheets];
+ return [summary(sheets,context,serial),weekdaySchedule(rows,context),...sheets];
+}
+function weekdaySchedule(rows,context){
+ const buckets=new Map(),days=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+ for(const row of rows){const date=String(row[0]),hour=Number(String(row[7]).slice(0,2)),partner=String(row[5]).startsWith('SAMS ')?'SAMS':String(row[5]).startsWith('WM ')?'WALMART':null;if(!partner||date<context.from||date>context.to||hour<9||hour>19)continue;
+  const weekday=new Date(date+'T12:00:00Z').getUTCDay(),key=partner+'|'+weekday+'|'+hour;let b=buckets.get(key);if(!b){b={partner,weekday,hour,income:0,numerator:0};buckets.set(key,b);}b.income+=row[8]||0;b.numerator+=(partner==='WALMART'?row[11]:row[9])||0;
+ }
+ const output=[];
+ for(const partner of ['WALMART','SAMS'])for(const weekday of [1,2,3,4,5,6,0]){
+  const values=[...buckets.values()].filter(b=>b.partner===partner&&b.weekday===weekday&&b.income>0&&(partner==='WALMART'?context.hasFinalized:context.hasApprovals));
+  const max=Math.max(0,...values.map(b=>b.numerator/b.income));
+  const productive=values.filter(b=>partner==='WALMART'?b.numerator/b.income>.28:max>0&&Math.abs(b.numerator/b.income-max)<1e-12).sort((a,b)=>b.numerator/b.income-a.numerator/a.income||a.hour-b.hour);
+  for(const b of productive)output.push([partner,days[weekday],String(b.hour).padStart(2,'0')+':00 - '+String(b.hour).padStart(2,'0')+':59',b.numerator/b.income]);
+ }
+ return {name:'HORARIOS POR DÍA',headers:['Socio','Día de la semana','Horario productivo','Productividad %'],rows:output,percentColumns:[3]};
 }
 function summary(sheets,context,serial){
  const start=serial(context.from),end=serial(context.to),first=context.from.slice(0,7)+'-01',monthEnd=new Date(Date.UTC(Number(first.slice(0,4)),Number(first.slice(5,7)),0)).toISOString().slice(0,10);
