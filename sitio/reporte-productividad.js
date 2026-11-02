@@ -8,7 +8,7 @@ function build(rows,context){
   h.income+=row[8]||0;if(h.standard!==null)h.standard+=row[9]||0;if(h.guaranteed!==null)h.guaranteed+=row[10]||0;if(h.finalized!==null)h.finalized+=row[11]||0;
  }
  const serial=date=>Date.parse(date+'T00:00:00Z')/86400000+25569;
- const headers=['Fecha','Tienda','Determinante','Región','CPRO','CÉLULA','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas totales','Aprobadas finalizadas','Aprobación %','Productividad finalizada %','Evaluación'];
+ const headers=['Fecha','Tienda','Determinante','Región','CPRO','CÉLULA','Hora','Ingresos','Aprobadas','Aprobadas con garantía','Aprobadas totales','Aprobadas finalizadas','Aprobación %','Productividad finalizada %','Evaluación'];
  const sheets=[];
  for(const [partner,label]of [['WM','WALMART'],['SAMS','SAMS']]){
   const output=[];
@@ -26,7 +26,7 @@ function build(rows,context){
     const row=[serial(s.date),s.name,s.id,s.region,s.cpro,s.executive,hour,h.income,h.standard,h.guaranteed,approved,h.finalized,approvalRate,finalRate,evaluated?(productive?'PRODUCTIVA':'NO PRODUCTIVA'):null];if(partner==='SAMS')row.splice(10,1);output.push(row);
    }
   }
-  const sheetHeaders=headers.map((h,i)=>i===12?'Aprobadas sin garantía %':h);if(partner==='SAMS'){sheetHeaders.splice(10,1);sheetHeaders[8]='Aprobadas';sheetHeaders[9]='Garantizadas';}
+  const sheetHeaders=headers.map((h,i)=>i===12?'Aprobadas %':h);if(partner==='SAMS'){sheetHeaders.splice(10,1);sheetHeaders[8]='Aprobadas';sheetHeaders[9]='Garantizadas';}
   sheets.push({name:label,headers:sheetHeaders,rows:output,percentColumns:partner==='WM'?[12,13]:[11,12],dateColumns:[0]});
  }
  return [summary(sheets,context,serial),...sheets];
@@ -43,7 +43,7 @@ function summary(sheets,context,serial){
  for(let chain=0;chain<2;chain++){
   const sheet=sheets[chain],offset=chain*8,prefix=chain===0?'WALMART':'SAMS',cols=chain===0?['A','B','C','D','E','F','G']:['I','J','K','L','M','N','O'];
   cells[4][offset]=prefix+(chain===0?' · Finalizadas / ingresos > 28%':' · Máximo de aprobación por hora');
-  ['Hora','Ingresos','Aprobadas sin garantía','Aprobadas finalizadas','Aprobadas sin garantía %','Finalizadas %','Evaluación'].forEach((v,j)=>cells[5][offset+j]=v);
+  ['Hora','Ingresos','Aprobadas','Aprobadas finalizadas','Aprobadas %','Finalizadas %','Evaluación'].forEach((v,j)=>cells[5][offset+j]=v);
   const last=Math.max(2,sheet.rows.length+1),ref=col=>"'"+sheet.name+"'!$"+col+'$2:$'+col+'$'+last;
   const values=hours.map(hour=>{const records=sheet.rows.filter(r=>r[6]===hour&&r[0]>=start&&r[0]<=end);return {income:records.reduce((a,r)=>a+r[7],0),approved:context.hasApprovals?records.reduce((a,r)=>a+r[8],0):null,finalized:context.hasFinalized?records.reduce((a,r)=>a+r[chain===0?11:10],0):null};});
   const maximum=Math.max(0,...values.map(v=>v.income&&v.approved!==null?v.approved/v.income:0));
@@ -58,12 +58,12 @@ function summary(sheets,context,serial){
   const total=values.reduce((a,v)=>a+v.income,0);for(let j=4;j<=5;j++){const key=j===4?'approved':'finalized';cells[17][offset+j]={formula:'IFERROR('+cols[j-2]+'18/'+cols[1]+'18,"")',value:total&&values[0][key]!==null?values.reduce((a,v)=>a+v[key],0)/total:null};}
   cells[19][offset]='Hora de mayor productividad';const metric=chain===0?'finalized':'approved',rates=values.map(v=>v.income&&v[metric]!==null?v[metric]/v.income:0),best=Math.max(...rates),metricCol=chain===0?cols[5]:cols[4];
   cells[19][offset+1]={formula:'IF(MAX('+metricCol+'7:'+metricCol+'17)<=0,"Sin actividad",INDEX('+cols[0]+'7:'+cols[0]+'17,MATCH(MAX('+metricCol+'7:'+metricCol+'17),'+metricCol+'7:'+metricCol+'17,0)))',value:best>0?hours[rates.indexOf(best)]:'Sin actividad'};
-  charts.push({title:prefix+' · Horas productivas',categories:hours,categoryRef:"'RESUMEN'!$"+cols[0]+'$7:$'+cols[0]+'$17',series:[{name:'Ingresos',ref:"'RESUMEN'!$"+cols[1]+'$7:$'+cols[1]+'$17',values:values.map(v=>v.income)},{name:chain===0?'Aprobadas finalizadas':'Aprobadas sin garantía',ref:"'RESUMEN'!$"+cols[chain===0?3:2]+'$7:$'+cols[chain===0?3:2]+'$17',values:values.map(v=>v[metric]||0)}],fromCol:offset,fromRow:22,toCol:offset+7,toRow:40});
-  if(chain===0)charts[charts.length-1].series.splice(1,0,{name:'Aprobadas sin garantía',ref:"'RESUMEN'!$C$7:$C$17",values:values.map(v=>v.approved||0)});
+  charts.push({title:prefix+' · Horas productivas',categories:hours,categoryRef:"'RESUMEN'!$"+cols[0]+'$7:$'+cols[0]+'$17',series:[{name:'Ingresos',ref:"'RESUMEN'!$"+cols[1]+'$7:$'+cols[1]+'$17',values:values.map(v=>v.income)},{name:chain===0?'Aprobadas finalizadas':'Aprobadas',ref:"'RESUMEN'!$"+cols[chain===0?3:2]+'$7:$'+cols[chain===0?3:2]+'$17',values:values.map(v=>v[metric]||0)}],fromCol:offset,fromRow:22,toCol:offset+7,toRow:40});
+  if(chain===0)charts[charts.length-1].series.splice(1,0,{name:'Aprobadas',ref:"'RESUMEN'!$C$7:$C$17",values:values.map(v=>v.approved||0)});
   const rateCol=chain===0?cols[5]:cols[4];charts.push({title:prefix+(chain===0?' · Productividad finalizada %':' · Aprobación por hora %'),percent:true,categories:hours,categoryRef:"'RESUMEN'!$"+cols[0]+'$7:$'+cols[0]+'$17',series:[{name:chain===0?'Finalizadas / ingresos':'Aprobadas / ingresos',ref:"'RESUMEN'!$"+rateCol+'$7:$'+rateCol+'$17',values:values.map(v=>v.income&&v[metric]!==null?v[metric]/v.income:0)}],fromCol:offset,fromRow:42,toCol:offset+7,toRow:60});
-  if(chain===0){charts[charts.length-1].title='WALMART · Aprobadas y finalizadas %';charts[charts.length-1].series.unshift({name:'Aprobadas sin garantía / ingresos',ref:"'RESUMEN'!$E$7:$E$17",values:values.map(v=>v.income&&v.approved!==null?v.approved/v.income:0)});}
+  if(chain===0){charts[charts.length-1].title='WALMART · Aprobadas y finalizadas %';charts[charts.length-1].series.unshift({name:'Aprobadas / ingresos',ref:"'RESUMEN'!$E$7:$E$17",values:values.map(v=>v.income&&v.approved!==null?v.approved/v.income:0)});}
  }
- cells[20][0]='Walmart: aprobadas sin garantía / ingresos y finalizadas / ingresos. Evaluación por finalizadas > 28%. SAMS: máximo de aprobación sin garantía; las garantizadas se muestran por separado. Fuente: '+context.sourceName;
+ cells[20][0]='Walmart: aprobadas / ingresos y finalizadas / ingresos. Evaluación por finalizadas > 28%. SAMS: máximo de aprobación; las garantizadas se muestran por separado. Fuente: '+context.sourceName;
  return {name:'RESUMEN',grid:cells,headers:Array(15).fill(''),rows:[],headerRows:[0,4,5,17],dateCells:['B3','D3'],percentCells:Array.from({length:12},(_,i)=>['E','F','M','N'].map(c=>c+(i+7))).flat(),mergeRanges:['A1:O1','A2:O2','A4:O4','A5:G5','I5:O5','A21:O21'],freezeRows:0,zoom:85,charts,monthMin:serial(first),monthMax:serial(monthEnd)};
 }
 window.INVEX_PRODUCTIVITY_REPORT={build};

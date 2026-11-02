@@ -17,13 +17,13 @@ const monthSelect=make('select');monthSelect.setAttribute('aria-label','Mes de c
 for(const period of Object.keys(history).sort().reverse()){const date=new Date(period+'-01T12:00:00');monthSelect.append(new Option(date.toLocaleDateString('es-MX',{month:'long',year:'numeric'}),period));}
 monthSelect.value=source.period;monthLabel.append(monthSelect);
 monthSelect.addEventListener('change',()=>{source=history[monthSelect.value];mount();});
-function mount(){section.replaceChildren(heading,monthLabel);
+function mount(){section.replaceChildren(heading);
 if(source.status!=='available'){const box=make('article',undefined,'panel');box.append(make('h3',source.status==='error'?'Revisar archivo de productividad':'Sin datos de productividad para este mes'),make('p',source.message||'Ejecuta la actualización con el Excel de horas productivas.'));section.append(box);return;}
 const operatingStores=source.stores.filter(s=>String(s.status||'').trim().toUpperCase()==='OPERANDO');
 const number=n=>new Intl.NumberFormat('es-MX',{maximumFractionDigits:1}).format(n);
 const dayDate=day=>source.period+'-'+String(day).padStart(2,'0');
 const intro=make('div',undefined,'productivity-intro');intro.append(make('p','Volumen de ingresos registrados en cada franja horaria. Cada ingreso corresponde a un registro del Excel; no representa un importe monetario ni horas trabajadas.'),make('small','Fuente: '+source.sourceName+' · Última hoja disponible: '+dayDate(source.lastDay)+' · Archivo modificado: '+new Date(source.sourceModifiedAt).toLocaleString('es-MX',{timeZone:'America/Mexico_City'})));section.append(intro);
-const filters=make('div',undefined,'productivity-filters');
+const filters=make('div',undefined,'productivity-filters');filters.append(monthLabel);
 function control(title,node){node.setAttribute('aria-label',title);const label=make('label');label.append(make('span',title),node);filters.append(label);return node;}
 const from=control('Desde',make('input'));from.type='date';from.min=dayDate(1);from.max=dayDate(source.daysInMonth);from.value=dayDate(1);
 const to=control('Hasta',make('input'));to.type='date';to.min=from.min;to.max=from.max;to.value=to.max;
@@ -54,11 +54,11 @@ function updateFilters(changed){
 updateFilters();
 const reset=make('button','Limpiar filtros');reset.type='button';filters.append(reset);section.append(filters);
 const approvals=control('Productividad por',make('select'));
-for(const [value,label,available]of [['income','Ingresos',true],['standard','Aprobadas (sin garantía)',source.hasApprovals],['guaranteed','Garantizadas',source.hasApprovals],['finalized','Finalizadas',source.hasFinalized]]){const option=new Option(label,value);option.disabled=!available;approvals.append(option);}approvals.value=source.hasApprovals?'standard':'income';
-const metricName=()=>({income:'ingresos',standard:'aprobadas sin garantía',guaranteed:'garantizadas',finalized:'finalizadas'})[approvals.value];
+for(const [value,label,available]of [['income','Ingresos',true],['standard','Aprobadas',source.hasApprovals],['guaranteed','Garantizadas',source.hasApprovals],['finalized','Finalizadas',source.hasFinalized]]){const option=new Option(label,value);option.disabled=!available;approvals.append(option);}approvals.value=source.hasApprovals?'standard':'income';
+const metricName=()=>({income:'ingresos',standard:'aprobadas',guaranteed:'garantizadas',finalized:'finalizadas'})[approvals.value];
 const download=make('button','Descargar reporte de productividad');download.type='button';download.id='export-productivity';download.disabled=true;filters.append(download);
 let excelRows=[];
-const excelHeaders=['Fecha','CPRO','CÉLULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas sin garantía','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
+const excelHeaders=['Fecha','CPRO','CÉLULA','Región','Cadena','Determinante','Tienda','Hora','Ingresos','Aprobadas','Aprobadas con garantía','Aprobadas finalizadas','Aprobadas según filtro','Filtro de aprobadas'];
 download.addEventListener('click',()=>{if(download.disabled||!excelRows.length)return;window.INVEX_EXPORT.workbook(window.INVEX_PRODUCTIVITY_REPORT.build(excelRows,{from:from.value,to:to.value,hasApprovals:source.hasApprovals,hasFinalized:source.hasFinalized,sourceName:source.sourceName,hours:source.hours}),'INVEX_Reporte_productividad_'+from.value+'_al_'+to.value);});
 const error=make('p',undefined,'productivity-error');error.setAttribute('role','status');section.append(error);
 const kpis=make('div',undefined,'productivity-kpis');section.append(kpis);
@@ -68,7 +68,7 @@ const daily=panel('Ingresos por día','Mes completo. Las fechas fuera del rango 
 const hourly=panel('Distribución por hora','Ingresos acumulados dentro de las fechas y tiendas seleccionadas.');
 const ranking=panel('Tiendas con mayor volumen','Las diez tiendas con más ingresos en la consulta.');
 const heat=panel('Mapa de actividad por día y hora','Franjas de 09:00 a 19:59. Mayor intensidad indica más ingresos. — significa Sin datos; 0 es un valor reportado.',true);
-const productivityComparison=panel('Productividad por hora','Mismo cálculo que RESUMEN del Excel. Walmart: aprobadas sin garantía y finalizadas sobre ingresos; evaluación por finalizadas > 28%. SAMS: aprobación sin garantía y máximo por hora.',true);
+const productivityComparison=panel('Productividad por hora','Mismo cálculo que RESUMEN del Excel. Walmart: aprobadas y finalizadas sobre ingresos; evaluación por finalizadas > 28%. SAMS: aprobación y máximo por hora.',true);
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
 const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉLULAS'),make('p','Compara las CÉLULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
@@ -103,18 +103,18 @@ function draw(){
  }
  excelRows.sort((a,b)=>a[0].localeCompare(b[0])||a[5].localeCompare(b[5],'es',{numeric:true})||a[7].localeCompare(b[7]));
  download.disabled=!excelRows.length||!window.INVEX_EXPORT?.workbook||!window.INVEX_PRODUCTIVITY_REPORT?.build;
- download.title=excelRows.length?'Descarga resúmenes de Walmart y SAMS y su detalle horario, respetando fechas y tiendas. SAMS se evalúa únicamente con aprobadas sin garantía; las garantizadas permanecen separadas.':'Sin datos para exportar con estos filtros';
+ download.title=excelRows.length?'Descarga resúmenes de Walmart y SAMS y su detalle horario, respetando fechas y tiendas. SAMS se evalúa únicamente con aprobadas; las garantizadas permanecen separadas.':'Sin datos para exportar con estos filtros';
 
- const dayHours={},approvedHours={},hourApproved=source.hours.map(()=>0),hourTotals=source.hours.map(()=>0),storeTotals=[];let total=0,afternoon=0,observed=0;
+ const dayHours={},approvedHours={},hourApproved=source.hours.map(()=>0),hourTotals=source.hours.map(()=>0),storeTotals=[];let total=0,afternoon=0,approvedDayTotal=0,observed=0;
  for(let d=1;d<=source.daysInMonth;d++)if(source.capturedDays.includes(d)&&d>=start&&d<=end&&selected.some(s=>s.days[d]))dayHours[d]=source.hours.map(()=>0);
  for(const d of Object.keys(dayHours))approvedHours[d]=source.hours.map(()=>0);
  const breakdowns={approval:{},process:{},bank:{}};let finalizedTotal=0;
- for(const s of selected){let count=0,approved=0,finalized=0;const statuses={};for(const [d,values] of Object.entries(s.days)){if(!dayHours[d])continue;for(const [kind,categories] of Object.entries(s.metricsDays?.[d]||{}))for(const [label,n] of Object.entries(categories)){breakdowns[kind][label]=(breakdowns[kind][label]||0)+n;if(kind==='approval')statuses[label]=(statuses[label]||0)+n;}values.forEach((value,i)=>{const hour=Number(source.hours[i].slice(0,2));if(hour<9||hour>19)return;const f=s.finalizedDays?.[d]?.[i]||0;finalized+=f;finalizedTotal+=f;const a=approvals.value==='income'?value:approvals.value==='finalized'?f:approvals.value==='guaranteed'?(s.guaranteedDays?.[d]?.[i]||0):(s.approvedDays?.[d]?.[i]||0);approvedHours[d][i]+=a;hourApproved[i]+=a;approved+=a;dayHours[d][i]+=value;hourTotals[i]+=value;count+=value;total+=value;if(Number(source.hours[i].slice(0,2))>=14)afternoon+=value;});}storeTotals.push({s,count,approved,finalized,statuses});}
+ for(const s of selected){let count=0,approved=0,finalized=0;const statuses={};for(const [d,values] of Object.entries(s.days)){if(!dayHours[d])continue;for(const [kind,categories] of Object.entries(s.metricsDays?.[d]||{}))for(const [label,n] of Object.entries(categories)){breakdowns[kind][label]=(breakdowns[kind][label]||0)+n;if(kind==='approval')statuses[label]=(statuses[label]||0)+n;}values.forEach((value,i)=>{const hour=Number(source.hours[i].slice(0,2));if(hour<9||hour>19)return;const f=s.finalizedDays?.[d]?.[i]||0;finalized+=f;finalizedTotal+=f;const a=approvals.value==='income'?value:approvals.value==='finalized'?f:approvals.value==='guaranteed'?(s.guaranteedDays?.[d]?.[i]||0):(s.approvedDays?.[d]?.[i]||0);approvedHours[d][i]+=a;hourApproved[i]+=a;approved+=a;dayHours[d][i]+=value;hourTotals[i]+=value;count+=value;total+=value;const standard=s.approvedDays?.[d]?.[i]||0;approvedDayTotal+=standard;if(hour>=14)afternoon+=standard;});}storeTotals.push({s,count,approved,finalized,statuses});}
  observed=Object.keys(dayHours).length;const maximum=Math.max(0,...hourTotals),peak=maximum>0?source.hours[hourTotals.indexOf(maximum)]:'Sin actividad';
  const productivityRanking=heatHours.map(({label,index})=>({hour:label,income:hourTotals[index],approved:hourApproved[index],rate:hourTotals[index]?hourApproved[index]/hourTotals[index]:null})).filter(r=>r.income>0).sort((a,b)=>(approvals.value==='income'?b.income-a.income:b.rate-a.rate)||b.income-a.income||a.hour.localeCompare(b.hour));
  const bestProductivity=productivityRanking[0];const incomeMode=approvals.value==='income';
  const metricLabel=metricName();
- kpis.replaceChildren();for(const [title,value,detail]of [['Hora con mayor productividad · '+metricLabel,bestProductivity?.hour||'Sin actividad',bestProductivity?(incomeMode?number(bestProductivity.income)+' ingresos':number(100*bestProductivity.rate)+'% · '+number(bestProductivity.approved)+' '+metricLabel+' / '+number(bestProductivity.income)+' ingresos'):'Sin ingresos en la consulta'],['Ingresos desde las 14:00',total?number(100*afternoon/total)+'%':'—',number(afternoon)+' ingresos']]){const card=make('article',undefined,'productivity-kpi');card.append(make('span',title),make('strong',value),make('small',detail));kpis.append(card);}
+ kpis.replaceChildren();for(const [title,value,detail]of [['Hora con mayor productividad · '+metricLabel,bestProductivity?.hour||'Sin actividad',bestProductivity?(incomeMode?number(bestProductivity.income)+' ingresos':number(100*bestProductivity.rate)+'% · '+number(bestProductivity.approved)+' '+metricLabel+' / '+number(bestProductivity.income)+' ingresos'):'Sin ingresos en la consulta'],['Aprobadas desde las 14:00',source.hasApprovals&&approvedDayTotal?number(100*afternoon/approvedDayTotal)+'%':'—',source.hasApprovals?number(afternoon)+' aprobadas de '+number(approvedDayTotal)+' del horario consultado':'Sin datos de aprobadas']]){const card=make('article',undefined,'productivity-kpi');card.append(make('span',title),make('strong',value),make('small',detail));kpis.append(card);}
  // Comparativa por franja: las dos tarjetas utilizan exactamente el mismo Top 5.
  const topHours=productivityRanking.slice(0,5).map(r=>({hour:r.hour,ingresos:r.income,aprobadas:r.approved}));
  function hoursKpi(title,description,approvalMode){
@@ -153,13 +153,13 @@ function draw(){
   for(const [index,label]of [[0,'WALMART'],[1,'SAMS']]){
    if(!report[index+1].rows.length)continue;
    productivityComparison.append(make('h4',label));const wrap=make('div',undefined,'table-wrap'),t=make('table'),head=make('thead'),hr=make('tr');
-   for(const h of ['Hora','Ingresos','Aprobadas sin garantía','Finalizadas',index===0?'Aprobadas sin garantía %':'Aprobación %','Finalizadas %','Evaluación'])hr.append(make('th',h));head.append(hr);t.append(head);const body=make('tbody');
+   for(const h of ['Hora','Ingresos','Aprobadas','Finalizadas',index===0?'Aprobadas %':'Aprobación %','Finalizadas %','Evaluación'])hr.append(make('th',h));head.append(hr);t.append(head);const body=make('tbody');
    for(let r=6;r<=17;r++){const tr=make('tr');for(let c=0;c<7;c++){const v=cell(summary.grid[r][index*8+c]);const td=make('td',v===null||v===undefined?'—':c===4||c===5?number(v*100)+'%':typeof v==='number'?number(v):v);tr.append(td);}body.append(tr);}t.append(body);wrap.append(t);productivityComparison.append(wrap);
   }
  }else productivityComparison.append(make('p','Sin datos para comparar con estos filtros.','note'));
  window.INVEX_PRODUCTIVITY_IMAGES?.render(imageCards,{stores:selected,comparisonStores:matching('cedula'),programsOverride:imageProgramsOverride,source,from:from.value,to:to.value,metric:approvals.value});
  const standardTotal=selected.reduce((acc,s)=>acc+Object.entries(s.approvedDays||{}).reduce((n,[d,values])=>n+(dayHours[d]?values.reduce((sum,v,i)=>sum+(heatHours.some(h=>h.index===i)?v:0),0):0),0),0);
- note.textContent+=' Horario de cálculo del HTML y Excel: 09:00 a 19:59. Ingresos: '+number(total)+'. Aprobadas sin garantía: '+(source.hasApprovals?number(standardTotal):'Sin datos')+'. Aprobadas finalizadas: '+(source.hasFinalized?number(finalizedTotal):'Sin datos')+'. Los porcentajes se obtienen dividiendo los totales, no sumando porcentajes horarios. El Excel conserva todos los días del mes; su RESUMEN inicia con las fechas seleccionadas aquí.';
+ note.textContent+=' Horario de cálculo del HTML y Excel: 09:00 a 19:59. Ingresos: '+number(total)+'. Aprobadas: '+(source.hasApprovals?number(standardTotal):'Sin datos')+'. Aprobadas finalizadas: '+(source.hasFinalized?number(finalizedTotal):'Sin datos')+'. Los porcentajes se obtienen dividiendo los totales, no sumando porcentajes horarios. El Excel conserva todos los días del mes; su RESUMEN inicia con las fechas seleccionadas aquí.';
 
 }
 for(const input of [cpro,cedula,region,chain,store])input.addEventListener('change',()=>{if(input===cpro||input===cedula){region.value='';chain.value='';store.value='';}else if(input===region){chain.value='';store.value='';}else if(input===chain){store.value='';}updateFilters(input);draw();});for(const input of [from,to,approvals])input.addEventListener('change',draw);reset.addEventListener('click',()=>{from.value=from.min;to.value=to.max;cpro.value='';cedula.value='';region.value='';chain.value='';store.value='';approvals.value=source.hasApprovals?'standard':'income';updateFilters();draw();});draw();
