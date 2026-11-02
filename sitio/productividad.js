@@ -1,6 +1,9 @@
 'use strict';
 (() => {
-const source=window.INVEX_DATA?.productiveHours;
+const currentSource=window.INVEX_DATA?.productiveHours;
+const history={...(window.INVEX_DATA?.productiveHoursHistory||{})};
+if(currentSource?.period)history[currentSource.period]=currentSource;
+let source=currentSource;
 if(!source)return;
 const make=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
 const section=make('section',undefined,'productivity-section');section.id='productividad';
@@ -9,6 +12,12 @@ document.getElementById('tiendas').before(section);
 const nav=document.querySelector('nav'),link=nav.querySelector('a[href="#productividad"]')||make('a','Horas productivas');link.href='#productividad';if(!link.isConnected)nav.append(link);
 nav.addEventListener('click',event=>{const a=event.target.closest('a');if(a)for(const l of nav.querySelectorAll('a'))l.classList.toggle('selected',a===l);});
 if('IntersectionObserver' in window){const observer=new IntersectionObserver(entries=>{if(entries.some(x=>x.isIntersecting))for(const l of nav.querySelectorAll('a'))l.classList.toggle('selected',l===link);},{rootMargin:'-10% 0px -70% 0px'});observer.observe(section);}
+const monthLabel=make('label',undefined,'productivity-month');monthLabel.append(make('span','Mes de consulta'));
+const monthSelect=make('select');monthSelect.setAttribute('aria-label','Mes de consulta');
+for(const period of Object.keys(history).sort().reverse()){const date=new Date(period+'-01T12:00:00');monthSelect.append(new Option(date.toLocaleDateString('es-MX',{month:'long',year:'numeric'}),period));}
+monthSelect.value=source.period;monthLabel.append(monthSelect);
+monthSelect.addEventListener('change',()=>{source=history[monthSelect.value];mount();});
+function mount(){section.replaceChildren(heading,monthLabel);
 if(source.status!=='available'){const box=make('article',undefined,'panel');box.append(make('h3',source.status==='error'?'Revisar archivo de productividad':'Sin datos de productividad para este mes'),make('p',source.message||'Ejecuta la actualización con el Excel de horas productivas.'));section.append(box);return;}
 const operatingStores=source.stores.filter(s=>String(s.status||'').trim().toUpperCase()==='OPERANDO');
 const number=n=>new Intl.NumberFormat('es-MX',{maximumFractionDigits:1}).format(n);
@@ -154,4 +163,6 @@ function draw(){
 
 }
 for(const input of [cpro,cedula,region,chain,store])input.addEventListener('change',()=>{if(input===cpro||input===cedula){region.value='';chain.value='';store.value='';}else if(input===region){chain.value='';store.value='';}else if(input===chain){store.value='';}updateFilters(input);draw();});for(const input of [from,to,approvals])input.addEventListener('change',draw);reset.addEventListener('click',()=>{from.value=from.min;to.value=to.max;cpro.value='';cedula.value='';region.value='';chain.value='';store.value='';approvals.value=source.hasApprovals?'standard':'income';updateFilters();draw();});draw();
+}
+mount();
 })();

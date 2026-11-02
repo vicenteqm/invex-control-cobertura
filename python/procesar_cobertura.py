@@ -99,6 +99,8 @@ def run(config,skip_download=False,pandape_report=None):
     except Exception as error:
         logging.error('No se procesaron las horas productivas: %s',error)
         result['productiveHours']={'status':'error','period':period,'message':'El Excel de horas productivas no pudo validarse. Revisa el archivo y el registro del proceso.'}
+    from historial_productividad import preserve
+    result['productiveHoursHistory']=preserve(ROOT/'sitio'/'data.js',result['productiveHours'])
     logging.info('Calculando cobertura y cruce diario Pandape / MAAT')
     # Si falla la descarga no se presenta el concentrado viejo como actualizado.
     maat_path=maat if maat.exists() and not download_error else None
