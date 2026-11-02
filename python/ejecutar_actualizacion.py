@@ -27,7 +27,7 @@ def check():
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--cargar-cuponera',action='store_true',help='Abre el tablero local para cargar y publicar la cuponera')
+    parser.add_argument('--cargar-cuponera',action='store_true',help='Abre el tablero para cargar una cuponera solo para imágenes')
     parser.add_argument('--actualizar-archivo',choices=['asistencias','tiendas','horas'],help='Selecciona un Excel y publica sin descargar MAAT ni Pandape')
     parser.add_argument('--comprobar',action='store_true',help='Verifica la configuración sin descargar ni publicar')
     parser.add_argument('--guardar-sesion-pandape',action='store_true',help='Abre solo Pandape para guardar la sesión del ejecutor')

@@ -18,7 +18,7 @@ function aggregate(stores,source,from,to,metric){
  });
 }
 function programTotals(stores,context){
- const programs=context.source.programs,dates=(context.source.capturedDays||[]).map(d=>context.source.period+'-'+String(d).padStart(2,'0')).filter(d=>d>=context.from&&d<=context.to);
+ const programs=context.programsOverride||context.source.programs,dates=(context.source.capturedDays||[]).map(d=>context.source.period+'-'+String(d).padStart(2,'0')).filter(d=>d>=context.from&&d<=context.to);
  let p0=0,ahorra=0,pairs=0;const available=new Set();
  if(programs?.status==='available')for(const store of stores)for(const day of dates){const record=programs.stores?.[store.id]?.[day];if(!record)continue;p0+=record.p0;ahorra+=record.ahorra;pairs++;available.add(day);}
  return {p0:pairs?p0:null,ahorra:pairs?ahorra:null,partial:pairs>0&&pairs<stores.length*dates.length,dates:[...available].sort()};
@@ -77,7 +77,7 @@ async function downloadComparison(groups,context){
  text('Tiendas operando · '+(context.metric==='income'?'Mayor volumen de ingresos':'Porcentaje = '+metricLabel.toLowerCase()+' / ingresos')+' · Empates comparten posición',38,canvas.height-72,19,'#d0c4dc');
  const programDates=[...new Set(groups.flatMap(g=>g.rows.flatMap(r=>r.programs.dates)))].sort();
  text('P0 y Ahorra+: día completo · '+(programDates.length?'Datos del '+programDates[0]+' al '+programDates.at(-1):'Sin datos en el rango seleccionado')+' · * Cobertura parcial del periodo o de las tiendas',38,canvas.height-44,17,'#d0c4dc');
- text('Fuente: '+context.source.sourceName+' · Corte: '+(context.source.lastRecordAt||'Sin fecha').replace('T',' ')+(context.source.programs?.sourceName?' · P0/Ahorra+: '+context.source.programs.sourceName:''),38,canvas.height-17,17,'#a598b2');
+ text('Fuente: '+context.source.sourceName+' · Corte: '+(context.source.lastRecordAt||'Sin fecha').replace('T',' ')+((context.programsOverride||context.source.programs)?.sourceName?' · P0/Ahorra+: '+(context.programsOverride||context.source.programs).sourceName:''),38,canvas.height-17,17,'#a598b2');
  canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='INVEX_Comparativa_CEDULAS_'+context.metric+'_'+context.from+'_'+context.to+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');
 }
 function render(target,context){

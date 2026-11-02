@@ -128,10 +128,6 @@ Estos tres ejecutores validan el archivo para el periodo configurado, recalculan
 
 
 
-### Cargar y publicar una cuponera actualizada
+### Cuponera para generar imágenes
 
-1. Abre `CARGAR_CUPONERA.bat` y mantén su ventana abierta.
-2. En Horas productivas, dentro de Competencia entre CÉDULAS, selecciona el Excel en Actualizar cuponera para todos.
-3. Pulsa Cargar y publicar en GitHub y espera la confirmación.
-
-El cargador solo escucha en esta computadora. Valida las hojas y las tiendas antes de sustituir la fuente, conserva los demás indicadores y publica los agregados de P0 y Ahorra+. El Excel original no se sube al repositorio. La siguiente actualización general utiliza la copia seleccionada. GitHub Pages puede tardar en desplegar el cambio después de publicarlo.
+En Horas productivas, dentro de Competencia entre CÉDULAS, selecciona la cuponera y pulsa Cargar para generar imágenes. El Excel se valida y procesa en el navegador; P0 y Ahorra+ solo se aplican al cuadro y al PNG durante esa sesión. Usar datos publicados restaura la fuente del tablero. La carga no publica en GitHub ni modifica archivos del ejecutor. No se requiere iniciar un BAT o un servidor local. El acceso anterior CARGAR_CUPONERA.bat solo abre el tablero.

@@ -63,7 +63,8 @@ const productivityComparison=panel('Productividad por hora','Mismo cálculo que 
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
 const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉDULAS'),make('p','Compara las CÉDULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
-const uploadHost=make('div');imagePanel.insertBefore(uploadHost,imageCards);window.INVEX_CUPONERA_UPLOAD?.mount(uploadHost,{source,onUpdated:()=>draw()});
+let imageProgramsOverride=null;
+const uploadHost=make('div');imagePanel.insertBefore(uploadHost,imageCards);window.INVEX_CUPONERA_UPLOAD?.mount(uploadHost,{source,onUpdated:programs=>{imageProgramsOverride=programs;draw();}});
 
 function combo(target,items){
  const showLine=approvals.value!=='income';target.replaceChildren();const legend=make('p',undefined,'productivity-legend');legend.append(make('span','Barras: ingresos','legend-income'),make('span',showLine?'Línea: '+metricName():'Solo ingresos','legend-approved'));target.append(legend);
@@ -147,7 +148,7 @@ function draw(){
    for(let r=6;r<=17;r++){const tr=make('tr');for(let c=0;c<7;c++){const v=cell(summary.grid[r][index*8+c]);const td=make('td',v===null||v===undefined?'—':c===4||c===5?number(v*100)+'%':typeof v==='number'?number(v):v);tr.append(td);}body.append(tr);}t.append(body);wrap.append(t);productivityComparison.append(wrap);
   }
  }else productivityComparison.append(make('p','Sin datos para comparar con estos filtros.','note'));
- window.INVEX_PRODUCTIVITY_IMAGES?.render(imageCards,{stores:selected,comparisonStores:matching('cedula'),source,from:from.value,to:to.value,metric:approvals.value});
+ window.INVEX_PRODUCTIVITY_IMAGES?.render(imageCards,{stores:selected,comparisonStores:matching('cedula'),programsOverride:imageProgramsOverride,source,from:from.value,to:to.value,metric:approvals.value});
  const standardTotal=selected.reduce((acc,s)=>acc+Object.entries(s.approvedDays||{}).reduce((n,[d,values])=>n+(dayHours[d]?values.reduce((sum,v,i)=>sum+(heatHours.some(h=>h.index===i)?v:0),0):0),0),0);
  note.textContent+=' Horario de cálculo del HTML y Excel: 09:00 a 19:59. Ingresos: '+number(total)+'. Aprobadas sin garantía: '+(source.hasApprovals?number(standardTotal):'Sin datos')+'. Aprobadas finalizadas: '+(source.hasFinalized?number(finalizedTotal):'Sin datos')+'. Los porcentajes se obtienen dividiendo los totales, no sumando porcentajes horarios. El Excel conserva todos los días del mes; su RESUMEN inicia con las fechas seleccionadas aquí.';
 

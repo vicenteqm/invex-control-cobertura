@@ -35,6 +35,8 @@
 .productivity-competition{padding:20px;border:1px solid #6e527a;border-radius:14px;background:linear-gradient(135deg,#24182d,#15101c)}.productivity-competition h4{color:#ffca55;font-size:18px;letter-spacing:2px}.productivity-competition:nth-of-type(2) h4{color:#71cfdf}.competition-spotlight{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 20px;background:#fff2c9;color:#23202a;padding:20px;border-radius:10px;margin-bottom:18px}.productivity-competition:nth-of-type(2) .competition-spotlight{background:#e4f5f8}.competition-spotlight span{grid-column:1/-1;font-size:10px;letter-spacing:2px}.competition-spotlight strong{font-size:15px;line-height:1.6}.competition-spotlight b{font-size:30px;align-self:center}.productivity-competition .competition-leader td{background:#e9debc;color:#252029}@media(max-width:550px){.competition-spotlight{grid-template-columns:1fr}.competition-spotlight b{font-size:26px}}
 
 .cuponera-upload{margin:20px 0;padding:20px;border:1px solid #9275a3;border-radius:12px;background:#f6f3f9;color:#222}.halloween .cuponera-upload{background:#261b31;color:#f7effb}.cuponera-upload h4{margin:0 0 12px}.cuponera-upload p{font-size:12px;line-height:1.7}.cuponera-upload label{display:block;font-size:12px;margin:15px 0 8px}.cuponera-upload input[type=file]{display:block;max-width:100%;margin:12px 0}.cuponera-upload button{margin-top:12px}.cuponera-upload button:disabled{opacity:.5;cursor:not-allowed}.cuponera-local-link{display:inline-block;padding:10px 14px;border:1px solid #b98c66;border-radius:6px;color:inherit;text-decoration:none;margin-top:8px}
+
+.cuponera-upload.cuponera-images-only{background:linear-gradient(125deg,#261b31,#13101d);border:1px solid #735381;color:#f7effb}.cuponera-upload-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.cuponera-upload-heading h4{font-size:16px;margin:0;color:#ffcb95}.cuponera-upload-heading span{border:1px solid #675073;border-radius:20px;padding:6px 10px;font-size:9px;letter-spacing:1px;color:#e5d5ef}.cuponera-images-only .note{color:#cfbddb}.cuponera-upload-actions{display:flex;gap:10px;flex-wrap:wrap}.cuponera-images-only input::file-selector-button{border:1px solid #8b6b9a;border-radius:6px;background:#362542;color:#fff;padding:10px;margin-right:12px;cursor:pointer}.cuponera-upload-actions button{background:#ffb365;color:#25162d;border:0}.cuponera-upload-actions .cuponera-reset{background:#35263e;color:#eee;border:1px solid #735381}
 </style><style>.coverage-store-maps{margin-top:32px;min-width:0}.coverage-map-legend{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}.coverage-map-legend span{font-size:11px;padding:8px 12px;border-radius:5px;color:#262337;border:1px solid #0002}.coverage-map-panel{margin-top:12px;min-width:0;padding:16px}.coverage-map-panel .panel-title{align-items:center;margin-bottom:12px}.coverage-map-panel h3{letter-spacing:2px;font-size:15px}.coverage-map-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(105px,100%),1fr));gap:8px}.coverage-map-tile{min-height:108px;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:9px 6px;border:1px solid #32233e2e;border-radius:5px;box-shadow:3px 3px 0 #32233e18;gap:5px;color:#262337;overflow-wrap:anywhere;transition:transform .18s,box-shadow .18s}.coverage-map-tile:hover{transform:translateY(-3px);box-shadow:4px 6px 0 #32233e25}.coverage-map-tile .coverage-map-id{font-size:10px;font-weight:800;letter-spacing:1px}.coverage-map-tile .coverage-map-name{font-size:10px;line-height:1.2;max-width:100%}.coverage-map-tile .coverage-map-percent{font-size:20px;line-height:1.1;letter-spacing:-1px}.coverage-map-tile small{font-size:9px;line-height:1.3}.coverage-store-maps .full{background:#c9e7c2}.coverage-store-maps .partial{background:#f6e4ac}.coverage-store-maps .low{background:#efc0bd}.coverage-store-maps .unknown{background:#e2dce9}.coverage-map-grid>.note{grid-column:1/-1}@media(max-width:520px){.coverage-map-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.coverage-map-tile{padding:7px 4px;gap:4px}.coverage-map-tile .coverage-map-name{font-size:9px}.coverage-map-tile .coverage-map-percent{font-size:18px}.coverage-map-legend span{font-size:10px}}@media(prefers-reduced-motion:reduce){.coverage-map-tile{transition:none}.coverage-map-tile:hover{transform:none}}
 
 @media(max-width:350px){.coverage-map-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -241,8 +243,8 @@ const scene=document.createElement('div');scene.className='season-scene';scene.s
 const label=document.createElement('div');label.className='season-label';label.innerHTML='<span>INVEX / OCTUBRE</span><strong>Turno nocturno.</strong><small>EDICIÓN HALLOWEEN · 8 BIT</small>';
 const art=document.createElement('div');art.className='season-art';art.append(sprite('bat','pixel-bat'),sprite('ghost','pixel-ghost'),sprite('pumpkin','pixel-pumpkin'),sprite('skull','pixel-skull'));
 const stars=document.createElement('div');stars.className='pixel-stars';scene.append(label,stars,art);document.querySelector('header').append(scene);
-function apply(enabled){root.classList.toggle('halloween',enabled);scene.hidden=!enabled;motion.hidden=!enabled;theme.textContent=enabled?'Ver tema clásico':'Ver tema Halloween';theme.setAttribute('aria-pressed',String(enabled));}
-let enabled=october&&get('invex-theme')!=='classic';apply(enabled);
+function apply(enabled){root.classList.toggle('halloween',enabled);scene.hidden=!enabled||!october;motion.hidden=!enabled||!october;theme.textContent=enabled?'Ver tema clásico':october?'Ver tema Halloween':'Ver tema oscuro';theme.setAttribute('aria-pressed',String(enabled));}
+let enabled=get('invex-theme')!=='classic';apply(enabled);
 theme.addEventListener('click',()=>{enabled=!enabled;set('invex-theme',enabled?'halloween':'classic');apply(enabled);});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');let paused=reduced.matches||get('invex-animation')==='paused';
 function pause(){root.classList.toggle('season-paused',paused);motion.textContent=paused?'Activar animación':'Pausar animación';motion.setAttribute('aria-pressed',String(paused));}pause();
@@ -371,7 +373,7 @@ function aggregate(stores,source,from,to,metric){
  });
 }
 function programTotals(stores,context){
- const programs=context.source.programs,dates=(context.source.capturedDays||[]).map(d=>context.source.period+'-'+String(d).padStart(2,'0')).filter(d=>d>=context.from&&d<=context.to);
+ const programs=context.programsOverride||context.source.programs,dates=(context.source.capturedDays||[]).map(d=>context.source.period+'-'+String(d).padStart(2,'0')).filter(d=>d>=context.from&&d<=context.to);
  let p0=0,ahorra=0,pairs=0;const available=new Set();
  if(programs?.status==='available')for(const store of stores)for(const day of dates){const record=programs.stores?.[store.id]?.[day];if(!record)continue;p0+=record.p0;ahorra+=record.ahorra;pairs++;available.add(day);}
  return {p0:pairs?p0:null,ahorra:pairs?ahorra:null,partial:pairs>0&&pairs<stores.length*dates.length,dates:[...available].sort()};
@@ -430,7 +432,7 @@ async function downloadComparison(groups,context){
  text('Tiendas operando · '+(context.metric==='income'?'Mayor volumen de ingresos':'Porcentaje = '+metricLabel.toLowerCase()+' / ingresos')+' · Empates comparten posición',38,canvas.height-72,19,'#d0c4dc');
  const programDates=[...new Set(groups.flatMap(g=>g.rows.flatMap(r=>r.programs.dates)))].sort();
  text('P0 y Ahorra+: día completo · '+(programDates.length?'Datos del '+programDates[0]+' al '+programDates.at(-1):'Sin datos en el rango seleccionado')+' · * Cobertura parcial del periodo o de las tiendas',38,canvas.height-44,17,'#d0c4dc');
- text('Fuente: '+context.source.sourceName+' · Corte: '+(context.source.lastRecordAt||'Sin fecha').replace('T',' ')+(context.source.programs?.sourceName?' · P0/Ahorra+: '+context.source.programs.sourceName:''),38,canvas.height-17,17,'#a598b2');
+ text('Fuente: '+context.source.sourceName+' · Corte: '+(context.source.lastRecordAt||'Sin fecha').replace('T',' ')+((context.programsOverride||context.source.programs)?.sourceName?' · P0/Ahorra+: '+(context.programsOverride||context.source.programs).sourceName:''),38,canvas.height-17,17,'#a598b2');
  canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='INVEX_Comparativa_CEDULAS_'+context.metric+'_'+context.from+'_'+context.to+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');
 }
 function render(target,context){
@@ -447,35 +449,71 @@ window.INVEX_PRODUCTIVITY_IMAGES={aggregate,compare,programTotals,render};
 </script>
 <script>'use strict';
 (()=>{
+const decode=new TextDecoder(),NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+function xml(text){const document=new DOMParser().parseFromString(text,'application/xml');if(document.getElementsByTagName('parsererror').length)throw new Error('El Excel contiene una hoja XML inválida.');return document;}
+async function zip(file){
+ const buffer=await file.arrayBuffer(),bytes=new Uint8Array(buffer),v=new DataView(buffer);let end=-1;
+ for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65557);i--)if(v.getUint32(i,true)===0x06054b50){end=i;break;}
+ if(end<0)throw new Error('Selecciona un archivo Excel .xlsx válido.');
+ const count=v.getUint16(end+10,true),offset=v.getUint32(end+16,true),entries=new Map();let pos=offset,total=0;
+ for(let i=0;i<count;i++){
+  if(pos+46>bytes.length||v.getUint32(pos,true)!==0x02014b50)throw new Error('El Excel está incompleto.');
+  const method=v.getUint16(pos+10,true),size=v.getUint32(pos+24,true),compressed=v.getUint32(pos+20,true),len=v.getUint16(pos+28,true),extra=v.getUint16(pos+30,true),comment=v.getUint16(pos+32,true),local=v.getUint32(pos+42,true);const name=decode.decode(bytes.subarray(pos+46,pos+46+len));total+=size;
+  if(total>200*1024*1024)throw new Error('El Excel descomprimido es demasiado grande.');
+  if(entries.has(name))throw new Error('El Excel contiene archivos internos duplicados.');entries.set(name,{method,size,compressed,local});pos+=46+len+extra+comment;
+ }
+ const cache=new Map();return async name=>{
+  if(cache.has(name))return cache.get(name);const e=entries.get(name);if(!e)return null;
+  if(e.local+30>bytes.length||v.getUint32(e.local,true)!==0x04034b50)throw new Error('El Excel contiene una entrada inválida.');
+  const start=e.local+30+v.getUint16(e.local+26,true)+v.getUint16(e.local+28,true);if(start+e.compressed>bytes.length)throw new Error('El Excel está incompleto.');let data=bytes.subarray(start,start+e.compressed);
+  if(e.method===8){if(typeof DecompressionStream==='undefined')throw new Error('Usa una versión reciente de Edge o Chrome para cargar el Excel.');const stream=new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));data=new Uint8Array(await new Response(stream).arrayBuffer());}
+  else if(e.method!==0)throw new Error('El tipo de compresión del Excel no es compatible.');
+  if(data.length!==e.size)throw new Error('No se pudo validar el contenido del Excel.');const result=decode.decode(data);cache.set(name,result);return result;
+ };
+}
+function rows(document,shared){return [...document.getElementsByTagNameNS(NS,'row')].map(row=>{const cells=[];for(const c of row.getElementsByTagNameNS(NS,'c')){const ref=c.getAttribute('r')||'',letters=ref.match(/^[A-Z]+/)?.[0];if(!letters)continue;let index=0;for(const l of letters)index=index*26+l.charCodeAt(0)-64;const type=c.getAttribute('t'),raw=c.getElementsByTagNameNS(NS,'v')[0]?.textContent;let value=null;if(type==='s')value=shared[Number(raw)]??null;else if(type==='inlineStr')value=[...c.getElementsByTagNameNS(NS,'t')].map(t=>t.textContent).join('');else if(type==='str'||type==='d')value=raw??null;else if(raw!==undefined)value=Number(raw);cells[index-1]=value;}return {number:Number(row.getAttribute('r')),cells};});}
+function date(value){if(typeof value==='number'&&value>20000&&value<100000)return new Date(Math.round((value-25569)*86400000)).toISOString().slice(0,10);if(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}/.test(value))return value.slice(0,10);return null;}
+const norm=value=>String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();
+function count(value){if(value===null||value===undefined)return null;if(typeof value!=='number'||!Number.isSafeInteger(value)||value<0)throw new Error('La hoja P0 tiene conteos inválidos. Revisa los valores y vuelve a guardar el Excel.');return value;}
+async function readPrograms(file,stores){
+ if(!file.name.toLowerCase().endsWith('.xlsx')||file.size>50*1024*1024)throw new Error('Selecciona una cuponera .xlsx de hasta 50 MB.');
+ const get=await zip(file),bookText=await get('xl/workbook.xml'),relsText=await get('xl/_rels/workbook.xml.rels');if(!bookText||!relsText)throw new Error('El archivo no es un Excel válido.');
+ const book=xml(bookText),rels=xml(relsText),paths=new Map();for(const r of rels.getElementsByTagName('Relationship')){const target=r.getAttribute('Target');if(r.getAttribute('TargetMode')==='External')continue;const path=target.startsWith('/')?target.slice(1):'xl/'+target;if(path.includes('..')||path.includes('://'))continue;paths.set(r.getAttribute('Id'),path);}
+ const sheets=new Map();for(const s of book.getElementsByTagNameNS(NS,'sheet'))sheets.set(s.getAttribute('name'),paths.get(s.getAttribute('r:id')));
+ if(!sheets.has('P0')||!sheets.has('Hoja1'))throw new Error('La cuponera debe tener las hojas P0 y Hoja1.');
+ const sharedText=await get('xl/sharedStrings.xml'),shared=sharedText?[...xml(sharedText).getElementsByTagNameNS(NS,'si')].map(si=>[...si.getElementsByTagNameNS(NS,'t')].map(t=>t.textContent).join('')):[];
+ const detailText=await get(sheets.get('Hoja1')),p0Text=await get(sheets.get('P0'));if(!detailText||!p0Text)throw new Error('Faltan hojas del Excel.');const detail=rows(xml(detailText),shared),header=detail.find(r=>r.number===1)?.cells||[],position=header.findIndex(h=>norm(h)==='FECHA CREACION');if(position<0)throw new Error('Hoja1 no contiene Fecha Creación.');
+ const observed=new Set(detail.filter(r=>r.number>1).map(r=>date(r.cells[position])).filter(Boolean));const p0=rows(xml(p0Text),shared),dateRow=p0.find(r=>r.number===2)?.cells||[],heads=p0.find(r=>r.number===3)?.cells||[],dates=[];
+ dateRow.forEach((value,index)=>{const day=date(value);if(day&&observed.has(day)){if(norm(heads[index-1])!=='ING'||norm(heads[index])!=='APS'||norm(heads[index+2])!=='P0')throw new Error('El bloque diario de P0 no tiene el formato esperado.');dates.push([day,index]);}});
+ if(!dates.length)throw new Error('No se identificaron fechas reales con datos en la cuponera.');
+ const start=p0.find(r=>norm(r.cells[1])==='REGION'&&norm(r.cells[2])==='DET'&&norm(r.cells[3])==='TIENDA');if(!start)throw new Error('No se encontró la tabla por tienda de P0.');
+ const lookup=new Map();for(const store of stores){const det=store.id.split(' ').at(-1);if(!lookup.has(det))lookup.set(det,[]);lookup.get(det).push(store);}
+ const result={};let unmatched=0;
+ for(const row of p0.filter(r=>r.number>start.number)){const c=row.cells;if(!/^\d+(?:\.0+)?$/.test(String(c[2]??'')))continue;const det=String(Number(c[2]));let candidates=lookup.get(det)||[];if(candidates.length>1)candidates=candidates.filter(s=>norm(s.name)===norm(c[3]));if(candidates.length!==1){unmatched++;continue;}const key=candidates[0].id;if(result[key])throw new Error('La cuponera tiene una tienda duplicada: '+key);const days={};for(const [day,i]of dates){const p0=count(c[i+2]),ahorra=count(c[i+4]);if(p0!==null&&ahorra!==null)days[day]={p0,ahorra,approved:count(c[i]),income:count(c[i-1])};}result[key]=days;}
+ if(!Object.keys(result).length)throw new Error('Las tiendas del archivo no coinciden con la base del tablero.');
+ return {status:'available',sourceName:file.name,sourceModifiedAt:new Date(file.lastModified||Date.now()).toISOString(),importedAt:new Date().toISOString(),dates:dates.map(([day])=>day).sort(),stores:result,unmatchedStores:unmatched,basis:'Carga en navegador, solo para imágenes. Día completo; sin acumulados semanales.'};
+}
+window.INVEX_CUPONERA_READER={readPrograms};
+})();
+</script>
+<script>'use strict';
+(()=>{
 const make=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 function mount(target,options){
- const box=make('div');box.className='cuponera-upload';box.append(make('h4','Actualizar cuponera para todos'));
+ const box=make('div');box.className='cuponera-upload cuponera-images-only';const heading=make('div');heading.className='cuponera-upload-heading';heading.append(make('h4','Cuponera para tus imágenes'),make('span','SOLO ESTA SESIÓN'));box.append(heading);
+ box.append(make('p','Carga la cuponera actualizada para agregar P0 y Ahorra+ al cuadro comparativo y al PNG.'));
  const source=make('p');source.className='note';box.append(source);
- const refresh=programs=>{source.textContent=programs?.status==='available'?'Cuponera actual: '+programs.sourceName+' · Fechas: '+programs.dates[0]+' al '+programs.dates.at(-1):'No hay una cuponera válida publicada.';};refresh(options.source.programs);
- const local=window.INVEX_LOCAL_UPLOAD;
- if(!local?.token){
-  box.append(make('p','Abre CARGAR_CUPONERA.bat en la carpeta del proyecto. Se abrirá este mismo tablero con el selector de archivo y la publicación habilitados. Mantén la ventana del cargador abierta.'));
-  const link=make('a','Abrir cargador local');link.href='http://127.0.0.1:8771/#productividad';link.className='cuponera-local-link';box.append(link);target.append(box);return;
- }
- const label=make('label','Selecciona la cuponera actualizada (.xlsx)');label.htmlFor='cuponera-file';const input=make('input');input.type='file';input.accept='.xlsx';input.id='cuponera-file';input.setAttribute('aria-label','Seleccionar cuponera para publicar');
- const button=make('button','Cargar y publicar en GitHub');button.type='button';button.disabled=true;button.id='publish-cuponera';
- const status=make('p','La carga actualiza P0 y Ahorra+ para todos. No descarga ni modifica Pandape o MAAT.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
- box.append(label,input,button,status);target.append(box);
+ const refresh=programs=>{source.textContent=programs?.status==='available'?'Archivo: '+programs.sourceName+' · Fechas: '+programs.dates[0]+' al '+programs.dates.at(-1):'Sin cuponera disponible para este cuadro.';};refresh(options.source.programs);
+ const label=make('label','Selecciona la cuponera (.xlsx)');label.htmlFor='cuponera-file';const input=make('input');input.type='file';input.accept='.xlsx';input.id='cuponera-file';input.setAttribute('aria-label','Seleccionar cuponera para imágenes');
+ const actions=make('div');actions.className='cuponera-upload-actions';const button=make('button','Cargar para generar imágenes');button.type='button';button.disabled=true;button.id='load-cuponera-images';const reset=make('button','Usar datos publicados');reset.type='button';reset.className='cuponera-reset';reset.disabled=true;actions.append(button,reset);
+ const status=make('p','El archivo se procesa en tu navegador. No se sube ni publica en GitHub.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');box.append(label,input,actions,status);target.append(box);
  input.addEventListener('change',()=>{button.disabled=!input.files.length;status.textContent=input.files.length?'Seleccionado: '+input.files[0].name:'Selecciona una cuponera .xlsx';});
- button.addEventListener('click',async()=>{
-  const file=input.files[0];if(!file)return;if(!file.name.toLowerCase().endsWith('.xlsx')||file.size>50*1024*1024){status.textContent='Selecciona un archivo .xlsx de hasta 50 MB.';return;}
-  input.disabled=true;button.disabled=true;status.textContent='Enviando archivo al cargador local…';
-  try{
-   const response=await fetch('/api/cuponera',{method:'POST',headers:{'X-INVEX-Token':local.token,'X-File-Name':encodeURIComponent(file.name),'Content-Type':'application/octet-stream'},body:file});const reply=await response.json();if(!response.ok)throw new Error(reply.message||'No se pudo iniciar la carga');
-   for(;;){await new Promise(resolve=>setTimeout(resolve,1000));const current=await fetch('/api/cuponera/estado',{headers:{'X-INVEX-Token':local.token},cache:'no-store'});if(!current.ok)throw new Error('No se pudo consultar el cargador local. Mantén su ventana abierta.');const job=await current.json();status.textContent=job.message;
-    if(job.status==='error')throw new Error(job.message);
-    if(job.status==='complete'){
-     refresh(job.programs);options.source.programs=job.programs;options.onUpdated(job.programs);status.textContent=job.message+' Datos de '+job.programs.dates[0]+' al '+job.programs.dates.at(-1)+'.';break;
-    }
-   }
-  }catch(error){status.textContent=error.message||'No se completó la carga. Revisa el cargador local.';}
+ button.addEventListener('click',async()=>{const file=input.files[0];if(!file)return;button.disabled=true;input.disabled=true;status.textContent='Leyendo la cuponera y validando las tiendas…';
+  try{const programs=await window.INVEX_CUPONERA_READER.readPrograms(file,window.INVEX_DATA.stores);options.onUpdated(programs);refresh(programs);reset.disabled=false;status.textContent='Cuponera lista para generar imágenes. '+Object.keys(programs.stores).length+' tiendas vinculadas.'+(programs.unmatchedStores?' '+programs.unmatchedStores+' tiendas sin coincidencia.':'');}
+  catch(error){status.textContent=error.message||'No se pudo leer la cuponera; se conservan los datos anteriores.';}
   finally{input.disabled=false;button.disabled=!input.files.length;}
  });
+ reset.addEventListener('click',()=>{options.onUpdated(null);refresh(options.source.programs);input.value='';button.disabled=true;reset.disabled=true;status.textContent='Se restauraron los datos publicados para las imágenes.';});
 }
 window.INVEX_CUPONERA_UPLOAD={mount};
 })();
@@ -545,7 +583,8 @@ const productivityComparison=panel('Productividad por hora','Mismo cálculo que 
 const heatHours=source.hours.map((label,index)=>({label,index})).filter(({label})=>{const hour=Number(label.slice(0,2));return hour>=9&&hour<=19;});
 const note=make('p',undefined,'productivity-footnote');section.append(note);
 const imagePanel=make('article',undefined,'panel productivity-image-panel');imagePanel.append(make('h3','Competencia entre CÉDULAS'),make('p','Compara las CÉDULAS identificadas por sus regiones y descarga el ranking. Walmart y SAMS se muestran por separado.','note'));const imageCards=make('div',undefined,'productivity-image-cards');imagePanel.append(imageCards);section.append(imagePanel);
-const uploadHost=make('div');imagePanel.insertBefore(uploadHost,imageCards);window.INVEX_CUPONERA_UPLOAD?.mount(uploadHost,{source,onUpdated:()=>draw()});
+let imageProgramsOverride=null;
+const uploadHost=make('div');imagePanel.insertBefore(uploadHost,imageCards);window.INVEX_CUPONERA_UPLOAD?.mount(uploadHost,{source,onUpdated:programs=>{imageProgramsOverride=programs;draw();}});
 
 function combo(target,items){
  const showLine=approvals.value!=='income';target.replaceChildren();const legend=make('p',undefined,'productivity-legend');legend.append(make('span','Barras: ingresos','legend-income'),make('span',showLine?'Línea: '+metricName():'Solo ingresos','legend-approved'));target.append(legend);
@@ -629,7 +668,7 @@ function draw(){
    for(let r=6;r<=17;r++){const tr=make('tr');for(let c=0;c<7;c++){const v=cell(summary.grid[r][index*8+c]);const td=make('td',v===null||v===undefined?'—':c===4||c===5?number(v*100)+'%':typeof v==='number'?number(v):v);tr.append(td);}body.append(tr);}t.append(body);wrap.append(t);productivityComparison.append(wrap);
   }
  }else productivityComparison.append(make('p','Sin datos para comparar con estos filtros.','note'));
- window.INVEX_PRODUCTIVITY_IMAGES?.render(imageCards,{stores:selected,comparisonStores:matching('cedula'),source,from:from.value,to:to.value,metric:approvals.value});
+ window.INVEX_PRODUCTIVITY_IMAGES?.render(imageCards,{stores:selected,comparisonStores:matching('cedula'),programsOverride:imageProgramsOverride,source,from:from.value,to:to.value,metric:approvals.value});
  const standardTotal=selected.reduce((acc,s)=>acc+Object.entries(s.approvedDays||{}).reduce((n,[d,values])=>n+(dayHours[d]?values.reduce((sum,v,i)=>sum+(heatHours.some(h=>h.index===i)?v:0),0):0),0),0);
  note.textContent+=' Horario de cálculo del HTML y Excel: 09:00 a 19:59. Ingresos: '+number(total)+'. Aprobadas sin garantía: '+(source.hasApprovals?number(standardTotal):'Sin datos')+'. Aprobadas finalizadas: '+(source.hasFinalized?number(finalizedTotal):'Sin datos')+'. Los porcentajes se obtienen dividiendo los totales, no sumando porcentajes horarios. El Excel conserva todos los días del mes; su RESUMEN inicia con las fechas seleccionadas aquí.';
 

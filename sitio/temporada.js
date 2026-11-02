@@ -18,8 +18,8 @@ const scene=document.createElement('div');scene.className='season-scene';scene.s
 const label=document.createElement('div');label.className='season-label';label.innerHTML='<span>INVEX / OCTUBRE</span><strong>Turno nocturno.</strong><small>EDICIÓN HALLOWEEN · 8 BIT</small>';
 const art=document.createElement('div');art.className='season-art';art.append(sprite('bat','pixel-bat'),sprite('ghost','pixel-ghost'),sprite('pumpkin','pixel-pumpkin'),sprite('skull','pixel-skull'));
 const stars=document.createElement('div');stars.className='pixel-stars';scene.append(label,stars,art);document.querySelector('header').append(scene);
-function apply(enabled){root.classList.toggle('halloween',enabled);scene.hidden=!enabled;motion.hidden=!enabled;theme.textContent=enabled?'Ver tema clásico':'Ver tema Halloween';theme.setAttribute('aria-pressed',String(enabled));}
-let enabled=october&&get('invex-theme')!=='classic';apply(enabled);
+function apply(enabled){root.classList.toggle('halloween',enabled);scene.hidden=!enabled||!october;motion.hidden=!enabled||!october;theme.textContent=enabled?'Ver tema clásico':october?'Ver tema Halloween':'Ver tema oscuro';theme.setAttribute('aria-pressed',String(enabled));}
+let enabled=get('invex-theme')!=='classic';apply(enabled);
 theme.addEventListener('click',()=>{enabled=!enabled;set('invex-theme',enabled?'halloween':'classic');apply(enabled);});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');let paused=reduced.matches||get('invex-animation')==='paused';
 function pause(){root.classList.toggle('season-paused',paused);motion.textContent=paused?'Activar animación':'Pausar animación';motion.setAttribute('aria-pressed',String(paused));}pause();
