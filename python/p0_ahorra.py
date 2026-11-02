@@ -65,6 +65,28 @@ def read_programs(path,base_stores):
                 key=candidates[0]['id'];folio=str(row[columns['FOLIO FICO']] or '').strip();token=(key,day,folio)
                 success=re.sub(r'\s+',' ',norm(row[columns['OPCION DE ACTIVACION']]).replace('–','-').replace('—','-'))=='SI SE REALIZO - FINALIZAR TRAMITE'
                 if folio and success and token not in seen:result[key][day]['app']+=1;seen.add(token)
+        needed=['FOLIO FICO','DET','HORA CREACION','APROBACION','ESTATUS DEL PROCESO','PROGRAMA CERO ACEPTADO','COMPLEMENTO DENTAL ACEPTADO','OPCION DE ACTIVACION']
+        if all(h in columns for h in needed):
+            for days in result.values():
+                for record in days.values():record['aligned']=dict(approved=0,p0=0,ahorra=0,app=0)
+            seen=set()
+            for day,row in details:
+                raw=row[columns['DET']]
+                if not re.fullmatch(r'\d+(?:\.0+)?',str(raw or '')):continue
+                candidates=[s for s in lookup.get(str(int(float(raw))),[]) if day in result.get(s['id'],{})]
+                if len(candidates)!=1:continue
+                key=candidates[0]['id'];folio=str(row[columns['FOLIO FICO']] or '').removesuffix('.0').strip()
+                if not folio.isdigit() or folio in seen:continue
+                seen.add(folio)
+                hour=str(row[columns['HORA CREACION']] or '')
+                try:hour=int(hour.split(':')[0])
+                except ValueError:continue
+                if not 9<=hour<=19 or norm(row[columns['APROBACION']])!='APROBADA':continue
+                record=result[key][day]['aligned'];record['approved']+=1
+                final=norm(row[columns['ESTATUS DEL PROCESO']])=='FINALIZADO'
+                record['p0']+=int(final and norm(row[columns['PROGRAMA CERO ACEPTADO']])=='ACEPTADO')
+                record['ahorra']+=int(final and norm(row[columns['COMPLEMENTO DENTAL ACEPTADO']])=='ACEPTADO')
+                record['app']+=int(re.sub(r'\s+',' ',norm(row[columns['OPCION DE ACTIVACION']]).replace('–','-').replace('—','-'))=='SI SE REALIZO - FINALIZAR TRAMITE')
         return dict(status='available',sourceName=path.name,sourceModifiedAt=datetime.fromtimestamp(path.stat().st_mtime,timezone.utc).isoformat(),dates=sorted(day for day,_ in dates),stores=result,unmatchedStores=len(unmatched),ambiguousStores=len(ambiguous),basis='Día completo. P0 y Ahorra+ de tabla por tienda. APP: Sí se realizó - Finalizar Trámite, folios únicos. Alcances sobre APS de la cuponera; sin acumulados semanales.')
     finally:book.close()
 

@@ -19,9 +19,10 @@ function aggregate(stores,source,from,to,metric){
 }
 function programTotals(stores,context){
  const programs=context.programsOverride||context.source.programs,dates=(context.source.capturedDays||[]).map(d=>context.source.period+'-'+String(d).padStart(2,'0')).filter(d=>d>=context.from&&d<=context.to);
- let p0=0,ahorra=0,approved=0,app=0,appKnown=true,approvedKnown=true,pairs=0;const available=new Set();
- if(programs?.status==='available')for(const store of stores)for(const day of dates){const record=programs.stores?.[store.id]?.[day];if(!record)continue;if(record.app===null||record.app===undefined)appKnown=false;else app+=record.app;p0+=record.p0;ahorra+=record.ahorra;if(record.approved===null||record.approved===undefined)approvedKnown=false;else approved+=record.approved;pairs++;available.add(day);}
- return {app:pairs&&appKnown?app:null,appRate:pairs&&appKnown&&approvedKnown&&approved>0?app/approved:null,approved:pairs&&approvedKnown?approved:null,p0Rate:pairs&&approvedKnown&&approved>0?p0/approved:null,ahorraRate:pairs&&approvedKnown&&approved>0?ahorra/approved:null,p0:pairs?p0:null,ahorra:pairs?ahorra:null,partial:pairs>0&&pairs<stores.length*dates.length,dates:[...available].sort()};
+ let p0=0,ahorra=0,approved=0,app=0,pairs=0,missing=0;const available=new Set();
+ if(programs?.status==='available')for(const store of stores)for(const day of dates){const r=programs.stores?.[store.id]?.[day]?.aligned,sourceStore=context.source.stores?.find(s=>s.id===store.id)||store,expected=(sourceStore.approvedDays?.[Number(day.slice(-2))]||[]).slice(9,20).reduce((a,b)=>a+(b||0),0);if(!r||r.approved!==expected){missing++;continue;}p0+=r.p0;ahorra+=r.ahorra;app+=r.app;approved+=r.approved;pairs++;available.add(day);}
+ const known=pairs>0&&missing===0,rate=n=>known&&approved>0?n/approved:null;
+ return {app:known?app:null,appRate:rate(app),approved:known?approved:null,p0Rate:rate(p0),ahorraRate:rate(ahorra),p0:known?p0:null,ahorra:known?ahorra:null,partial:missing>0,dates:[...available].sort()};
 }
 const programText=(p,key)=>p[key]===null?'—':fmt(p[key])+(p.partial?'*':'');
 const reachText=(p,key)=>p[key+'Rate']==null?'—':fmt(p[key+'Rate']*100)+'%'+(p.partial?'*':'');
@@ -55,7 +56,7 @@ async function downloadComparison(groups,context){
  ctx.drawImage(logoInvex,782.5,22,235,70);
  ctx.strokeStyle='#ff5aa27a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(430,66);ctx.lineTo(720,66);ctx.moveTo(1080,66);ctx.lineTo(1370,66);ctx.stroke();
  text('COMPETENCIA ENTRE CÉLULAS',900,142,39,'#fff','bold','center');
- text('RANKING DE PRODUCTIVIDAD',900,176,18,'#ff9bc9','bold','center');
+ text('RANKING DE PRODUCTIVIDAD · DATOS HASTA '+(context.source.lastRecordAt||'').slice(0,10),900,176,18,'#ff9bc9','bold','center');
  box(467,195,535,44,'#21151c',8);text(context.from+' al '+context.to+'   |   09:00–19:59',734.5,225,22,'#ffffff','normal','center');
  box(1018,195,315,44,'#ff4a9c',8);text(metricLabel.toUpperCase(),1175.5,225,21,'#0d0d0d','bold','center');
  ctx.fillStyle='#ff4299';ctx.fillRect(40,137,295,4);ctx.fillRect(1465,137,295,4);
@@ -78,7 +79,7 @@ async function downloadComparison(groups,context){
  ctx.restore();
  text('Tiendas operando · '+(context.metric==='income'?'Mayor volumen de ingresos':'Porcentaje = '+metricLabel.toLowerCase()+' / ingresos')+' · Empates comparten posición',38,canvas.height-72,19,'#f5d7e6');
  const programDates=[...new Set(groups.flatMap(g=>g.rows.flatMap(r=>r.programs.dates)))].sort();
- text('Alcance P0 / Ahorra+ / APP = indicador ÷ aprobadas de cuponera · '+(programDates.length?'Datos del '+programDates[0]+' al '+programDates.at(-1):'Sin datos en el rango seleccionado')+' · * Cobertura parcial del periodo o de las tiendas',38,canvas.height-44,17,'#f5d7e6');
+ text('Alcances: beneficio / aprobadas sin garantía · 09:00–19:59 · '+(programDates.length?'Datos del '+programDates[0]+' al '+programDates.at(-1):'Sin datos en el rango seleccionado')+' · — Sin datos o fuentes no coincidentes',38,canvas.height-44,17,'#f5d7e6');
  text('Fuente: '+context.source.sourceName+' · Corte: '+(context.source.lastRecordAt||'Sin fecha').replace('T',' ')+((context.programsOverride||context.source.programs)?.sourceName?' · P0/Ahorra+: '+(context.programsOverride||context.source.programs).sourceName:''),38,canvas.height-17,17,'#d7a9be');
  canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='INVEX_Comparativa_CELULAS_'+context.metric+'_'+context.from+'_'+context.to+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');
 }
@@ -100,16 +101,16 @@ async function downloadCell(key,context){
   text(context.metric==='income'?'INGRESOS':'PRODUCTIVIDAD · '+(context.metric==='standard'?'APROBADAS':labels[context.metric].toUpperCase()),x+40,417,19,'#ffacd0','bold');
   text(context.metric==='income'?fmt(r.income):fmt(100*r.rate)+'%',x+40,490,61,'#fff','bold');text(fmt(r.numerator)+' resultados / '+fmt(r.income)+' ingresos',x+40,529,22,'#fff');
   const p=r.programs;const programs=[['P0',p.p0,p.p0Rate],['AHORRA+',p.ahorra,p.ahorraRate],['ACTIVACIÓN POR APP',p.app??null,p.appRate??null]];
-  programs.forEach(([title,count,rate],j)=>{const y=578+j*161;box(x+20,y,w-40,140,j===1?'#fff5f9':'#ffe5f0',10);text(title,x+40,y+35,23,'#111','bold');text(rate===null?'—':fmt(rate*100)+'%',x+w-40,y+79,44,'#b31361','bold','right');text(count===null?'Sin datos confirmados':fmt(count)+' registros'+(p.partial?'*':''),x+40,y+79,26,'#111','bold');text('Alcance sobre '+(p.approved===null?'aprobadas sin datos':fmt(p.approved)+' aprobadas de la cuponera'),x+40,y+115,19,'#745261');});
+  programs.forEach(([title,count,rate],j)=>{const y=578+j*161;box(x+20,y,w-40,140,j===1?'#fff5f9':'#ffe5f0',10);text(title,x+40,y+35,23,'#111','bold');text(rate===null?'—':fmt(rate*100)+'%',x+w-40,y+79,44,'#b31361','bold','right');text(count===null?'Sin datos confirmados':fmt(count)+' registros'+(p.partial?'*':''),x+40,y+79,26,'#111','bold');text('Alcance sobre '+(p.approved===null?'aprobadas sin datos':fmt(p.approved)+' aprobadas sin garantía'),x+40,y+115,19,'#745261');});
  }
- text('Productividad: 09:00–19:59. P0, Ahorra+ y activación: día completo. * Información parcial del periodo o de las tiendas.',38,1171,19,'#f4d5e4');
- text('Alcance = registros del indicador / base indicada. Se dividen los totales; no se promedian porcentajes.',38,1200,19,'#f4d5e4');
+ text('Productividad: 09:00–19:59. P0, Ahorra+ y activación: 09:00–19:59. * Información parcial del periodo o de las tiendas.',38,1171,19,'#f4d5e4');
+ text('Alcance = beneficio en aprobadas sin garantía / mismas aprobadas. Se dividen los totales; no se promedian porcentajes.',38,1200,19,'#f4d5e4');
  text('Fuente: '+context.source.sourceName+' · Cuponera: '+((context.programsOverride||context.source.programs)?.sourceName||'Sin archivo'),38,1227,17,'#c8a1b5');
  canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='INVEX_CELULA_'+name.replace(/[^\w-]/g,'_')+'_'+context.metric+'_'+context.from+'_'+context.to+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},'image/png');
 }
 function render(target,context){
  target.replaceChildren();const groups=compare(context),button=document.createElement('button');button.type='button';button.textContent='Descargar comparativa de CÉLULAS · PNG';button.id='download-competition';button.disabled=!groups.some(g=>g.rows.length);button.addEventListener('click',()=>downloadComparison(groups,context));target.append(button);
- const info=document.createElement('p');info.className='note';info.textContent='Las CÉLULAS se identifican por sus regiones. La comparación respeta los demás filtros y omite la selección individual de CÉLULA. P0, Ahorra+ y activación por app muestran su alcance sobre las aprobadas de la cuponera. Son datos de día completo; * indica cobertura parcial y — indica que no hay datos. No modifican la clasificación de productividad.';target.append(info);
+ const info=document.createElement('p');info.className='note';info.textContent='Las CÉLULAS se identifican por sus regiones. La comparación respeta los demás filtros y omite la selección individual de CÉLULA. P0, Ahorra+ y activación por app muestran su alcance sobre las aprobadas sin garantía. Son datos de 09:00–19:59; * indica cobertura parcial y — indica que no hay datos. No modifican la clasificación de productividad.';target.append(info);
  const individual=document.createElement('div');individual.className='cell-image-downloads';const title=document.createElement('h4');title.textContent='Imagen individual por CÉLULA';individual.append(title);const cells=[...new Set(groups.flatMap(g=>g.rows.map(r=>r.key)))];
  for(const key of cells){const r=groups.flatMap(g=>g.rows).find(r=>r.key===key),card=document.createElement('div');card.className='cell-image-download';const name=document.createElement('strong');name.textContent=r.name;const btn=document.createElement('button');btn.type='button';btn.textContent='Descargar imagen de esta CÉLULA';btn.addEventListener('click',()=>downloadCell(key,context));card.append(name,btn);individual.append(card);}target.append(individual);
  for(const group of groups){const article=document.createElement('article');article.className='productivity-competition';const title=document.createElement('h4');title.textContent=group.partner==='WM'?'WALMART':'SAMS';article.append(title);if(group.rows[0]){const lead=document.createElement('div');lead.className='competition-spotlight';const caption=document.createElement('span');caption.textContent='PRIMER LUGAR';const name=document.createElement('strong');name.textContent=group.rows[0].name;const score=document.createElement('b');score.textContent=context.metric==='income'?fmt(group.rows[0].income)+' ingresos':fmt(group.rows[0].rate*100)+'%';lead.append(caption,name,score);article.append(lead);}
