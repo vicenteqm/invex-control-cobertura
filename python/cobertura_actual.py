@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import openpyxl
 import engine
+from plantilla_elegible import profile
 from actualizar import norm, identifier,store_identifier
 from importar_operacion import sanitize_months
 
@@ -70,7 +71,8 @@ def process(base, attendance, period, maat=None, now=None):
     year,month=map(int,period.split('-'));days=calendar.monthrange(year,month)[1]
     b=adapt_rows(read_rows(base,'BASE DE TIENDAS INVEX'),'stores',days)
     a=adapt_rows(read_rows(attendance,'Hoja1'),'attendance',days,{r[9] for r in b[1:]})
-    employees=engine.build_employees(a,days)
+    operational=[a[0]]+[r for r in a[1:] if profile(r[8]) is not None]
+    employees=engine.build_employees(operational,days)
     reference=max((d for employee in employees if employee['estatus']=='ACTIVO' for d in employee['dias']),default=0)
     if not reference:raise ValueError('Sin captura para calcular cobertura operativa')
     now=now or local_now()
@@ -83,7 +85,7 @@ def process(base, attendance, period, maat=None, now=None):
         values=engine.load_maat_usuarios(rows,anio_esperado=year,mes_esperado=month)
         names=['maat_usuarios_por_dia','maat_ubicacion_por_usuario_dia','maat_entrada_por_usuario_dia','maat_salida_por_usuario_dia','maat_cierre_manual_por_usuario_dia','maat_dia_min','maat_dia_max']
         kwargs=dict(zip(names,values));available=set(values[0])
-    raw=engine.analyze(a,b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
+    raw=engine.analyze(operational,b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
     from detalle_promotores import export_attendance,attach_excel_detail
     expanded=engine.analyze(export_attendance(a),b,days,reference_day_override=reference,hora_corte_min=cutoff,anio=year,mes=month,**kwargs)
     attach_excel_detail(raw,expanded)

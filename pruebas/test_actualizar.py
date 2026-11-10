@@ -14,6 +14,16 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 class CalculationTests(unittest.TestCase):
+    def test_only_active_four_operational_profiles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base, attendance = self.make_files(directory)
+            book = openpyxl.load_workbook(attendance); sheet = book['Hoja1']
+            for status, role, identity in [('ACTIVO','PROMOTOR COMISIONISTA','100'),('ACTIVO','SUBLIDER COMISIONISTA','101'),('BAJA','PROMOTOR COMISIONISTA','102'),('ACTIVA','SUBLIDER','103'),('ACTIVO','LIDER SWAT','104')]:
+                sheet.append(['WM',1,status,role,identity,'Persona '+identity,'A',None,None,None])
+            book.save(attendance); book.close()
+            store = module.generate(base, attendance, '2026-10')['stores'][0]
+            self.assertEqual((store['activeProm'], store['activeSub'], store['active']), (3,1,4))
+
     def test_invalid_partner_uses_valid_combined_store_key(self):
         with tempfile.TemporaryDirectory() as directory:
             base,attendance=self.make_files(directory)

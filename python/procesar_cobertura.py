@@ -66,9 +66,10 @@ def run(config,skip_download=False,pandape_report=None):
     pandape_status='paused' if not config.get('download_pandape') else 'not_configured';pandape_result=None
     if pandape_status=='paused' and not pandape_report:logging.info('Pandape pausado: se omite su descarga y se continúa con MAAT y las demás etapas')
     generated=ROOT/'datos'/'asistencias'/('ASISTENCIA_INVEX_'+period+'.xlsx')
+    from fuentes_asistencia import current_generated,mark_source
     if config.get('download_pandape') or pandape_report:
         if skip_download and not pandape_report:
-            if generated.exists():attendance=generated
+            if current_generated(config,attendance,generated):attendance=generated
             pandape_status='local'
         else:
             from descarga_pandape import download as download_pandape
@@ -77,8 +78,9 @@ def run(config,skip_download=False,pandape_report=None):
             try:
                 report=Path(pandape_report).resolve() if pandape_report else download_pandape(config,ROOT)
                 if period!=local_now().strftime('%Y-%m'):raise ValueError('El reporte diario requiere configurar el mes actual')
-                baseline=generated if generated.exists() and generated.stat().st_mtime>attendance.stat().st_mtime else attendance
+                baseline=generated if current_generated(config,attendance,generated) else attendance
                 pandape_result=generate_attendance(baseline,report,generated,local_now().date())
+                mark_source(attendance,generated)
                 attendance=generated;pandape_status='available'
                 logging.info('Pandape: %s',json.dumps(pandape_result))
             except Exception as error:

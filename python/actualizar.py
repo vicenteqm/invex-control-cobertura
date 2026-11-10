@@ -8,6 +8,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone, time
 from pathlib import Path
 import openpyxl
+from plantilla_elegible import profile
 
 ROOT = Path(__file__).resolve().parents[1]
 CODE_LABELS = {'A': 'Asistencia', 'F': 'Falta', 'R': 'Retardo', 'V': 'Vacaciones', 'I': 'Incapacidad'}
@@ -134,7 +135,7 @@ def generate(base, attendance, period):
             if norm(get('ESTATUS')) != 'ACTIVO':
                 continue
             role = norm(get('PERFIL DE PUESTO BANCO'))
-            if role not in ('PROMOTOR DE CREDITO', 'SUBLIDER'):
+            if profile(role) is None:
                 continue
             key = store_identifier(get('SOCIO'),get('DETERMINANTE'),get('SOCIO Y NUMERO DE TIENDA') if 'SOCIO Y NUMERO DE TIENDA' in h else None,stores)
             raw_key=norm(get('SOCIO'))+' '+identifier(get('DETERMINANTE'))
@@ -163,7 +164,7 @@ def generate(base, attendance, period):
                 warnings['Filas de personal duplicadas omitidas'] += 1
                 continue
             seen[employee] = fingerprint
-            stores[key]['activeProm' if role == 'PROMOTOR DE CREDITO' else 'activeSub'] += 1
+            stores[key]['activeProm' if profile(role) == 'promotor' else 'activeSub'] += 1
             schedule = str(row[h['HORARIO']] or '').strip() if 'HORARIO' in h else ''
             schedule = ' '.join(schedule.split()) or 'Sin horario asignado'
             schedules = stores[key].setdefault('activeSchedules', {})
