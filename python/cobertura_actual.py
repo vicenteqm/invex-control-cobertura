@@ -67,7 +67,7 @@ def adapt_rows(rows, kind, days,known_stores=None):
         output.append(row)
     return output
 
-def process(base, attendance, period, maat=None, now=None):
+def process(base, attendance, period, maat=None, now=None, output_root=None):
     year,month=map(int,period.split('-'));days=calendar.monthrange(year,month)[1]
     b=adapt_rows(read_rows(base,'BASE DE TIENDAS INVEX'),'stores',days)
     a=adapt_rows(read_rows(attendance,'Hoja1'),'attendance',days,{r[9] for r in b[1:]})
@@ -94,7 +94,7 @@ def process(base, attendance, period, maat=None, now=None):
     detail_day=max([reference,*available])
     raw['meta']['attendance_days']=sorted(captured)
     raw['meta']['detail_reference_day']=detail_day
-    private=Path(__file__).resolve().parents[1]/'datos'
+    private=(Path(output_root) if output_root else Path(__file__).resolve().parents[1])/'datos'
     private.mkdir(exist_ok=True)
     (private/'analisis_actual.json').write_text(json.dumps(raw,ensure_ascii=False,default=str),encoding='utf-8')
     from detalle_promotores import export as export_promoters

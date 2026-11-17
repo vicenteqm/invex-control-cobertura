@@ -19,7 +19,7 @@ def authenticated_page(driver):
             and not any(e.is_displayed() for e in driver.find_elements('id','Username'))
             and any(e.is_displayed() for e in driver.find_elements('id','SearchModel_MyTeam')))
 
-def session_options(webdriver,root,browser,folder):
+def session_options(webdriver,root,browser,folder,headless=False):
     options=webdriver.EdgeOptions() if browser=='edge' else webdriver.ChromeOptions()
     # Continue at DOM readiness; third-party resources must not block login.
     options.page_load_strategy='eager'
@@ -27,6 +27,7 @@ def session_options(webdriver,root,browser,folder):
     profile.mkdir(parents=True,exist_ok=True)
     options.add_argument('--user-data-dir='+str(profile.resolve()))
     options.add_argument('--window-size=1440,1000')
+    if headless:options.add_argument('--headless=new')
     options.set_capability('goog:loggingPrefs',{'browser':'ALL'})
     options.add_experimental_option('prefs',{'download.default_directory':str(folder.resolve()),'download.prompt_for_download':False,'download.directory_upgrade':True,'credentials_enable_service':False,'profile.password_manager_enabled':False})
     return options
@@ -65,6 +66,30 @@ def ensure_session(driver,username,browser,timeout=300):
     WebDriverWait(driver,timeout).until(ready)
     logging.info('Sesión iniciada; Edge conservará las cookies en el perfil privado al cerrarse')
 
+def portable_login(driver,username,password,interactive=False):
+    """Ingreso normal; solicita intervención si el proveedor exige verificación."""
+    from selenium.webdriver.support.ui import WebDriverWait
+    if authenticated_page(driver):return
+    location=urlsplit(driver.current_url)
+    if location.hostname in {'login.pandape.com','secure.holmeshr.com'} and username and password:
+        names=[e for e in driver.find_elements('id','Username') if e.is_displayed()]
+        passwords=[e for e in driver.find_elements('css selector','input[type="password"]') if e.is_displayed()]
+        if names and passwords:
+            names[0].clear();names[0].send_keys(username)
+            passwords[0].clear();passwords[0].send_keys(password)
+            buttons=[e for e in driver.find_elements('css selector','button[type="submit"],input[type="submit"]') if e.is_displayed() and e.is_enabled()]
+            if buttons:buttons[0].click()
+    def ready(d):
+        if authenticated_page(d):return True
+        location=urlsplit(d.current_url)
+        if location.hostname in TENANT_HOSTS and location.path=='/':
+            open_fichajes(d)
+        return authenticated_page(d)
+    try:WebDriverWait(driver,300 if interactive else 20).until(ready)
+    except Exception:
+        raise ValueError('PANDAPE_SESSION_REQUIRED: Pandape requiere iniciar sesión o completar su verificación. Usa Iniciar sesión Pandape.') from None
+
+
 def prepare_session(config,root):
     """Open only Pandape, without downloading, calculating or publishing."""
     from selenium import webdriver
@@ -72,11 +97,17 @@ def prepare_session(config,root):
     if browser not in ('edge','chrome'):raise ValueError('Usa edge o chrome para Pandape')
     folder=root/'datos'/'pandape';folder.mkdir(parents=True,exist_ok=True)
     options=session_options(webdriver,root,browser,folder)
-    driver=webdriver.Edge(options=options) if browser=='edge' else webdriver.Chrome(options=options)
+    if config.get('portable_login') or config.get('portable_app'):
+        from selenium.webdriver.edge.service import Service as EdgeService
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        driver=webdriver.Edge(options=options,service=EdgeService(creation_flags=0x08000000)) if browser=='edge' else webdriver.Chrome(options=options,service=ChromeService(creation_flags=0x08000000))
+    else:driver=webdriver.Edge(options=options) if browser=='edge' else webdriver.Chrome(options=options)
     try:
         driver.set_page_load_timeout(60)
         open_fichajes(driver)
-        ensure_session(driver,os.environ.get('PANDAPE_USER') or config.get('pandape_user'),browser)
+        if config.get('portable_login'):
+            portable_login(driver,config.get('pandape_user'),config.get('pandape_password'),True)
+        else:ensure_session(driver,os.environ.get('PANDAPE_USER') or config.get('pandape_user'),browser)
         print('Sesión guardada para el ejecutor. Puedes usar ACTUALIZAR_INVEX.bat.',flush=True)
     finally:driver.quit()
 def wait_download(folder, timeout=180):
@@ -113,6 +144,52 @@ def wait_page_idle(driver,timeout=45):
 
 def report_dialog_visible(driver):
     return any(e.is_displayed() for e in driver.find_elements('id','OfflineReportGeneratedPopUp'))
+
+
+def prepare_export_dates(driver,day,timeout=15):
+    """Admite el calendario nuevo con campo ISO oculto y el formato anterior."""
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.common.exceptions import TimeoutException
+    from selenium.webdriver.common.keys import Keys
+    wait=WebDriverWait(driver,timeout)
+    def dialog(d):
+        return next((e for e in d.find_elements('id','ExportReportPopup') if e.is_displayed()),False)
+    if not dialog(driver):
+        for attempt in range(3):
+            button=wait.until(lambda d:next((e for e in d.find_elements('id','exportButton') if e.is_displayed() and e.is_enabled()),False))
+            button.click()
+            try:WebDriverWait(driver,min(5,timeout)).until(dialog);break
+            except TimeoutException:
+                if attempt==2:raise ValueError('El diálogo de exportación no abrió. Vuelve a intentar cuando termine de cargar Pandape.') from None
+    for field in ('date-start','date-end'):
+        element=wait.until(lambda d:d.find_elements('id',field) and d.find_elements('id',field)[0])
+        if element.get_attribute('type')=='hidden':
+            if element.get_attribute('value')!=day.isoformat():
+                trigger=wait.until(lambda d:next((e for e in d.find_elements('css selector','button[aria-controls="'+field+'-pop"]') if e.is_displayed() and e.is_enabled()),False))
+                trigger.click()
+                selector='#'+field+'-pop button[data-date="'+day.isoformat()+'"]'
+                # El diálogo nuevo abre Desde un mes atrás, no siempre en hoy.
+                from datetime import date
+                selected=date.fromisoformat(element.get_attribute('value'))
+                difference=(day.year-selected.year)*12+day.month-selected.month
+                if abs(difference)>24:raise ValueError('El calendario de Pandape está fuera del rango esperado')
+                for _ in range(abs(difference)):
+                    title_selector='#'+field+'-pop .dp-title'
+                    title=wait.until(lambda d:next((e for e in d.find_elements('css selector',title_selector) if e.is_displayed()),False)).text
+                    nav_selector='#'+field+'-pop '+('.dp-next' if difference>0 else '.dp-prev')
+                    nav=wait.until(lambda d:next((e for e in d.find_elements('css selector',nav_selector) if e.is_displayed() and e.is_enabled()),False))
+                    nav.click()
+                    wait.until(lambda d:any(e.is_displayed() and e.text!=title for e in d.find_elements('css selector',title_selector)))
+                button=wait.until(lambda d:next((e for e in d.find_elements('css selector',selector) if e.is_displayed() and e.is_enabled()),False))
+                button.click()
+            expected=day.isoformat()
+        else:
+            wait.until(lambda d:element.is_displayed())
+            element.clear();element.send_keys(day.strftime('%d/%m/%Y'));element.send_keys(Keys.TAB)
+            expected=day.strftime('%d/%m/%Y')
+        if element.get_attribute('value')!=expected:
+            raise ValueError('Pandape no aceptó la fecha del reporte en '+field)
+    logging.info('Pandape: fechas de exportación verificadas, %s al %s',day.isoformat(),day.isoformat())
 
 
 def submit_export(driver,timeout=15):
@@ -175,9 +252,13 @@ def download(config, root):
     folder.mkdir(parents=True)
     browser=config.get('pandape_browser','chrome').lower()
     if browser not in ('chrome','edge'):raise ValueError('Navegador Pandape no admitido: usa chrome o edge')
-    options=session_options(webdriver,root,browser,folder)
-    visible=True
-    driver=webdriver.Edge(options=options) if browser=='edge' else webdriver.Chrome(options=options)
+    visible=not config.get('pandape_background',False)
+    options=session_options(webdriver,root,browser,folder,headless=not visible)
+    if config.get('portable_login') or config.get('portable_app'):
+        from selenium.webdriver.edge.service import Service as EdgeService
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        driver=webdriver.Edge(options=options,service=EdgeService(creation_flags=0x08000000)) if browser=='edge' else webdriver.Chrome(options=options,service=ChromeService(creation_flags=0x08000000))
+    else:driver=webdriver.Edge(options=options) if browser=='edge' else webdriver.Chrome(options=options)
     stage='abrir_login'
     try:
         logging.info('[1/7] Abriendo %s%s y acceso Pandape',browser.title(),' visible' if visible else '')
@@ -185,11 +266,15 @@ def download(config, root):
         driver.execute_cdp_cmd('Browser.setDownloadBehavior',{'behavior':'allow','downloadPath':str(folder.resolve())})
         wait=WebDriverWait(driver,45)
         # Go to the protected page first so a saved login can be reused.
-        open_fichajes(driver)
+        if config.get('pandape_interactive_entry'):
+            driver.get('https://login.pandape.com/Account/Login')
+        else:open_fichajes(driver)
         if '403' in driver.title or 'Forbidden' in driver.title:
             raise RuntimeError('El servidor rechaza el acceso automático con HTTP 403')
         stage='ingreso_manual'
-        ensure_session(driver,username,browser)
+        if config.get('portable_login'):
+            portable_login(driver,username,config.get('pandape_password'))
+        else:ensure_session(driver,username,browser)
         logging.info('[3/7] Abriendo Fichajes de empleados')
         open_fichajes(driver)
         from generar_asistencia import normalized
@@ -204,15 +289,8 @@ def download(config, root):
             wait.until(lambda d: normalized(Select(d.find_element(By.ID,field)).first_selected_option.text)==wanted)
             wait_page_idle(driver)
         logging.info('[5/7] Exportando los fichajes del día %s',now.strftime('%d/%m/%Y'))
-        stage='abrir_exportacion'
-        if not any(el.is_displayed() for el in driver.find_elements(By.ID,'date-start')):
-            wait.until(lambda d:next((e for e in d.find_elements(By.ID,'exportButton') if e.is_displayed() and e.is_enabled()),False)).click()
         stage='fechas_exportacion'
-        for field in ('date-start','date-end'):
-            element=wait.until(EC.visibility_of_element_located((By.ID,field)));element.clear();element.send_keys(now.strftime('%d/%m/%Y'))
-            from selenium.webdriver.common.keys import Keys
-            element.send_keys(Keys.TAB)
-            if element.get_attribute('value')!=now.strftime('%d/%m/%Y'):raise ValueError('Pandape no aceptó la fecha del reporte en '+field)
+        prepare_export_dates(driver,now.date())
         submit_export(driver)
         stage='generar_reporte'
         logging.info('[6/7] Esperando el reporte de Pandape y descargando el Excel')
