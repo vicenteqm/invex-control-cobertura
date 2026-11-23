@@ -13,6 +13,9 @@ from plantilla_elegible import profile
 ROOT = Path(__file__).resolve().parents[1]
 CODE_LABELS = {'A': 'Asistencia', 'F': 'Falta', 'R': 'Retardo', 'V': 'Vacaciones', 'I': 'Incapacidad'}
 
+def contract_group(value):
+    return 'commission' if norm(value) in {'IMSS COMISIONISTA','SIN IMSS COMISIONISTA'} else 'salary'
+
 def clock_minutes(value):
     """Excel usa 00:00:00 como marcador sin registro, no como una checada."""
     if value is None or value == '' or value == 0:
@@ -157,7 +160,7 @@ def generate(base, attendance, period):
                 employee = name
             if not employee:
                 raise ValueError('Personal elegible sin identificador')
-            fingerprint = (key, role, tuple(tuple(norm(row[j]) for j in (i, i + 1, i + 2)) for i, d in day_columns))
+            fingerprint = (key, role, contract_group(get('TIPO DE CONTRATO') if 'TIPO DE CONTRATO' in h else None), tuple(tuple(norm(row[j]) for j in (i, i + 1, i + 2)) for i, d in day_columns))
             if employee in seen:
                 if seen[employee] != fingerprint:
                     raise ValueError('Identificador de personal duplicado con datos distintos; revise el Excel')
@@ -165,10 +168,15 @@ def generate(base, attendance, period):
                 continue
             seen[employee] = fingerprint
             stores[key]['activeProm' if profile(role) == 'promotor' else 'activeSub'] += 1
+            group=contract_group(get('TIPO DE CONTRATO') if 'TIPO DE CONTRATO' in h else None)
+            contracts=stores[key].setdefault('contracts',{})
+            segment=contracts.setdefault(group,dict(activeProm=0,activeSub=0,activeSchedules={}))
+            segment['activeProm' if profile(role)=='promotor' else 'activeSub']+=1
             schedule = str(row[h['HORARIO']] or '').strip() if 'HORARIO' in h else ''
             schedule = ' '.join(schedule.split()) or 'Sin horario asignado'
             schedules = stores[key].setdefault('activeSchedules', {})
             schedules[schedule] = schedules.get(schedule, 0) + 1
+            segment['activeSchedules'][schedule]=segment['activeSchedules'].get(schedule,0)+1
             for i, day in day_columns:
                 code = norm(row[i])
                 if day > max_day:
@@ -187,7 +195,13 @@ def generate(base, attendance, period):
                     add_hours(hours[day], *parsed)
     finally:
         book.close()
+    segments=[]
     for store in stores.values():
+        for group in ('salary','commission'):
+            segment=store.setdefault('contracts',{}).setdefault(group,dict(activeProm=0,activeSub=0,activeSchedules={}))
+            segment.update({key:store[key] for key in ('id','requiredProm','requiredSub')})
+            segments.append(segment)
+    for store in [*stores.values(),*segments]:
         store['required'] = store['requiredProm'] + store['requiredSub']
         store['active'] = store['activeProm'] + store['activeSub']
         store['gapProm'] = max(0, store['requiredProm'] - store['activeProm'])
@@ -202,7 +216,7 @@ def generate(base, attendance, period):
         warnings['Salidas anteriores a entrada; excluidas de duración promedio'] = sum(summary['reversedPairs'] for summary in hours.values())
     code_days = [day for day, codes in days.items() if codes]
     from turnos_cobertura import enrich
-    enrich(stores.values())
+    enrich([*stores.values(),*segments])
     result = dict(updatedAt=datetime.now(timezone.utc).isoformat(), period=period, cutoff=f'{period}-{max(code_days):02}' if code_days else None, codeLabels=CODE_LABELS, sources=[dict(name=p.name, modifiedAt=datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).isoformat()) for p in [base, attendance]], stores=list(stores.values()), attendance=[dict(day=day, codes=dict(codes), hours=hours[day]) for day, codes in sorted(days.items())], warnings=dict(warnings))
     return result
 

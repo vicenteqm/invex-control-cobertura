@@ -19,6 +19,11 @@ const coverageRegion=el('select');coverageRegion.id='coverage-region';coverageRe
 for(const r of [...new Set(data.stores.map(s=>s.region))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})))coverageRegion.append(new Option(r,r));
 const coverageStore=el('select');coverageStore.id='coverage-store';coverageStore.setAttribute('aria-label','Tienda de cobertura');
 const general=el('button','Ver general');general.type='button';
+const contract=el('select');contract.id='coverage-contract';contract.setAttribute('aria-label','Tipo de contrato de cobertura');
+for(const [value,label]of [['','Cobertura general'],['salary','Activos sueldo base'],['commission','Activos comisionistas']])contract.append(new Option(label,value));
+const contractLabel=el('label');contractLabel.append(el('span','Cobertura por contrato'),contract);coverageControls.append(contractLabel);
+const contractStore=s=>contract.value?{...s,...s.contracts?.[contract.value]}:s;
+window.INVEX_COVERAGE_STORE=contractStore;
 for(const [title,control]of [['Región',coverageRegion],['Tienda',coverageStore]]){const label=el('label');label.append(el('span',title),control);coverageControls.append(label);}coverageControls.append(general);$('kpis').before(coverageControls);
 const coverageSummary=el('p',undefined,'note');coverageSummary.setAttribute('role','status');coverageControls.after(coverageSummary);
 function coverageStoreOptions(){const previous=coverageStore.value;coverageStore.replaceChildren(new Option('Todas las tiendas',''));for(const s of data.stores.filter(s=>!coverageRegion.value||s.region===coverageRegion.value).sort((a,b)=>a.name.localeCompare(b.name,'es')))coverageStore.append(new Option(s.id+' · '+s.name,s.id));if([...coverageStore.options].some(o=>o.value===previous))coverageStore.value=previous;}
@@ -43,7 +48,7 @@ function drawStoreMaps(stores){
  }
 }
 function drawCoverage(){
- const all=data.stores.filter(s=>(!coverageRegion.value||s.region===coverageRegion.value)&&(!coverageStore.value||s.id===coverageStore.value));const rows=all.filter(s=>s.status==='OPERANDO');
+ const all=data.stores.filter(s=>(!coverageRegion.value||s.region===coverageRegion.value)&&(!coverageStore.value||s.id===coverageStore.value)).map(contractStore);const rows=all.filter(s=>s.status==='OPERANDO');
  const required=sum(rows,'required'),active=sum(rows,'active'),covered=sum(rows,'covered'),gap=sum(rows,'gap');
  for(const id of ['kpis','legend','profiles','regions','statuses'])$(id).replaceChildren();
  for(const [label,value,foot]of [['Tiendas operando',rows.length,'Tiendas operando en la selección'],['Plantilla requerida',required,'Promotores y sublíderes requeridos'],['Personal activo',active,'Personal elegible de las tiendas seleccionadas'],['Vacantes',gap,'Personas faltantes por tienda; sin compensar excedentes de otras tiendas']]){const card=el('article',undefined,'kpi');card.append(el('div',label,'kpi-label'),el('strong',num(value)),el('small',foot));$('kpis').append(card);}
@@ -53,11 +58,16 @@ function drawCoverage(){
  const regions={};for(const s of rows)regions[s.region]=(regions[s.region]||0)+s.gap;for(const [r,n]of Object.entries(regions).sort((a,b)=>b[1]-a[1])){const row=el('div',undefined,'region-row');row.append(el('span',r),bar(n,Math.max(0,...Object.values(regions))),el('strong',num(n)));$('regions').append(row);}
  const statuses={};for(const s of all)statuses[s.status]=(statuses[s.status]||0)+1;for(const [status,n]of Object.entries(statuses)){const row=el('div');row.append(el('span',status||'Sin estatus'),el('strong',num(n)));$('statuses').append(row);}
  drawStoreMaps(all);
- coverageSummary.textContent=num(all.length)+' tiendas en la selección · '+num(rows.length)+' operando. KPI y gráficas calculadas con estos filtros.';
+ coverageSummary.textContent=num(all.length)+' tiendas en la selección · '+num(rows.length)+' operando. '+(contract.value?'Solo '+contract.selectedOptions[0].text+'. Referencia: plantilla general de la tienda; el faltante de esta vista no representa vacantes adicionales a las generales.':'KPI y gráficas calculadas con estos filtros.');
+ $('cobertura').querySelector('h2').textContent=contract.value?'Cobertura · '+contract.selectedOptions[0].text:'Cobertura general';
+ if(contract.value){const labels=$('kpis').querySelectorAll('.kpi-label');labels[3].textContent='Faltante frente a plantilla general';}
  $('scope').textContent=coverageStore.value||coverageRegion.value||'Vista nacional';
  window.INVEX_COVERAGE_SELECTION=all.map(s=>s.id);window.dispatchEvent(new CustomEvent('invex:coverage-filter',{detail:window.INVEX_COVERAGE_SELECTION}));
 }
 coverageRegion.addEventListener('change',()=>{coverageStoreOptions();drawCoverage();});coverageStore.addEventListener('change',drawCoverage);general.addEventListener('click',()=>{coverageRegion.value='';coverageStoreOptions();coverageStore.value='';drawCoverage();});coverageStoreOptions();drawCoverage();
+contract.addEventListener('change',drawCoverage);
+for(const [value,label]of [['salary','Cobertura · Sueldo base'],['commission','Cobertura · Comisionistas']]){const link=el('a',label);link.href='#cobertura';link.addEventListener('click',()=>{contract.value=value;drawCoverage();});document.querySelector('.nav-submenu a[href="#tiendas"]').before(link);}
+document.querySelector('.nav-submenu a[href="#cobertura"]').addEventListener('click',()=>{contract.value='';drawCoverage();});
 for(const status of [...new Set(data.stores.map(s=>s.status))])if(status!=='OPERANDO')$('status').append(new Option(status,status));
 for(const region of [...new Set(data.stores.map(s=>s.region))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})))$('region').append(new Option(region,region));
 let page=1, filtered=[]; const pageSize=12;

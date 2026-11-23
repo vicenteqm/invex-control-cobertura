@@ -14,6 +14,21 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 class CalculationTests(unittest.TestCase):
+    def test_contract_split_uses_contract_not_job_title(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base,attendance=self.make_files(directory)
+            book=openpyxl.load_workbook(attendance);s=book['Hoja1'];s.cell(1,13,'TIPO DE CONTRATO')
+            s.cell(2,13,'IMSS COMISIONISTA');s.cell(3,13,'IMSS COMISIONISTA')
+            s.cell(4,13,'SUELDO BASE IMSS')
+            s.append(['WM',1,'ACTIVO','SUBLIDER','005','Persona 5',None,None,None,None,None,None,'SIN IMSS COMISIONISTA'])
+            s.append(['WM',1,'ACTIVO','PROMOTOR COMISIONISTA','006','Persona 6',None,None,None,None,None,None,None])
+            book.save(attendance);book.close()
+            store=module.generate(base,attendance,'2026-10')['stores'][0]
+            self.assertEqual(store['active'],4)
+            self.assertEqual(store['contracts']['commission']['active'],2)
+            self.assertEqual(store['contracts']['salary']['active'],2)
+            for g in store['contracts'].values():self.assertEqual(sum(g['activeSchedules'].values()),g['active'])
+
     def test_only_active_four_operational_profiles(self):
         with tempfile.TemporaryDirectory() as directory:
             base, attendance = self.make_files(directory)

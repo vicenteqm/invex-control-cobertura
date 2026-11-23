@@ -8,7 +8,8 @@
   const controls=make('div',undefined,'shift-controls');
   const region=make('select');region.setAttribute('aria-label','Región de las tablas de horarios');
   region.append(new Option('Todas las regiones',''));
-  const stores=data.stores.filter(s=>s.status==='OPERANDO');
+  const baseStores=data.stores.filter(s=>s.status==='OPERANDO');
+  let stores=baseStores;
   for(const name of [...new Set(stores.map(s=>s.region))].sort((a,b)=>a.localeCompare(b,'es',{numeric:true})))region.append(new Option(name,name));
   const search=make('input');search.type='search';search.placeholder='Buscar socio, tienda o región';search.setAttribute('aria-label','Buscar tienda en las tablas de horarios');
   const block=make('select');block.setAttribute('aria-label','Bloque de vacantes');block.append(new Option('Apertura y cierre',''),new Option('Apertura','Apertura'),new Option('Cierre','Cierre'));
@@ -25,6 +26,6 @@
     const expected=selected.reduce((n,s)=>n+s.active,0);active.foot.textContent='Total: '+total+' personas activas · '+selected.length+' tiendas.'+(total!==expected?' Faltan horarios en los datos publicados; ejecuta la actualización.':' Coincide con el personal activo de las tiendas filtradas.');
     for(const {body} of [missing,active])if(!body.children.length){const tr=make('tr'),cell=make('td','Sin resultados con estos filtros.');cell.colSpan=body===missing.body?5:4;tr.append(cell);body.append(tr);}
   }
-  window.addEventListener('invex:coverage-filter',draw);
+  window.addEventListener('invex:coverage-filter',()=>{stores=baseStores.map(s=>window.INVEX_COVERAGE_STORE?window.INVEX_COVERAGE_STORE(s):s);draw();});
   for(const n of [search,region,block])n.addEventListener(n===search?'input':'change',draw);reset.addEventListener('click',()=>{search.value='';region.value='';block.value='';draw();});wrap.append(heading,controls,panels);section.insertBefore(wrap,document.getElementById("coverage-store-maps"));draw();
 })();
