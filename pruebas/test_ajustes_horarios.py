@@ -48,7 +48,11 @@ class ScheduleOverrideTests(unittest.TestCase):
         apply_store(data,store)
         self.assertEqual(store['shiftCoverage']['gaps'],{'Apertura':0,'Cierre':0,'Tiempo completo':1})
         self.assertEqual(store['shiftCoverage']['hours']['Tiempo completo'],'10:00 - 19:00')
-        other=dict(store);other.pop('shiftCoverage');apply_store(data,other,'salary');self.assertNotIn('shiftCoverage',other)
+        other=dict(store);other.pop('shiftCoverage');apply_store(data,other,'salary')
+        self.assertEqual(other['shiftCoverage']['hours']['Tiempo completo'],'10:00 - 19:00')
+        data['stores']['WM 1']['salary']={**data['stores']['WM 1']['general'],'hours':{'Tiempo completo':'11:00 - 21:00','Apertura':'11:00 - 17:00','Cierre':'15:00 - 21:00'}}
+        apply_store(data,other,'salary')
+        self.assertEqual(other['shiftCoverage']['hours']['Tiempo completo'],'11:00 - 21:00')
         store['required']=5;apply_store(data,store);self.assertIn('scheduleOverrideWarning',store)
 
     def test_schedule_validation(self):

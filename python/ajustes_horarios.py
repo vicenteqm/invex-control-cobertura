@@ -55,7 +55,8 @@ def effective_person(data,employee,store,schedule,journey):
     return item.get('schedule',schedule),item.get('journey',journey)
 
 def apply_store(data,store,scope='general'):
-    item=data['stores'].get(store['id'],{}).get(scope)
+    settings=data['stores'].get(store['id'],{})
+    item=settings.get(scope) or settings.get('general')
     if not item:return
     from turnos_cobertura import allocate,operational_shift
     targets=item['targets']
