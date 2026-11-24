@@ -10,7 +10,7 @@ from tkinter import ttk, filedialog, messagebox
 from pathlib import Path
 from datetime import datetime
 from operativo_portable import (initialize, local_folder, read_snapshot, refresh, login,
-                                registration_view, people_rows, heatmap_tiles, INTERVAL_SECONDS, atomic_json)
+                                registration_view, people_rows, heatmap_tiles, INTERVAL_SECONDS, atomic_json,import_attendance)
 
 PINK = '#ed2479'
 STATUSES = {'COMPLETO': 'Ambos sistemas', 'SIN_REGISTRO_MAAT': 'Falta MAAT',
@@ -34,7 +34,7 @@ class Application:
         self.busy = False
         self.next_update = time.monotonic() + INTERVAL_SECONDS
         self.store_export, self.people_export = [], []
-        window.title('INVEX · Registro Pandape / MAAT · 1.5')
+        window.title('INVEX · Registro Pandape / MAAT · 1.7')
         window.geometry('1280x820');window.minsize(850, 560);window.configure(bg='#111111')
         style = ttk.Style();style.theme_use('clam')
         style.configure('.', font=('Calibri', 11))
@@ -64,6 +64,7 @@ class Application:
         self.update_button = ttk.Button(bar, text='Actualizar ahora', style='Accent.TButton', command=self.update);self.update_button.pack(side='left')
         self.login_button = ttk.Button(bar, text='Actualizar Pandape', command=self.open_login);self.login_button.pack(side='left', padx=8)
         self.sources_button = ttk.Button(bar, text='Fuentes', command=self.sources);self.sources_button.pack(side='left')
+        self.attendance_button=ttk.Button(bar,text='Cargar nueva asistencia',command=self.load_attendance);self.attendance_button.pack(side='left',padx=8)
         self.auto = tk.BooleanVar(value=auto)
         ttk.Checkbutton(bar, text='Actualizar cada 15 minutos', variable=self.auto).pack(side='right')
         self.progress = ttk.Progressbar(body, maximum=100);self.progress.pack(fill='x', pady=(12, 4))
@@ -234,7 +235,7 @@ class Application:
         if sources:
             maat_date=pretty_date(sources.get('maat',{}).get('updatedAt'))
             p_source=sources.get('pandape',{});p_date=pretty_date(p_source.get('updatedAt'))
-            self.cut.configure(text='Día consultado: '+self.filters['day'].get()+'  ·  MAAT actualizado: '+maat_date+'  ·  Pandape: '+p_date+(' · pendiente de actualizar' if p_source.get('status')!='ok' else ''))
+            self.cut.configure(text='Día consultado: '+self.filters['day'].get()+'  ·  MAAT actualizado: '+maat_date+'  ·  '+('Asistencia cargada: ' if p_source.get('status')=='imported' else 'Pandape: ')+p_date+(' · pendiente de actualizar' if p_source.get('status') not in ('ok','imported') else ''))
         else:self.cut.configure(text='Último corte validado: '+pretty_date(month.get('processedAt'))+'  ·  Día consultado: '+self.filters['day'].get())
         for i, key in enumerate(['pandape', 'maat', 'both', 'none']):
             self.kpis[i].configure(text=str(totals[key])+' / '+str(totals['total']) if (m if key=='maat' else p) else '—')
@@ -280,7 +281,20 @@ class Application:
 
     def set_busy(self, busy):
         self.busy = busy
-        for button in [self.update_button,self.login_button,self.sources_button]:button.configure(state='disabled' if busy else 'normal')
+        for button in [self.update_button,self.login_button,self.sources_button,self.attendance_button]:button.configure(state='disabled' if busy else 'normal')
+
+    def load_attendance(self):
+        if self.busy:return
+        selected=filedialog.askopenfilename(parent=self.window,title='Selecciona la nueva asistencia del mes actual',filetypes=[('Excel de asistencia','*.xlsx')])
+        if not selected:return
+        self.set_busy(True);self.started=datetime.now().strftime('%d/%m/%Y %H:%M:%S');self.progress['value']=0
+        self.status.configure(text='Cargando asistencia y recalculando con MAAT guardado…')
+        def worker():
+            try:
+                result=import_attendance(self.root,self.config,Path(selected),lambda n,text:self.events.put(('progress',n,text)))
+                self.events.put(('attendance_loaded',result))
+            except Exception as error:self.events.put(('attendance_error',str(error)))
+        threading.Thread(target=worker,daemon=True).start()
 
     def update(self,interactive=False):
         if self.busy:return
@@ -307,6 +321,7 @@ class Application:
         ttk.Label(dialog,text='Carga una fuente cuando recibas una plantilla o base nueva.',wraplength=530).pack(padx=18,pady=12)
         ttk.Label(dialog,text='Periodo de asistencia: '+self.config['period']).pack()
         def choose(kind):
+            if kind=='asistencia':dialog.destroy();self.load_attendance();return
             selected=filedialog.askopenfilename(parent=dialog,filetypes=[('Excel','*.xlsx')])
             if not selected:return
             from actualizar import generate
@@ -327,7 +342,13 @@ class Application:
             event=self.events.get();kind=event[0]
             if kind=='progress':self.progress['value']=event[1];self.status.configure(text=event[2]+' · Inició '+self.started);continue
             self.set_busy(False);self.next_update=time.monotonic()+INTERVAL_SECONDS
-            if kind=='success':
+            if kind=='attendance_loaded':
+                self.snapshot=event[1];self.load_filters();self.draw();self.progress['value']=100
+                self.status.configure(text='Nueva asistencia cargada. Personal, indicadores, tablas y mapas recalculados con el MAAT guardado. No se descargaron registros nuevos.')
+            elif kind=='attendance_error':
+                self.status.configure(text='No se cargó la asistencia; se conserva la fuente anterior.')
+                messagebox.showerror('Revisar asistencia',event[1],parent=self.window)
+            elif kind=='success':
                 self.snapshot=event[1];self.load_filters();self.draw();self.progress['value']=100
                 self.status.configure(text=('MAAT actualizado. Pandape pendiente: pulsa Actualizar Pandape e inicia sesión en Edge. MAAT seguirá actualizándose cada 15 minutos.' if self.snapshot.get('partialUpdate') else 'Actualización completada')+' · '+datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
             elif kind=='login':self.status.configure(text='Sesión Pandape guardada en este equipo');self.window.after(200,self.update)

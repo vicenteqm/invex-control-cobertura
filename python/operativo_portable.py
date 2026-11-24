@@ -44,6 +44,47 @@ def read_snapshot(root):
     path = root / 'ultimo-corte.json'
     return json.loads(path.read_text(encoding='utf-8')) if path.exists() else None
 
+def import_attendance(root,config,source,progress=lambda *args:None,services=None):
+    """Validate and recalculate from a new roster without network access."""
+    from cobertura_actual import local_now,process
+    from actualizar import generate
+    from fuentes_asistencia import fingerprint
+    import re
+    services=services or {};source=Path(source)
+    now=local_now();period=now.strftime('%Y-%m')
+    months=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE']
+    named=[i+1 for i,name in enumerate(months) if name in source.stem.upper()]
+    iso=re.search(r'(20\d{2})[-_](\d{2})(?:\D|$)',source.stem)
+    dated=re.search(r'(\d{2})[-_](\d{2})[-_](20\d{2})',source.stem)
+    if ((named and now.month not in named) or (iso and f'{iso[1]}-{iso[2]}'!=period)
+            or (dated and f'{dated[3]}-{dated[2]}'!=period)):
+        raise ValueError('El archivo debe corresponder a '+period+'. Selecciona la asistencia del mes actual.')
+    if source.suffix.lower()!='.xlsx':raise ValueError('Selecciona un archivo Excel .xlsx')
+    progress(15,'Validando la nueva asistencia')
+    base=root/'fuentes/base.xlsx'
+    services.get('generate',generate)(base,source,period)
+    maat=root/'datos'/('asistencia_maat_'+period.replace('-','_')+'.csv')
+    previous=read_snapshot(root) or {}
+    progress(55,'Recalculando personal y cruce con MAAT guardado')
+    result=services.get('process',process)(base,source,period,maat if maat.exists() else None,output_root=root)
+    previous_sources=previous.get('sourceFreshness',{}) if previous.get('period')==period else {}
+    result.update(period=period,maatStatus='available' if maat.exists() else 'not_configured',partialUpdate=True,
+        sourceName='Asistencia cargada: '+source.name,attendanceImportedAt=now.isoformat(),
+        sourceFreshness={'maat':previous_sources.get('maat',{'status':'not_loaded','updatedAt':None}),
+            'pandape':{'status':'imported','updatedAt':now.isoformat(),'day':now.day}})
+    # No reemplaza la fuente ni el corte si falla la validación o el cálculo.
+    progress(90,'Guardando la nueva fuente de asistencia')
+    target=root/'fuentes/asistencia.xlsx';staged=target.with_suffix('.nueva.xlsx')
+    shutil.copyfile(source,staged)
+    new_config=dict(config,period=period,attendance_linked_roster=True,
+        attendanceImport={'name':source.name,'at':now.isoformat(),'sha256':fingerprint(source)})
+    try:
+        staged.replace(target);atomic_json(root/'config.json',new_config);atomic_json(root/'ultimo-corte.json',result)
+    finally:staged.unlink(missing_ok=True)
+    config.clear();config.update(new_config)
+    progress(100,'Asistencia cargada y datos recalculados')
+    return result
+
 
 def access_config(root, config, interactive=False):
     from secretos_locales import read_credentials

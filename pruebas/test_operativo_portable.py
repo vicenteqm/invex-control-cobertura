@@ -11,6 +11,34 @@ from cobertura_actual import local_now
 
 
 class PortableTests(unittest.TestCase):
+    def test_import_attendance_recalculates_and_persists_without_download(self):
+        from operativo_portable import import_attendance
+        from fuentes_asistencia import current_generated,mark_source
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'fuentes').mkdir();(root/'datos').mkdir()
+            target=root/'fuentes/asistencia.xlsx';target.write_bytes(b'old')
+            generated=root/'datos/generated.xlsx';generated.write_bytes(b'old-generated');mark_source(target,generated)
+            source=root/'nueva.xlsx';source.write_bytes(b'new')
+            config={'period':local_now().strftime('%Y-%m')};atomic_json(root/'config.json',config)
+            calls=[]
+            result=import_attendance(root,config,source,services={'generate':lambda *args:None,'process':lambda *args,**kw:(calls.append(args) or {'stores':[],'attendanceDays':[1]})})
+            self.assertEqual(target.read_bytes(),b'new');self.assertEqual(len(calls),1)
+            self.assertIsNone(calls[0][3]);self.assertFalse(current_generated({'attendance_linked_roster':True},target,generated))
+            self.assertEqual(result['sourceFreshness']['pandape']['status'],'imported')
+            self.assertEqual(json.loads((root/'ultimo-corte.json').read_text())['attendanceDays'],[1])
+            self.assertEqual(config['attendanceImport']['name'],'nueva.xlsx')
+
+    def test_invalid_attendance_keeps_source_and_snapshot(self):
+        from operativo_portable import import_attendance
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);(root/'fuentes').mkdir();(root/'datos').mkdir()
+            (root/'fuentes/asistencia.xlsx').write_bytes(b'old');atomic_json(root/'ultimo-corte.json',{'old':True})
+            source=root/'nueva.xlsx';source.write_bytes(b'new');config={'period':local_now().strftime('%Y-%m')}
+            def fail(*args,**kwargs):raise ValueError('Encabezados invalidos')
+            with self.assertRaises(ValueError):import_attendance(root,config,source,services={'generate':fail})
+            self.assertEqual((root/'fuentes/asistencia.xlsx').read_bytes(),b'old')
+            self.assertEqual(json.loads((root/'ultimo-corte.json').read_text()),{'old':True})
+
     def test_manual_pandape_download_uses_one_visible_session_and_clears_attention(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);(root/'fuentes').mkdir();(root/'datos').mkdir()

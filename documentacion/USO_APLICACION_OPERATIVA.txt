@@ -1,4 +1,4 @@
-﻿INVEX - REGISTRO OPERATIVO
+INVEX - REGISTRO OPERATIVO
 
 Abre INVEX Registro Operativo.exe. No requiere Python, Git ni Excel.
 Requiere Windows 10/11 de 64 bits, Microsoft Edge e Internet.
@@ -9,6 +9,6 @@ Si Pandape solicita verificación o rechaza el acceso automático, pulsa Actuali
 
 Los accesos de servicio están incluidos por autorización del responsable del proyecto. Comparte este paquete únicamente con las personas autorizadas. La sesión del navegador se crea por separado en cada equipo. No se incluye acceso de publicación de GitHub.
 
-Los datos de este equipo se guardan en %LOCALAPPDATA%/INVEX/Seguimiento operativo. Usa Fuentes para reemplazar la base o la asistencia. Al cambiar de mes es necesario cargar la asistencia del nuevo periodo. Las fuentes iniciales corresponden a 2026-11.
+Los datos de este equipo se guardan en %LOCALAPPDATA%/INVEX/Seguimiento operativo. Pulsa Cargar nueva asistencia para elegir el Excel del mes actual: se guarda en este equipo y recalcula al instante con los registros MAAT disponibles, sin descargar. Usa Fuentes para reemplazar la base. Al cambiar de mes es necesario cargar la asistencia del nuevo periodo. Las fuentes iniciales corresponden a 2026-11.
 
 Los KPI cuentan personas únicas del día. El registro no equivale a presencia instantánea. Los movimientos se asignan al destino MAAT, como en Seguimiento operativo. El detalle nominal ampliado conserva líderes y externos; su población puede ser mayor que la plantilla operativa de los KPI.
