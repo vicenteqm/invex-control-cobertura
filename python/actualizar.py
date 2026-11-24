@@ -91,7 +91,9 @@ def quantity(value):
         raise ValueError(f'Plantilla inválida: {value!r}')
     return int(value)
 
-def generate(base, attendance, period):
+def generate(base, attendance, period, adjustments_path=None):
+    from ajustes_horarios import load as load_adjustments,effective_person,apply_store
+    adjustments=load_adjustments(adjustments_path)
     datetime.strptime(period, '%Y-%m')
     warnings = Counter()
     book = openpyxl.load_workbook(base, read_only=True, data_only=True)
@@ -174,10 +176,11 @@ def generate(base, attendance, period):
             segment['activeProm' if profile(role)=='promotor' else 'activeSub']+=1
             schedule = str(row[h['HORARIO']] or '').strip() if 'HORARIO' in h else ''
             schedule = ' '.join(schedule.split()) or 'Sin horario asignado'
+            journey=norm(get('JORNADA')) if 'JORNADA' in h else 'SIN JORNADA'
+            schedule,journey=effective_person(adjustments,employee,key,schedule,journey)
             schedules = stores[key].setdefault('activeSchedules', {})
             schedules[schedule] = schedules.get(schedule, 0) + 1
             segment['activeSchedules'][schedule]=segment['activeSchedules'].get(schedule,0)+1
-            journey=norm(get('JORNADA')) if 'JORNADA' in h else 'SIN JORNADA'
             for target in (stores[key],segment):
                 journeys=target.setdefault('journeySchedules',{})
                 bucket=journeys.setdefault(journey,{})
@@ -224,6 +227,9 @@ def generate(base, attendance, period):
     code_days = [day for day, codes in days.items() if codes]
     from turnos_cobertura import enrich
     enrich([*stores.values(),*segments])
+    for store in stores.values():
+        apply_store(adjustments,store)
+        for group,segment in store['contracts'].items():apply_store(adjustments,segment,group)
     result = dict(updatedAt=datetime.now(timezone.utc).isoformat(), period=period, cutoff=f'{period}-{max(code_days):02}' if code_days else None, codeLabels=CODE_LABELS, sources=[dict(name=p.name, modifiedAt=datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).isoformat()) for p in [base, attendance]], stores=list(stores.values()), attendance=[dict(day=day, codes=dict(codes), hours=hours[day]) for day, codes in sorted(days.items())], warnings=dict(warnings))
     return result
 
