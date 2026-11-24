@@ -75,7 +75,7 @@ def sources(root=ROOT):
 
 def catalog(root=ROOT):
     import openpyxl
-    from actualizar import generate,columns,norm,store_identifier
+    from actualizar import generate,columns,norm,store_identifier,contract_group
     from plantilla_elegible import profile
     config,base,attendance=sources(root)
     result=generate(base,attendance,config['period'])
@@ -96,7 +96,8 @@ def catalog(root=ROOT):
             original=str(get('HORARIO') or '').strip();journey=norm(get('JORNADA'))
             schedule,current_journey=effective_person(data,employee,key,original,journey)
             people.append(dict(key=identity,store=key,name=name,role=norm(get('PERFIL DE PUESTO BANCO')),
-                schedule=schedule,journey=current_journey,original=original,originalJourney=journey,manual=identity in data['people']))
+                schedule=schedule,journey=current_journey,original=original,originalJourney=journey,
+                contract=contract_group(get('TIPO DE CONTRATO')),manual=data['people'].get(identity,{}).get('store')==key))
     finally:book.close()
     return result,people
 
