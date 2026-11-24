@@ -1,5 +1,5 @@
 """Administrador local de horarios INVEX. No expone un servidor ni editores web."""
-import sys,json,threading,queue,traceback
+import sys,json,threading,queue,traceback,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'.build-deps'))
@@ -10,7 +10,7 @@ from ajustes_horarios import load,save,catalog,validate_schedule,recalculate_pub
 class Admin:
     def __init__(self,window):
         self.window=window;self.busy=False;self.events=queue.Queue();self.people=[];self.stores={}
-        window.title('INVEX · Administración local de horarios');window.geometry('1420x920');window.minsize(1080,700)
+        window.title('INVEX · Administración local de horarios · 2026.11.24.2');window.geometry('1420x920');window.minsize(1080,700)
         style=ttk.Style();style.theme_use('clam');style.configure('Treeview',rowheight=30);style.configure('TButton',padding=9)
         tk.Label(window,text='INVEX  /  ADMINISTRACIÓN DE HORARIOS',bg='#111111',fg='white',font=('Calibri',20,'bold'),padx=20,pady=18,anchor='w').pack(fill='x')
         tools=ttk.Frame(window,padding=12);tools.pack(fill='x')
@@ -217,7 +217,11 @@ class Admin:
         self.progress.start();self.status.set('Recalculando horarios y publicando en GitHub. No se descargan MAAT ni Pandape…')
         def work():
             try:
-                recalculate_publish();self.events.put((True,'Publicado en GitHub. La página se actualizará cuando termine el despliegue de Pages.'))
+                child=subprocess.run([sys.executable,'-X','utf8',str(ROOT/'python/ajustes_horarios.py'),'--publicar'],cwd=ROOT,capture_output=True,text=True,encoding='utf-8',errors='replace',creationflags=0x08000000)
+                (ROOT/'registros').mkdir(exist_ok=True)
+                (ROOT/'registros/administrar_horarios.log').write_text(child.stdout+'\n'+child.stderr,encoding='utf-8')
+                if child.returncode:raise RuntimeError('Revisa registros/administrar_horarios.log para conocer el motivo')
+                self.events.put((True,'Publicado en GitHub. La página se actualizará cuando termine el despliegue de Pages.'))
             except Exception as e:
                 (ROOT/'registros').mkdir(exist_ok=True)
                 (ROOT/'registros/administrar_horarios.log').write_text(traceback.format_exc(),encoding='utf-8')

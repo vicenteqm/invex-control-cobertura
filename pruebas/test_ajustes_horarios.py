@@ -7,6 +7,14 @@ from ajustes_horarios import effective_person,person_key,save,load,validate_sche
 from test_actualizar import CalculationTests,module
 
 class ScheduleOverrideTests(unittest.TestCase):
+    def test_generated_contract_views_inherit_general_saved_hours(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base,attendance=CalculationTests().make_files(directory);path=Path(directory)/'ajustes.json'
+            hours={'Tiempo completo':'L - D 11:00 - 21:00','Apertura':'11:00 - 17:00','Cierre':'15:00 - 21:00'}
+            save({'people':{},'stores':{'WM 1':{'general':{'targets':{'Tiempo completo':1,'Apertura':0,'Cierre':1},'hours':hours}}}},path)
+            store=module.generate(base,attendance,'2026-10',path)['stores'][0]
+            for view in [store,*store['contracts'].values()]:self.assertEqual(view['shiftCoverage']['hours'],hours)
+
     def test_days_entry_exit_are_one_schedule(self):
         from ajustes_horarios import split_schedule,compose_schedule
         self.assertEqual(split_schedule('L - V 11:00 - 20:00'),('L - V','11:00','20:00'))
