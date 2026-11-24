@@ -182,6 +182,10 @@ def generate(base, attendance, period, adjustments_path=None):
             schedules[schedule] = schedules.get(schedule, 0) + 1
             segment['activeSchedules'][schedule]=segment['activeSchedules'].get(schedule,0)+1
             for target in (stores[key],segment):
+                by_schedule=target.setdefault('activeScheduleContracts',{}).setdefault(schedule,{})
+                contract=norm(get('TIPO DE CONTRATO')) if 'TIPO DE CONTRATO' in h else ''
+                contract=contract or 'SIN ESPECIFICAR (SUELDO BASE)'
+                by_schedule[contract]=by_schedule.get(contract,0)+1
                 journeys=target.setdefault('journeySchedules',{})
                 bucket=journeys.setdefault(journey,{})
                 bucket[schedule]=bucket.get(schedule,0)+1
@@ -228,6 +232,9 @@ def generate(base, attendance, period, adjustments_path=None):
     from turnos_cobertura import enrich
     enrich([*stores.values(),*segments])
     for store in stores.values():
+        for segment in store['contracts'].values():
+            if 'Tiempo completo' in store['shiftCoverage']['hours']:
+                segment['shiftCoverage']['hours']['Tiempo completo']=store['shiftCoverage']['hours']['Tiempo completo']
         apply_store(adjustments,store)
         for group,segment in store['contracts'].items():apply_store(adjustments,segment,group)
     result = dict(updatedAt=datetime.now(timezone.utc).isoformat(), period=period, cutoff=f'{period}-{max(code_days):02}' if code_days else None, codeLabels=CODE_LABELS, sources=[dict(name=p.name, modifiedAt=datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).isoformat()) for p in [base, attendance]], stores=list(stores.values()), attendance=[dict(day=day, codes=dict(codes), hours=hours[day]) for day, codes in sorted(days.items())], warnings=dict(warnings))

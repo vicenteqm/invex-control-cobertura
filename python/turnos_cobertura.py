@@ -36,6 +36,20 @@ def enrich(stores):
         if 'journeySchedules' in store and store['id'] not in SPECIAL_HOURS:
             enrich_journeys(store)
 
+def full_time_hours(store):
+    import re
+    if store['id'] in SPECIAL_HOURS:return SPECIAL_HOURS[store['id']]['Apertura']
+    if store['id'].upper().startswith('SAMS '):return '11:00 - 20:00'
+    starts=set()
+    for schedule,total in store.get('journeySchedules',{}).get('MEDIO TIEMPO',{}).items():
+        match=re.search(r'(?<!\d)(\d{1,2}):(\d{2})(?!\d)',schedule)
+        if total and match:starts.add((int(match[1]),int(match[2])))
+    ten=(10,0) in starts;eleven=(11,0) in starts
+    if ten and eleven:return 'Por confirmar · hay medios tiempos con entrada a las 10:00 y 11:00'
+    if ten:return '11:00 - 20:00'
+    if eleven:return '10:00 - 19:00'
+    return 'Tiempo completo · horario por confirmar'
+
 def enrich_journeys(store):
     required=store['required'];journeys=store['journeySchedules']
     full=sum(journeys.get('TIEMPO COMPLETO',{}).values())
@@ -51,7 +65,7 @@ def enrich_journeys(store):
     gaps=allocate(store['gap']-full_gap,opening,closing,counts['Apertura'],counts['Cierre'])
     gaps['Tiempo completo']=full_gap
     hours=scheduled_hours(store['id'])
-    hours['Tiempo completo']='11:00 - 20:00' if store['id'].upper().startswith('SAMS ') else 'Tiempo completo · horario por confirmar'
+    hours['Tiempo completo']=full_time_hours(store)
     store['shiftCoverage']={
         'targets':{'Apertura':opening,'Cierre':closing,'Tiempo completo':full_target},
         'active':{**counts,'Tiempo completo':full},'gaps':gaps,'hours':hours,

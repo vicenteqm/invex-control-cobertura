@@ -27,6 +27,12 @@ class CalculationTests(unittest.TestCase):
             self.assertEqual(store['active'],4)
             self.assertEqual(store['contracts']['commission']['active'],2)
             self.assertEqual(store['contracts']['salary']['active'],2)
+            contracts=store['activeScheduleContracts']['Sin horario asignado']
+            self.assertEqual(sum(contracts.values()),4)
+            self.assertEqual(contracts['IMSS COMISIONISTA'],1)
+            self.assertEqual(contracts['SIN IMSS COMISIONISTA'],1)
+            self.assertEqual(contracts['SUELDO BASE IMSS'],1)
+            self.assertEqual(contracts['SIN ESPECIFICAR (SUELDO BASE)'],1)
             for g in store['contracts'].values():self.assertEqual(sum(g['activeSchedules'].values()),g['active'])
 
     def test_only_active_four_operational_profiles(self):

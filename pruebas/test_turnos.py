@@ -5,6 +5,16 @@ import unittest
 from turnos_cobertura import allocate,enrich,operational_shift,scheduled_hours,SPECIAL_HOURS
 
 class ShiftAllocationTests(unittest.TestCase):
+    def test_full_time_entry_complements_half_time_entry(self):
+        from turnos_cobertura import full_time_hours
+        def store(*schedules):return {'id':'WM 100','journeySchedules':{'MEDIO TIEMPO':{s:1 for s in schedules}}}
+        self.assertEqual(full_time_hours(store('L - D 10:00 - 16:00')),'11:00 - 20:00')
+        self.assertEqual(full_time_hours(store('L - D 11:00 - 17:00')),'10:00 - 19:00')
+        self.assertIn('Por confirmar',full_time_hours(store('10:00 - 16:00','11:00 - 17:00')))
+        self.assertIn('por confirmar',full_time_hours(store('14:00 - 20:00')))
+        sams=store('10:00 - 16:00');sams['id']='SAMS 100'
+        self.assertEqual(full_time_hours(sams),'11:00 - 20:00')
+
     def test_full_time_targets_and_existing_full_time(self):
         for required,half,full in [(2,1,0),(3,2,0),(4,2,1),(5,3,1),(6,4,1)]:
             store=dict(id='WM 100',required=required,gap=required-half-full,
