@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'.build-deps'))
 import tkinter as tk
 from tkinter import ttk,messagebox
-from ajustes_horarios import load,save,catalog,validate_schedule,recalculate_publish,BLOCKS
+from ajustes_horarios import load,save,catalog,validate_schedule,recalculate_publish,BLOCKS,split_schedule,compose_schedule
 
 class Admin:
     def __init__(self,window):
@@ -77,13 +77,18 @@ class Admin:
         for key,label,width in [('block','Jornada / turno',130),('target','Se necesitan',85),('active','Ya cubren',85),('gap','Faltan',65),('hours','Horario que falta cubrir',250)]:
             self.coverage_table.heading(key,text=label);self.coverage_table.column(key,width=width,minwidth=60)
         self.coverage_table.grid(row=1,column=0,columnspan=3,sticky='ew',pady=8)
-        for col,label in enumerate(['Turno','Personas necesarias en total','Horario para las vacantes']):ttk.Label(self.vacancies,text=label).grid(row=3,column=col,sticky='w',padx=5)
-        self.targets={};self.hours={}
+        for col,label in enumerate(['Turno','Personas necesarias en total','Días y horas de este turno']):ttk.Label(self.vacancies,text=label).grid(row=3,column=col,sticky='w',padx=5)
+        self.targets={};self.hours={};self.schedule_fields={};self.original_fields={}
         for row,block in enumerate(BLOCKS,4):
             self.targets[block]=tk.StringVar();self.hours[block]=tk.StringVar()
             ttk.Label(self.vacancies,text=block).grid(row=row,column=0,sticky='w',pady=8)
             ttk.Spinbox(self.vacancies,from_=0,to=100,textvariable=self.targets[block],width=12).grid(row=row,column=1,sticky='w')
-            ttk.Entry(self.vacancies,textvariable=self.hours[block],width=48).grid(row=row,column=2,sticky='ew')
+            fields=ttk.Frame(self.vacancies);fields.grid(row=row,column=2,sticky='ew',pady=5)
+            values=tuple(tk.StringVar() for _ in range(3));self.schedule_fields[block]=values
+            for col,(title,value,width) in enumerate(zip(['Días (ej. L - V)','Entrada','Salida'],values,[18,8,8])):
+                ttk.Label(fields,text=title).grid(row=0,column=col,sticky='w',padx=4)
+                ttk.Entry(fields,textvariable=value,width=width).grid(row=1,column=col,sticky='ew',padx=4)
+            fields.columnconfigure(0,weight=1)
         self.button(self.vacancies,'Guardar metas y horarios',self.save_store).grid(row=7,column=1,pady=15)
         self.button(self.vacancies,'Restaurar regla automática',self.restore_store).grid(row=7,column=2,pady=15)
         ttk.Label(self.vacancies,text='«Personas necesarias en total» incluye a quienes ya están activos; no escribas solo las vacantes. Las tres cantidades deben sumar la plantilla requerida. Guarda los cambios y después pulsa «Recalcular y publicar en GitHub».',wraplength=780).grid(row=8,column=0,columnspan=3,sticky='w',pady=10)
@@ -170,7 +175,10 @@ class Admin:
         s,scope,current=self.current_store();shift=current['shiftCoverage']
         warning=current.get('scheduleOverrideWarning','')
         self.summary.set(f"Plantilla requerida: {s['required']} · Activos en esta vista: {current['active']} · Vacantes: {current['gap']} · "+('Ajuste local' if shift.get('manual') else 'Regla automática')+' '+warning)
-        for block in BLOCKS:self.targets[block].set(str(shift['targets'].get(block,0)));self.hours[block].set(shift['hours'].get(block,''))
+        for block in BLOCKS:
+            self.targets[block].set(str(shift['targets'].get(block,0)));self.hours[block].set(shift['hours'].get(block,''))
+            values=split_schedule(self.hours[block].get());self.original_fields[block]=values
+            for field,value in zip(self.schedule_fields[block],values):field.set(value)
         self.card_values['Plantilla requerida'].set(str(s['required']))
         self.card_values['Personal activo'].set(str(current['active']))
         self.card_values['Personas faltantes'].set(str(current['gap']))
@@ -189,8 +197,10 @@ class Admin:
             if any(n<0 for n in targets.values()) or sum(targets.values())!=s['required']:raise ValueError('Las metas deben ser enteros no negativos y sumar '+str(s['required']))
             hours={}
             for b in BLOCKS:
-                value=self.hours[b].get().strip()
-                hours[b]=validate_schedule(value) if targets[b]>0 else value
+                fields=tuple(v.get().strip() for v in self.schedule_fields[b])
+                try:
+                    hours[b]=compose_schedule(*fields) if fields!=self.original_fields[b] else self.hours[b].get().strip()
+                except ValueError as error:raise ValueError(b+': '+str(error)) from None
             data=load();data['stores'].setdefault(s['id'],{})[scope]={'targets':targets,'hours':hours};save(data);self.edited()
         except Exception as e:messagebox.showerror('Revisar metas y horarios',str(e))
 

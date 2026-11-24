@@ -37,6 +37,18 @@ def validate_schedule(value):
     if minutes[1]<=minutes[0]:raise ValueError('La salida debe ser posterior a la entrada')
     return value
 
+def split_schedule(value):
+    matches=list(re.finditer(r'(?<!\d)(\d{1,2}):(\d{2})(?!\d)',value))
+    if len(matches)!=2:return 'L - D','',''
+    days=value[:matches[0].start()].strip(' ·-') or 'L - D'
+    return days, matches[0].group(),matches[1].group()
+
+def compose_schedule(days,entry,exit):
+    if not entry.strip() or not exit.strip():raise ValueError('Indica la entrada y la salida en la misma fila, por ejemplo 11:00 y 20:00')
+    if not re.fullmatch(r'\d{1,2}:\d{2}',entry.strip()) or not re.fullmatch(r'\d{1,2}:\d{2}',exit.strip()):
+        raise ValueError('Usa el formato HH:MM en entrada y salida, por ejemplo 11:00')
+    return validate_schedule((days.strip() or 'L - D')+' '+entry.strip()+' - '+exit.strip())
+
 def effective_person(data,employee,store,schedule,journey):
     item=data['people'].get(person_key(employee),{})
     if item.get('store')!=store:return schedule,journey

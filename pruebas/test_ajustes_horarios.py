@@ -7,6 +7,14 @@ from ajustes_horarios import effective_person,person_key,save,load,validate_sche
 from test_actualizar import CalculationTests,module
 
 class ScheduleOverrideTests(unittest.TestCase):
+    def test_days_entry_exit_are_one_schedule(self):
+        from ajustes_horarios import split_schedule,compose_schedule
+        self.assertEqual(split_schedule('L - V 11:00 - 20:00'),('L - V','11:00','20:00'))
+        self.assertEqual(split_schedule('Tiempo completo · horario por confirmar'),('L - D','',''))
+        self.assertEqual(compose_schedule('L - V','11:00','20:00'),'L - V 11:00 - 20:00')
+        for entry,exit in [('11:00',''),('','21:00'),('11','21'),('21:00','11:00')]:
+            with self.assertRaises(ValueError):compose_schedule('L - V',entry,exit)
+
     def test_publication_preserves_record_cutoff_and_does_not_publish_private_catalog(self):
         from ajustes_horarios import _recalculate_publish
         with tempfile.TemporaryDirectory() as directory:
