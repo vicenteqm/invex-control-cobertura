@@ -33,6 +33,31 @@ def enrich(stores):
             'hours':scheduled_hours(store['id']),
             'unallocated':store['gap']-sum(gaps.values()),
         }
+        if 'journeySchedules' in store and store['id'] not in SPECIAL_HOURS:
+            enrich_journeys(store)
+
+def enrich_journeys(store):
+    required=store['required'];journeys=store['journeySchedules']
+    full=sum(journeys.get('TIEMPO COMPLETO',{}).values())
+    full_target=required if store['id'].upper().startswith('SAMS ') else (required+2)//3
+    half_target=required-full_target
+    opening=half_target//2 if store['id'].upper().startswith(('WM ','WALMART ')) else (half_target+1)//2
+    closing=half_target-opening
+    counts={'Apertura':0,'Cierre':0}
+    for schedule,n in journeys.get('MEDIO TIEMPO',{}).items():
+        block=operational_shift(schedule)
+        if block in counts:counts[block]+=n
+    full_gap=min(store['gap'],max(0,full_target-full))
+    gaps=allocate(store['gap']-full_gap,opening,closing,counts['Apertura'],counts['Cierre'])
+    gaps['Tiempo completo']=full_gap
+    hours=scheduled_hours(store['id'])
+    hours['Tiempo completo']='11:00 - 20:00' if store['id'].upper().startswith('SAMS ') else 'Tiempo completo · horario por confirmar'
+    store['shiftCoverage']={
+        'targets':{'Apertura':opening,'Cierre':closing,'Tiempo completo':full_target},
+        'active':{**counts,'Tiempo completo':full},'gaps':gaps,'hours':hours,
+        'unallocated':store['gap']-sum(gaps.values()),
+        'rule':'Un tiempo completo por cada tres plazas, redondeando hacia arriba; SAMS conserva tiempo completo.',
+    }
 
 def allocate(global_gap, opening_target, closing_target, opening_active, closing_active):
     values=(global_gap,opening_target,closing_target,opening_active,closing_active)

@@ -177,6 +177,11 @@ def generate(base, attendance, period):
             schedules = stores[key].setdefault('activeSchedules', {})
             schedules[schedule] = schedules.get(schedule, 0) + 1
             segment['activeSchedules'][schedule]=segment['activeSchedules'].get(schedule,0)+1
+            journey=norm(get('JORNADA')) if 'JORNADA' in h else 'SIN JORNADA'
+            for target in (stores[key],segment):
+                journeys=target.setdefault('journeySchedules',{})
+                bucket=journeys.setdefault(journey,{})
+                bucket[schedule]=bucket.get(schedule,0)+1
             for i, day in day_columns:
                 code = norm(row[i])
                 if day > max_day:
@@ -197,8 +202,10 @@ def generate(base, attendance, period):
         book.close()
     segments=[]
     for store in stores.values():
+        store.setdefault('journeySchedules',{})
         for group in ('salary','commission'):
             segment=store.setdefault('contracts',{}).setdefault(group,dict(activeProm=0,activeSub=0,activeSchedules={}))
+            segment.setdefault('journeySchedules',{})
             segment.update({key:store[key] for key in ('id','requiredProm','requiredSub')})
             segments.append(segment)
     for store in [*stores.values(),*segments]:

@@ -5,6 +5,24 @@ import unittest
 from turnos_cobertura import allocate,enrich,operational_shift,scheduled_hours,SPECIAL_HOURS
 
 class ShiftAllocationTests(unittest.TestCase):
+    def test_full_time_targets_and_existing_full_time(self):
+        for required,half,full in [(2,1,0),(3,2,0),(4,2,1),(5,3,1),(6,4,1)]:
+            store=dict(id='WM 100',required=required,gap=required-half-full,
+                activeSchedules={},journeySchedules={'MEDIO TIEMPO':{'11:00 - 17:00':half},'TIEMPO COMPLETO':{'10:00 - 19:00':full}})
+            enrich([store]);s=store['shiftCoverage']
+            self.assertEqual(s['targets']['Tiempo completo'],(required+2)//3)
+            self.assertEqual(s['gaps']['Tiempo completo'],1)
+            self.assertLessEqual(sum(s['gaps'].values()),store['gap'])
+
+    def test_full_time_is_not_counted_as_half_time_opening(self):
+        store=dict(id='WM 100',required=3,gap=1,activeSchedules={},journeySchedules={
+            'TIEMPO COMPLETO':{'11:00 - 20:00':1},'MEDIO TIEMPO':{'11:00 - 17:00':1}})
+        enrich([store]);s=store['shiftCoverage']
+        self.assertEqual(s['gaps'],{'Apertura':0,'Cierre':1,'Tiempo completo':0})
+        sams=dict(store,id='SAMS 100');enrich([sams])
+        self.assertEqual(sams['shiftCoverage']['targets']['Tiempo completo'],3)
+        self.assertEqual(sams['shiftCoverage']['gaps']['Tiempo completo'],1)
+
     def test_walmart_prioritizes_afternoon_without_affecting_other_partners(self):
         for required in range(1,14):
             stores=[dict(id=key,required=required,gap=required,activeSchedules={}) for key in ['WM 100','WALMART 101','SAMS 102','CH 103']]
