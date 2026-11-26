@@ -11,6 +11,25 @@ from cobertura_actual import local_now
 
 
 class PortableTests(unittest.TestCase):
+    def test_exe_upgrade_rotates_service_credentials_without_resetting_local_data(self):
+        from operativo_portable import initialize
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)/'local';bundle=Path(directory)/'bundle';root.mkdir();bundle.mkdir()
+            (root/'.private').mkdir();(root/'fuentes').mkdir()
+            (root/'fuentes/asistencia.xlsx').write_bytes(b'personal-import')
+            atomic_json(root/'config.json',{'period':'2026-10','custom':True})
+            atomic_json(root/'ultimo-corte.json',{'keep':True})
+            atomic_json(bundle/'config.json',{'period':'2026-11','version':'1.8.0','credentialRevision':'test-revision'})
+            atomic_json(bundle/'accesos.json',{'maat':['service','new-test-key'],'pandape':['pandape-service','new-test-key']})
+            for name in ['maat','pandape']:(root/'.private'/(name+'.json')).write_text('encrypted-placeholder')
+            def read(path):return ['service','old-test-key'] if path.stem=='maat' else ['custom-user','custom-key']
+            with patch('secretos_locales.read_credentials',side_effect=read),patch('secretos_locales.save_credentials') as write:
+                config=initialize(root,bundle);initialize(root,bundle)
+            self.assertEqual(write.call_count,1)
+            self.assertEqual(config['period'],'2026-10');self.assertTrue(config['custom'])
+            self.assertEqual((root/'fuentes/asistencia.xlsx').read_bytes(),b'personal-import')
+            self.assertEqual(json.loads((root/'ultimo-corte.json').read_text()),{'keep':True})
+
     def test_import_attendance_recalculates_and_persists_without_download(self):
         from operativo_portable import import_attendance
         from fuentes_asistencia import current_generated,mark_source

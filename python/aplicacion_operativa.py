@@ -34,7 +34,7 @@ class Application:
         self.busy = False
         self.next_update = time.monotonic() + INTERVAL_SECONDS
         self.store_export, self.people_export = [], []
-        window.title('INVEX · Registro Pandape / MAAT · 1.7')
+        window.title('INVEX · Registro Pandape / MAAT · 1.8')
         window.geometry('1280x820');window.minsize(850, 560);window.configure(bg='#111111')
         style = ttk.Style();style.theme_use('clam')
         style.configure('.', font=('Calibri', 11))

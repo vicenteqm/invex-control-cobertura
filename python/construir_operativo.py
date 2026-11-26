@@ -29,7 +29,7 @@ def main():
     month=published['months'][config['period']]
     month['period']=config['period']
     (bundle/'ultimo-corte.json').write_text(json.dumps(month,ensure_ascii=False),encoding='utf-8')
-    (bundle/'config.json').write_text(json.dumps({'period':config['period'],'attendance_linked_roster':True,'version':'1.7.0'},ensure_ascii=False),encoding='utf-8')
+    (bundle/'config.json').write_text(json.dumps({'period':config['period'],'attendance_linked_roster':True,'version':'1.8.0','credentialRevision':'2026-11-26'},ensure_ascii=False),encoding='utf-8')
     # Estos accesos solo se incluyen en el paquete privado solicitado, nunca en Git.
     credentials={name:read_credentials(ROOT/'.private'/(name+'.json')) for name in ['maat','pandape']}
     if not all(len(v)==2 and all(v) for v in credentials.values()):raise ValueError('Falta un acceso configurado')

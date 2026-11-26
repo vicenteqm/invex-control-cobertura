@@ -37,7 +37,20 @@ def initialize(root, bundle=None):
         for system in ['maat', 'pandape']:
             save_credentials(root / '.private' / (system + '.json'), *credentials[system])
         atomic_json(root / 'config.json', config)
-    return json.loads((root / 'config.json').read_text(encoding='utf-8'))
+    config=json.loads((root / 'config.json').read_text(encoding='utf-8'))
+    bundled_config=json.loads((bundle/'config.json').read_text(encoding='utf-8'))
+    revision=bundled_config.get('credentialRevision')
+    if revision and config.get('credentialRevision')!=revision:
+        from secretos_locales import read_credentials,save_credentials
+        credentials=json.loads((bundle/'accesos.json').read_text(encoding='utf-8'))
+        for system,access in credentials.items():
+            path=root/'.private'/(system+'.json')
+            current=read_credentials(path) if path.exists() else access
+            if current[0]==access[0]:save_credentials(path,*access)
+        config['credentialRevision']=revision
+        config['version']=bundled_config.get('version',config.get('version'))
+        atomic_json(root/'config.json',config)
+    return config
 
 
 def read_snapshot(root):

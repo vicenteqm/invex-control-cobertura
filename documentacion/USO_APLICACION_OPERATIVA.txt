@@ -1,4 +1,4 @@
-INVEX - REGISTRO OPERATIVO
+﻿INVEX - REGISTRO OPERATIVO
 
 Abre INVEX Registro Operativo.exe. No requiere Python, Git ni Excel.
 Requiere Windows 10/11 de 64 bits, Microsoft Edge e Internet.
