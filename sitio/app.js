@@ -33,7 +33,7 @@ function drawStoreMaps(stores){
  const heading=el('div',undefined,'section-title');heading.append(el('h2','Cobertura por tienda'),el('span','MAPAS POR SOCIO'));storeMaps.append(heading);
  for(const [prefix,title]of [['SAMS','SAMS'],['WM','WALMART'],['CH','CHEDRAUI']]){
   const panel=el('article',undefined,'panel coverage-map-panel');panel.setAttribute('aria-label','Mapa de cobertura '+title);
-  const selected=stores.filter(s=>s.id.split(' ')[0]===prefix).sort((a,b)=>a.id.localeCompare(b.id,'es',{numeric:true}));
+  const selected=stores.filter(s=>s.status==='OPERANDO'&&s.id.split(' ')[0]===prefix).sort((a,b)=>a.id.localeCompare(b.id,'es',{numeric:true}));
   const top=el('div',undefined,'panel-title');top.append(el('h3',title),el('span',selected.length+' tiendas','tag'));panel.append(top);
   const grid=el('div',undefined,'coverage-map-grid');
   for(const s of selected){
