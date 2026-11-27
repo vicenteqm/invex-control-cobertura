@@ -25,7 +25,7 @@ def pretty_date(value):
 
 
 class Application:
-    def __init__(self, window, root, auto=True):
+    def __init__(self, window, root, auto=False):
         self.window, self.root = window, root
         self.config = initialize(root)
         self.snapshot = read_snapshot(root)
@@ -34,7 +34,7 @@ class Application:
         self.busy = False
         self.next_update = time.monotonic() + INTERVAL_SECONDS
         self.store_export, self.people_export = [], []
-        window.title('INVEX · Registro Pandape / MAAT · 1.8')
+        window.title('INVEX · Registro Pandape / MAAT · 2.0')
         window.geometry('1280x820');window.minsize(850, 560);window.configure(bg='#111111')
         style = ttk.Style();style.theme_use('clam')
         style.configure('.', font=('Calibri', 11))
@@ -66,7 +66,7 @@ class Application:
         self.sources_button = ttk.Button(bar, text='Fuentes', command=self.sources);self.sources_button.pack(side='left')
         self.attendance_button=ttk.Button(bar,text='Cargar nueva asistencia',command=self.load_attendance);self.attendance_button.pack(side='left',padx=8)
         self.auto = tk.BooleanVar(value=auto)
-        ttk.Checkbutton(bar, text='Actualizar cada 15 minutos', variable=self.auto).pack(side='right')
+        ttk.Checkbutton(bar, text='Actualizar MAAT cada 15 minutos', variable=self.auto).pack(side='right')
         self.progress = ttk.Progressbar(body, maximum=100);self.progress.pack(fill='x', pady=(12, 4))
         self.status = ttk.Label(body, text='Listo para actualizar',wraplength=1100);self.status.pack(anchor='w')
         self.cut = ttk.Label(body, text='',wraplength=1100);self.cut.pack(anchor='w', pady=(3, 0))
@@ -351,7 +351,7 @@ class Application:
             elif kind=='success':
                 self.snapshot=event[1];self.load_filters();self.draw();self.progress['value']=100
                 self.status.configure(text=('MAAT actualizado. Pandape pendiente: pulsa Actualizar Pandape e inicia sesión en Edge. MAAT seguirá actualizándose cada 15 minutos.' if self.snapshot.get('partialUpdate') else 'Actualización completada')+' · '+datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
-            elif kind=='login':self.status.configure(text='Sesión Pandape guardada en este equipo');self.window.after(200,self.update)
+            elif kind=='login':self.status.configure(text='Acceso manual verificado y sesión cerrada')
             elif kind=='session':
                 self.status.configure(text='Pandape requiere atención: completa el ingreso cuando esté disponible. La actualización de MAAT continúa cada 15 minutos.')
             elif kind=='month':self.status.configure(text='Carga la asistencia del mes actual desde Fuentes. Se conserva el corte anterior.')
@@ -380,13 +380,12 @@ def main():
             outcome={'ok':False,'type':type(error).__name__,'trace':traceback.format_exc()}
         atomic_json(args.comprobar_pandape,outcome);return
     if args.comprobar_maat:
-        initialize(root)
-        from descarga_asistencia import download
-        from secretos_locales import read_credentials
+        config=initialize(root)
         from cobertura_actual import local_now
         try:
-            credentials=read_credentials(root/'.private/maat.json')
-            result=download(root/'datos/prueba_maat.csv',local_now().strftime('%Y-%m'),*credentials)
+            from maat_operativo import download
+            from secretos_locales import read_credentials
+            result=download(root/'datos/prueba_maat.csv',local_now().strftime('%Y-%m'),*read_credentials(root/'.private/maat.json'))
             outcome={'ok':True,'records':result[0]}
         except Exception as error:
             import traceback
@@ -398,7 +397,7 @@ def main():
     try:msvcrt.locking(lock.fileno(),msvcrt.LK_NBLCK,1)
     except OSError:
         messagebox.showinfo('INVEX','La aplicación ya está abierta en este equipo.');return
-    window=tk.Tk();app=Application(window,root,auto=not bool(args.autoprueba) and not args.sin_actualizar)
+    window=tk.Tk();app=Application(window,root,auto=not(args.autoprueba or args.sin_actualizar))
     if args.autoprueba:
         def check():
             try:

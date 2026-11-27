@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import secrets
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -16,7 +17,6 @@ def main():
     parser.add_argument('--salida',type=Path,default=ROOT)
     args=parser.parse_args()
     sys.path.insert(0,str(ROOT/'python'))
-    from secretos_locales import read_credentials
     from procesar_cobertura import latest
     stage=ROOT/'resultados'/'construccion_operativo';bundle=stage/'paquete_operativo'
     bundle.mkdir(parents=True,exist_ok=True)
@@ -29,17 +29,23 @@ def main():
     month=published['months'][config['period']]
     month['period']=config['period']
     (bundle/'ultimo-corte.json').write_text(json.dumps(month,ensure_ascii=False),encoding='utf-8')
-    (bundle/'config.json').write_text(json.dumps({'period':config['period'],'attendance_linked_roster':True,'version':'1.8.0','credentialRevision':'2026-11-26'},ensure_ascii=False),encoding='utf-8')
-    # Estos accesos solo se incluyen en el paquete privado solicitado, nunca en Git.
-    credentials={name:read_credentials(ROOT/'.private'/(name+'.json')) for name in ['maat','pandape']}
-    if not all(len(v)==2 and all(v) for v in credentials.values()):raise ValueError('Falta un acceso configurado')
-    (bundle/'accesos.json').write_text(json.dumps(credentials),encoding='utf-8')
+    from secretos_locales import read_credentials
+    from accesos_operativo import seal
+    from cryptography.fernet import Fernet
+    user,password=read_credentials(ROOT/'.private/maat.json')
+    key=Fernet.generate_key();key_file=stage/'_clave_operativa.py'
+    key_file.write_text('PACKAGE_KEY = '+repr(key)+'\n',encoding='utf-8')
+    (bundle/'acceso_maat.bin').write_bytes(seal({'user':user,'password':password},key))
+    del password
+    (bundle/'config.json').write_text(json.dumps({'period':config['period'],'attendance_linked_roster':True,'version':'2.0.0','maat_automatic':True,'credentialRevision':secrets.token_hex(16)},ensure_ascii=False),encoding='utf-8')
+    # Ningún JSON de contraseña en texto dentro del paquete.
+    (bundle/'accesos.json').unlink(missing_ok=True)
     output=args.salida.resolve();output.mkdir(parents=True,exist_ok=True)
     env=dict(os.environ)
     env['PYTHONPATH']=os.pathsep.join([str(args.dependencias.resolve()),str(ROOT/'.build-deps'),str(ROOT/'python')])
     command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onefile','--windowed',
              '--name','INVEX Registro Operativo','--distpath',str(output),'--workpath',str(stage/'build'),
-             '--specpath',str(stage),'--paths',str(ROOT/'python'),'--paths',str(ROOT/'.build-deps'),'--collect-submodules','selenium',
+             '--specpath',str(stage),'--paths',str(ROOT/'python'),'--paths',str(ROOT/'.build-deps'),'--paths',str(stage),'--hidden-import','_clave_operativa','--collect-submodules','selenium',
              '--add-data',str(bundle)+os.pathsep+'paquete_operativo',str(ROOT/'python/aplicacion_operativa.py')]
     # El runtime de Python carga este archivo al crear cualquier contexto TLS.
     # Se conserva su validación HTTPS también dentro del ejecutable.
@@ -50,9 +56,10 @@ def main():
     finally:
         # No queda un JSON de contraseñas legible en la carpeta de construcción.
         (bundle/'accesos.json').unlink(missing_ok=True)
+        key_file.unlink(missing_ok=True)
     guide=ROOT/'documentacion'/'USO_APLICACION_OPERATIVA.txt'
     guide.parent.mkdir(exist_ok=True)
-    guide.write_text('INVEX - REGISTRO OPERATIVO\n\nAbre INVEX Registro Operativo.exe. No requiere Python, Git ni Excel.\nRequiere Windows 10/11 de 64 bits, Microsoft Edge e Internet.\n\nActualizar ahora descarga MAAT, exporta Pandape, genera la asistencia y cruza los registros en este equipo. La actualización automática se ejecuta cada 15 minutos mientras la aplicación permanece abierta.\n\nSi Pandape solicita verificación o rechaza el acceso automático, pulsa Actualizar Pandape y completa el ingreso en Edge. La misma ventana continúa con los filtros y la exportación al detectar la sesión iniciada. No se eluden CAPTCHA ni HTTP 403. MAAT sigue actualizándose aunque Pandape esté pendiente. Se muestran las horas de cada fuente por separado. El cruce y el mapa Pandape del día quedan sin evaluar hasta completar su descarga.\n\nLos accesos de servicio están incluidos por autorización del responsable del proyecto. Comparte este paquete únicamente con las personas autorizadas. La sesión del navegador se crea por separado en cada equipo. No se incluye acceso de publicación de GitHub.\n\nLos datos de este equipo se guardan en %LOCALAPPDATA%/INVEX/Seguimiento operativo. Pulsa Cargar nueva asistencia para elegir el Excel del mes actual: se guarda en este equipo y recalcula al instante con los registros MAAT disponibles, sin descargar. Usa Fuentes para reemplazar la base. Al cambiar de mes es necesario cargar la asistencia del nuevo periodo. Las fuentes iniciales corresponden a '+config['period']+'.\n\nLos KPI cuentan personas únicas del día. El registro no equivale a presencia instantánea. Los movimientos se asignan al destino MAAT, como en Seguimiento operativo. El detalle nominal ampliado conserva líderes y externos; su población puede ser mayor que la plantilla operativa de los KPI.\n',encoding='utf-8-sig')
+    guide.write_text('INVEX REGISTRO OPERATIVO 2.0\nMAAT se actualiza automaticamente cada 15 minutos. Actualizar Pandape requiere ingreso manual. Cargar nueva asistencia conserva su funcion.\nEl acceso MAAT viaja cifrado y se guarda con DPAPI de Windows por usuario. No se muestra ni se guarda en texto plano. Esta proteccion dificulta la inspeccion casual; no impide el analisis tecnico del ejecutable. Comparte solo con personal autorizado. No incluye clave de Pandape ni token GitHub.\n',encoding='utf-8-sig')
     print('EJECUTABLE PRIVADO: '+str(output/'INVEX Registro Operativo.exe'))
 
 

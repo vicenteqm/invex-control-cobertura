@@ -32,23 +32,11 @@ def initialize(root, bundle=None):
         for name in ['base.xlsx', 'asistencia.xlsx', 'ultimo-corte.json']:
             destination = root / ('fuentes' if name.endswith('.xlsx') else '') / name
             shutil.copyfile(bundle / name, destination)
-        from secretos_locales import save_credentials
-        credentials = json.loads((bundle / 'accesos.json').read_text(encoding='utf-8'))
-        for system in ['maat', 'pandape']:
-            save_credentials(root / '.private' / (system + '.json'), *credentials[system])
         atomic_json(root / 'config.json', config)
     config=json.loads((root / 'config.json').read_text(encoding='utf-8'))
-    bundled_config=json.loads((bundle/'config.json').read_text(encoding='utf-8'))
-    revision=bundled_config.get('credentialRevision')
-    if revision and config.get('credentialRevision')!=revision:
-        from secretos_locales import read_credentials,save_credentials
-        credentials=json.loads((bundle/'accesos.json').read_text(encoding='utf-8'))
-        for system,access in credentials.items():
-            path=root/'.private'/(system+'.json')
-            current=read_credentials(path) if path.exists() else access
-            if current[0]==access[0]:save_credentials(path,*access)
-        config['credentialRevision']=revision
-        config['version']=bundled_config.get('version',config.get('version'))
+    if (bundle/'acceso_maat.bin').exists():
+        from accesos_operativo import install
+        config=install(root,bundle,config,json.loads((bundle/'config.json').read_text(encoding='utf-8')))
         atomic_json(root/'config.json',config)
     return config
 
@@ -100,12 +88,9 @@ def import_attendance(root,config,source,progress=lambda *args:None,services=Non
 
 
 def access_config(root, config, interactive=False):
-    from secretos_locales import read_credentials
-    user, password = read_credentials(root / '.private' / 'pandape.json')
-    visible=interactive or config.get('pandape_visible_session',False)
-    return dict(config, pandape_user=user, pandape_password=password, portable_login=not visible,
-                portable_app=True,pandape_interactive_entry=interactive,
-                pandape_browser='edge', pandape_background=not visible)
+    clean={k:v for k,v in config.items() if k not in ('pandape_password','maat_password')}
+    return dict(clean,portable_login=False,portable_app=True,pandape_interactive_entry=True,
+                pandape_browser='edge',pandape_background=False)
 
 
 def login(root, config):
@@ -122,7 +107,6 @@ def refresh(root, config, progress, services=None, interactive_pandape=False):
     from generar_asistencia import generate as attendance_generate
     from fuentes_asistencia import current_generated, mark_source
     from actualizar import generate as coverage_generate
-    from secretos_locales import read_credentials
     now = local_now()
     period = now.strftime('%Y-%m')
     if config['period'] != period:
@@ -132,9 +116,14 @@ def refresh(root, config, progress, services=None, interactive_pandape=False):
     base, source = root / 'fuentes/base.xlsx', root / 'fuentes/asistencia.xlsx'
     coverage_generate(base, source, period)
     maat = root / 'datos' / ('asistencia_maat_' + period.replace('-', '_') + '.csv')
-    user, password = read_credentials(root / '.private' / 'maat.json')
     progress(15, 'Actualizando registros MAAT')
-    try:services.get('maat', maat_download)(maat, period, user, password)
+    try:
+        if config.get('maat_automatic'):
+            from maat_operativo import download as automatic_download
+            from secretos_locales import read_credentials
+            user,password=read_credentials(root/'.private/maat.json')
+            services.get('maat',automatic_download)(maat,period,user,password)
+        else:services.get('maat', maat_download)(maat, period)
     except Exception as error:
         status=getattr(getattr(error,'response',None),'status_code',None)
         atomic_json(root/'datos'/'ultimo-error-maat.json',{'type':type(error).__name__,'http':status,'at':now.isoformat()})
@@ -147,7 +136,7 @@ def refresh(root, config, progress, services=None, interactive_pandape=False):
     baseline = generated if current_generated({'attendance_linked_roster': True}, source, generated) else source
     attendance=baseline
     pandape_ok=False
-    attention=bool(config.get('pandape_attention_required')) and not interactive_pandape
+    attention=(bool(config.get('maat_automatic')) or bool(config.get('pandape_attention_required'))) and not interactive_pandape
     if attention:
         progress(38,'MAAT descargado · Pandape espera inicio de sesión')
     else:
